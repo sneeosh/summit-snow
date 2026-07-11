@@ -30,6 +30,11 @@ export function MountainCanvas() {
           app.destroy(true)
           return
         }
+        // The canvas must always fill the host visually, no matter what any
+        // autoDensity/style computation decides — CSS is the authority.
+        app.canvas.style.display = 'block'
+        app.canvas.style.width = '100%'
+        app.canvas.style.height = '100%'
         host.appendChild(app.canvas)
         scene = new MountainScene(
           app,
@@ -66,12 +71,19 @@ export function MountainCanvas() {
           const screen = app.renderer.screen
           if (screen.width !== w || screen.height !== h) {
             app.renderer.resize(w, h)
+            // resize() may rewrite the canvas style in px; reassert CSS fill
+            app.canvas.style.width = '100%'
+            app.canvas.style.height = '100%'
             scene?.fitCamera()
           }
         }
         observer = new ResizeObserver(syncSize)
         observer.observe(host)
         syncSize()
+        console.info(
+          `[summit-snow] canvas r2: host ${host.clientWidth}x${host.clientHeight}, ` +
+            `screen ${app.renderer.screen.width}x${app.renderer.screen.height}, dpr ${window.devicePixelRatio}`,
+        )
       })
 
     return () => {
