@@ -22,6 +22,7 @@ import { FACILITIES } from '../content/balance'
 import { hashNoise } from '../game/rng'
 import { isLiftRunning } from '../game/resort'
 import { allTrailDefs, analyzePath, builtClearings, getTrailPath, nearestNodeId } from '../game/trails'
+import { guestLook, guestTexture } from './sprites'
 import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
 import { moodFromWeather, paintTerrain } from './terrain'
@@ -33,13 +34,12 @@ const DIFF_COLOR: Record<string, number> = {
   'double-black': 0x22262a,
 }
 
-const GUEST_TINTS: Record<string, number> = {
-  skiing: 0x2c3e4a,
-  riding: 0x5a7184,
-  queueing: 0xc77f3d,
-  walking: 0x8a6d55,
-  leaving: 0x9aa7b0,
-  default: 0x77694f,
+/** shortest signed angular difference a→b in radians */
+function angleDelta(a: number, b: number): number {
+  let d = (b - a) % (Math.PI * 2)
+  if (d > Math.PI) d -= Math.PI * 2
+  if (d < -Math.PI) d += Math.PI * 2
+  return d
 }
 
 export interface SceneCallbacks {
@@ -62,7 +62,7 @@ export class MountainScene {
   private previewLayer = new Container()
   private labelLayer = new Container()
 
-  private guestSprites = new Map<number, Sprite>()
+  private guestViews = new Map<number, { sprite: Sprite; smooth: Vec2; heading: number }>()
   private chairSprites: { liftId: string; sprites: Sprite[] }[] = []
   private snowSprites: Sprite[] = []
   private dotTexture: Texture
@@ -643,35 +643,82 @@ export class MountainScene {
 
   private updateGuests(game: GameState): void {
     const seen = new Set<number>()
+    const t = performance.now() / 1000
     for (const guest of Object.values(game.guests)) {
       seen.add(guest.id)
-      let sprite = this.guestSprites.get(guest.id)
-      if (!sprite) {
-        sprite = new Sprite(this.dotTexture)
+      let view = this.guestViews.get(guest.id)
+      if (!view) {
+        const sprite = new Sprite()
         sprite.anchor.set(0.5)
-        sprite.scale.set(1)
+        sprite.scale.set(0.115)
         sprite.position.set(guest.pos.x, guest.pos.y)
         this.guestLayer.addChild(sprite)
-        this.guestSprites.set(guest.id, sprite)
+        view = { sprite, smooth: { ...guest.pos }, heading: Math.PI / 2 }
+        this.guestViews.set(guest.id, view)
       }
-      // smooth toward sim position
-      sprite.x += (guest.pos.x - sprite.x) * 0.22
-      sprite.y += (guest.pos.y - sprite.y) * 0.22
-      sprite.tint = GUEST_TINTS[guest.objective] ?? GUEST_TINTS.default
-      // hide guests inside buildings / on gondolas
+      const { sprite } = view
+      const look = guestLook(guest.id)
+      const phase = (guest.id % 17) * 0.7
+
+      // smooth base position toward the sim
+      view.smooth.x += (guest.pos.x - view.smooth.x) * 0.22
+      view.smooth.y += (guest.pos.y - view.smooth.y) * 0.22
+
+      const skiing = guest.objective === 'skiing'
+      const hiking = skiing && guest.stuckSegIdx >= 0
+
+      // travel heading from smoothed motion (kept when stationary)
+      const dx = guest.pos.x - view.smooth.x
+      const dy = guest.pos.y - view.smooth.y
+      if (Math.hypot(dx, dy) > 0.35) {
+        const target = Math.atan2(dy, dx)
+        view.heading += angleDelta(view.heading, target) * 0.18
+      }
+
+      if (skiing && !hiking) {
+        // carve: pose leans through an S-turn cycle; the body sways across
+        // the fall line so the track reads as linked turns
+        const isBoard = look.rides === 'board'
+        const cycle = Math.sin(t * (isBoard ? 2.2 : 2.9) + phase)
+        const pose = Math.round(cycle * 2)
+        const swayAmp = isBoard ? 3.4 : 2.4
+        const px = -Math.sin(view.heading) * cycle * swayAmp
+        const py = Math.cos(view.heading) * cycle * swayAmp
+        sprite.texture = guestTexture(look.rides, pose, look.palette)
+        sprite.rotation = view.heading - Math.PI / 2
+        sprite.position.set(view.smooth.x + px, view.smooth.y + py)
+      } else if (hiking) {
+        // stuck on an uphill stretch: upright, trudging
+        sprite.texture = guestTexture('stand', 0, look.palette)
+        sprite.rotation = 0
+        sprite.position.set(view.smooth.x, view.smooth.y + Math.sin(t * 6 + phase) * 0.5)
+      } else {
+        // village life: upright figure with a little walking bob
+        const moving =
+          guest.objective === 'walking' ||
+          guest.objective === 'arriving' ||
+          guest.objective === 'leaving' ||
+          guest.objective === 'to-lift'
+        sprite.texture = guestTexture('stand', 0, look.palette)
+        sprite.rotation = 0
+        sprite.position.set(view.smooth.x, view.smooth.y + (moving ? Math.sin(t * 9 + phase) * 0.6 : 0))
+      }
+
+      // hide guests inside buildings; riders are represented by their chair
       const hidden =
+        guest.objective === 'riding' ||
         guest.objective === 'eating' ||
         guest.objective === 'resting' ||
         guest.objective === 'restroom' ||
         guest.objective === 'first-aid' ||
         guest.objective === 'buying-ticket' ||
         guest.objective === 'renting'
-      sprite.alpha = hidden ? 0 : 0.95
+      sprite.alpha = hidden ? 0 : 1
     }
-    for (const [id, sprite] of this.guestSprites) {
+    for (const [id, view] of this.guestViews) {
       if (!seen.has(id)) {
-        sprite.destroy()
-        this.guestSprites.delete(id)
+        view.sprite.destroy()
+        this.guestViews.delete(id)
       }
     }
   }

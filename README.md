@@ -72,7 +72,8 @@ src/
     simulation.ts #   tick pipeline + day lifecycle orchestration
   state/          # zustand store (owns GameState + scheduler) and saves
   rendering/      # Pixi 8 scene: painterly canvas terrain, trails, lifts
-                  #   with animated chairs, guest dots, snow particles
+                  #   with animated chairs, procedural skier/boarder
+                  #   sprites carving S-turns, snow particles
   components/     # React HUD: top bar, build rail, inspector, bottom panel,
                   #   events, daily report, tutorial, objectives, menu
 ```
