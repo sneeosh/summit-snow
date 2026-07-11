@@ -11,12 +11,12 @@ import {
   STAFF_WAGES,
   TRAIL_MIN_DEPTH_CM,
 } from '../content/balance'
-import { FACILITY_SLOTS, LIFT_SITES, liftLengthM, PREBUILT_TRAILS, TRAILS } from '../content/mountain'
+import { FACILITY_SLOTS, LIFT_SITES, liftLengthM, PREBUILT_TRAILS, TRAIL_MAP as TRAIL_MAP_LOOKUP, TRAILS } from '../content/mountain'
 import { Rng } from './rng'
 import { computeSurface, generateSeasonWeather } from './weather'
 import type { GameMode, GameState, LiftState, StaffRole, TrailState } from './types'
 
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 
 export function newGame(mode: GameMode, seed: number): GameState {
   const rng = new Rng(seed)
@@ -46,7 +46,7 @@ export function newGame(mode: GameMode, seed: number): GameState {
       ridesToday: 0,
       traffic: 0,
     }
-    state.surface = computeSurface(state, weatherSeason[0])
+    state.surface = computeSurface(state, weatherSeason[0], (id) => TRAIL_MAP_LOOKUP[id])
     state.open = built && state.snowDepthCm >= TRAIL_MIN_DEPTH_CM
     trails[t.id] = state
   }
@@ -76,6 +76,7 @@ export function newGame(mode: GameMode, seed: number): GameState {
     staff,
     lifts,
     trails,
+    customTrailDefs: {},
     facilities,
     weatherSeason,
     guests: {},

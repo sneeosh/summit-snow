@@ -36,6 +36,12 @@ your reputation. At 16:30 the day settles into an operating report.
 - Build panel: pick a lift type / trail / facility, then click the matching
   ghost site on the map. Lifts need operators; grooming and snowmaking need
   their own crews (see Staff panel).
+- **Draw your own trails**: Build → “Draw a custom trail”, then click
+  waypoints down the mountain (endpoints snap to the ringed stations).
+  You pay per metre of groundwork plus every tree cleared from the
+  corridor. The game grades your line and warns you — but never stops
+  you: lines that climb back uphill leave skiers stuck hiking, and runs
+  that dead-end mid-mountain strand them until patrol sleds them out.
 - Watch the 7-day forecast: powder sells, wind closes exposed lifts, warm
   spells rot the snowpack. Snow guns fire on cold nights only.
 - **Scenario** mode has objectives and a bankruptcy condition; **Sandbox**
@@ -92,6 +98,7 @@ Key decisions:
 | --- | --- |
 | Weather & snow | Season generated up front; forecast accuracy decays with lead time; overnight melt/wind-strip/snowfall, grooming, snowmaking (needs cold + techs + guns) |
 | Guests | Individual agents with skill, budget, patience, energy, warmth, hunger; appeal-scored trail choice; memories drive complaints, reviews, reputation |
+| Custom trails | Freeform drawing over a real elevation model and a deterministic forest (`src/game/terrainModel.ts`); gradient grading, per-tree clearing costs, uphill/dead-end consequences (`src/game/trails.ts`) |
 | Lifts | Hourly capacity boarding, queue bail-outs, wind holds by type tolerance, morning breakdown rolls softened by mechanics & the garage |
 | Economy | Price-elastic demand vs a $55 benchmark, weekend/weather/reputation multipliers, parking ceiling, daily settlement with payroll/energy/interest |
 | Staff | Eight departments hired in aggregate; understaffing visibly stops lifts, grooming, rentals, lessons, and patrol coverage |
@@ -101,7 +108,6 @@ Key decisions:
 ## Deferred features (not bugs)
 
 - Individual staff members with morale/schedules (aggregate departments ship)
-- Freeform trail drawing (predefined corridors ship, per the vision's v1 scope)
 - LLM-backed event provider (seam + schema ship; endpoint wiring does not)
 - Trail/lift overlays for patrol & snowmaking coverage (difficulty, snow
   depth, and crowding overlays ship)

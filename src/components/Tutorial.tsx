@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import { DEFAULT_PRICES } from '../content/balance'
 import { liftStaffRequired, staffCount } from '../game/resort'
-import { TRAIL_MAP } from '../content/mountain'
+import { getTrailDef } from '../game/trails'
 import { useStore } from '../state/store'
 import type { GameState } from '../game/types'
 
@@ -30,7 +30,7 @@ const STEPS: Step[] = [
     id: 'open-trail',
     title: 'Cut an intermediate trail',
     body: 'In Build → Trails, choose “Cut a new trail”, then click the dotted Alder Run corridor. Blues bring the biggest crowd.',
-    done: (g) => Object.values(g.trails).some((t) => t.built && TRAIL_MAP[t.trailId].difficulty === 'blue'),
+    done: (g) => Object.values(g.trails).some((t) => t.built && getTrailDef(g, t.trailId).difficulty === 'blue'),
   },
   {
     id: 'hire-staff',

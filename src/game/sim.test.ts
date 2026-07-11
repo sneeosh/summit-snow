@@ -4,6 +4,7 @@ import { computeDailyDemand, settleDay } from './economy'
 import { LocalEventProvider, applyEffects, validateEffect } from './events'
 import { chooseTrail, difficultyFit, planLifts } from './guests'
 import { newGame } from './init'
+import { getTrailDef } from './trails'
 import { Rng, hashNoise } from './rng'
 import { fastForwardDay, openResort, startNextDay, tick } from './simulation'
 import { forecastFor, generateSeasonWeather, processOvernight } from './weather'
@@ -72,12 +73,12 @@ describe('weather', () => {
     const trail = g.trails['bunny-hollow']
     trail.traffic = 40
     const before = trail.snowDepthCm
-    processOvernight(g.trails, { ...g.weatherSeason[0], snowfallCm: 20, tempHigh: -5, windKph: 10 }, {
-      groomerCapacity: 5,
-      snowmakingCapacity: 0,
-      snowmakingBoost: 1,
-      snowBonusCm: 0,
-    })
+    processOvernight(
+      g.trails,
+      { ...g.weatherSeason[0], snowfallCm: 20, tempHigh: -5, windKph: 10 },
+      { groomerCapacity: 5, snowmakingCapacity: 0, snowmakingBoost: 1, snowBonusCm: 0 },
+      (id) => getTrailDef(g, id),
+    )
     expect(trail.snowDepthCm).toBeGreaterThan(before)
     expect(trail.traffic).toBe(0)
     expect(trail.groomedOvernight).toBe(true)
@@ -87,12 +88,12 @@ describe('weather', () => {
     const g = newGame('scenario', 1)
     const trail = g.trails['bunny-hollow']
     const before = trail.snowDepthCm
-    processOvernight(g.trails, { ...g.weatherSeason[0], snowfallCm: 0, tempHigh: 8, tempLow: 1, windKph: 5 }, {
-      groomerCapacity: 0,
-      snowmakingCapacity: 0,
-      snowmakingBoost: 1,
-      snowBonusCm: 0,
-    })
+    processOvernight(
+      g.trails,
+      { ...g.weatherSeason[0], snowfallCm: 0, tempHigh: 8, tempLow: 1, windKph: 5 },
+      { groomerCapacity: 0, snowmakingCapacity: 0, snowmakingBoost: 1, snowBonusCm: 0 },
+      (id) => getTrailDef(g, id),
+    )
     expect(trail.snowDepthCm).toBeLessThan(before)
   })
 })

@@ -11,6 +11,7 @@ import { rollBreakdowns, tickLifts } from './lifts'
 import { updateObjectives } from './objectives'
 import { groomerCapacity, hasFacility, openTrails, snowmakingBoost, snowmakingCapacity } from './resort'
 import { Rng } from './rng'
+import { getTrailDef } from './trails'
 import { processOvernight } from './weather'
 import type { GameState } from './types'
 
@@ -108,12 +109,17 @@ export function startNextDay(state: GameState): void {
 
   // ---- overnight mountain work (uses the dawning day's weather)
   const weather = state.weatherSeason[state.day - 1]
-  processOvernight(state.trails, weather, {
-    groomerCapacity: groomerCapacity(state),
-    snowmakingCapacity: snowmakingCapacity(state),
-    snowmakingBoost: snowmakingBoost(state),
-    snowBonusCm: state.snowBonusCm,
-  })
+  processOvernight(
+    state.trails,
+    weather,
+    {
+      groomerCapacity: groomerCapacity(state),
+      snowmakingCapacity: snowmakingCapacity(state),
+      snowmakingBoost: snowmakingBoost(state),
+      snowBonusCm: state.snowBonusCm,
+    },
+    (id) => getTrailDef(state, id),
+  )
   state.snowBonusCm = 0
 
   // ---- reset daily accumulators

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BottomPanel } from './components/BottomPanel'
 import { DailyReportModal } from './components/DailyReport'
+import { DrawTrailPanel } from './components/DrawTrailPanel'
 import { EventsUI } from './components/EventsUI'
 import { Inspector } from './components/Inspector'
 import { LeftRail } from './components/LeftRail'
@@ -40,6 +41,12 @@ export default function App() {
           if (s.buildMode) s.setBuildMode(null)
           else if (s.selection) s.select(null)
           break
+        case 'Backspace':
+          if (s.buildMode?.type === 'draw-trail') {
+            e.preventDefault()
+            s.undoDrawPoint()
+          }
+          break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -60,6 +67,7 @@ export default function App() {
         <Tutorial />
         <EventsUI />
         <BuildModeHint />
+        <DrawTrailPanel />
         <DailyReportModal />
         <GameOverBanner />
         <Toast />
@@ -71,7 +79,7 @@ export default function App() {
 function BuildModeHint() {
   const buildMode = useStore((s) => s.buildMode)
   const setBuildMode = useStore((s) => s.setBuildMode)
-  if (!buildMode) return null
+  if (!buildMode || buildMode.type === 'draw-trail') return null // draw mode has its own panel
   const label =
     buildMode.type === 'lift'
       ? 'Click a dashed alignment to build the lift'

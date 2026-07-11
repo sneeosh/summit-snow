@@ -11,17 +11,18 @@ import {
   FACILITY_SLOTS,
   LIFT_LINES,
   LIFT_SITES,
+  measurePath,
+  NODE_MAP,
   pointAt,
   TRAIL_MAP,
-  TRAIL_PATHS,
-  TRAILS,
   WORLD_H,
   WORLD_W,
 } from '../content/mountain'
 import { FACILITIES } from '../content/balance'
 import { hashNoise } from '../game/rng'
 import { isLiftRunning } from '../game/resort'
-import type { GameState, TrailState, Vec2 } from '../game/types'
+import { allTrailDefs, analyzePath, builtClearings, getTrailPath, nearestNodeId } from '../game/trails'
+import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
 import { moodFromWeather, paintTerrain } from './terrain'
 
@@ -46,6 +47,7 @@ export interface SceneCallbacks {
   onSlotClick: (slotId: string) => void
   onLiftSiteClick: (siteId: string) => void
   onTrailClick: (trailId: string) => void
+  onDrawPoint: (p: Vec2) => void
 }
 
 export class MountainScene {
@@ -65,6 +67,8 @@ export class MountainScene {
   private snowSprites: Sprite[] = []
   private dotTexture: Texture
   private flakeTexture: Texture
+  private drawPreview = new Graphics()
+  private mouseWorld: Vec2 | null = null
 
   private structureKey = ''
   private terrainKey = ''
@@ -97,7 +101,9 @@ export class MountainScene {
     this.getState = getState
     this.callbacks = callbacks
 
-    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.guestLayer, this.labelLayer, this.previewLayer, this.weatherLayer)
+    // drawPreview sits outside previewLayer: rebuilds destroy previewLayer's
+    // children, but the draw-mode overlay is redrawn per frame instead
+    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.guestLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.weatherLayer)
     app.stage.addChild(this.world)
 
     this.dotTexture = this.makeCircleTexture(5)
@@ -167,6 +173,7 @@ export class MountainScene {
       this.worldStart = { x: this.world.x, y: this.world.y }
     })
     window.addEventListener('pointermove', (e) => {
+      this.mouseWorld = this.toWorld(e)
       if (!this.dragging) return
       const dx = e.clientX - this.dragStart.x
       const dy = e.clientY - this.dragStart.y
@@ -237,6 +244,12 @@ export class MountainScene {
     if (!game) return
     const p = this.toWorld(e)
 
+    // trail drawing: every click drops a waypoint
+    if (buildMode?.type === 'draw-trail') {
+      this.callbacks.onDrawPoint(p)
+      return
+    }
+
     // build mode: clicks target the relevant ghost sites
     if (buildMode?.type === 'facility') {
       const slot = this.nearestFreeSlot(game, p, buildMode.kind)
@@ -253,7 +266,7 @@ export class MountainScene {
       }
     }
     if (buildMode?.type === 'trail' || buildMode?.type === 'snowmaking') {
-      const trailId = this.nearestTrail(p, 34)
+      const trailId = this.nearestTrail(game, p, 34)
       if (trailId) {
         this.callbacks.onTrailClick(trailId)
         return
@@ -276,7 +289,7 @@ export class MountainScene {
       this.callbacks.onSelect({ type: 'lift', id: lift })
       return
     }
-    const trailId = this.nearestTrail(p, 26)
+    const trailId = this.nearestTrail(game, p, 26)
     if (trailId && game.trails[trailId].built) {
       this.callbacks.onSelect({ type: 'trail', id: trailId })
       return
@@ -341,14 +354,14 @@ export class MountainScene {
     return best
   }
 
-  private nearestTrail(p: Vec2, threshold: number): string | null {
+  private nearestTrail(game: GameState, p: Vec2, threshold: number): string | null {
     let best: string | null = null
     let bestD = threshold
-    for (const t of TRAILS) {
-      const d = distToMeasured(p, TRAIL_PATHS[t.id])
+    for (const def of allTrailDefs(game)) {
+      const d = distToMeasured(p, getTrailPath(game, def.id))
       if (d < bestD) {
         bestD = d
-        best = t.id
+        best = def.id
       }
     }
     return best
@@ -364,10 +377,10 @@ export class MountainScene {
 
     // terrain mood repaint (rare)
     const weather = game.weatherSeason[game.day - 1]
-    const tKey = `${game.day}|${weather.cloud.toFixed(2)}|${weather.visibility.toFixed(2)}`
+    const tKey = `${game.day}|${weather.cloud.toFixed(2)}|${weather.visibility.toFixed(2)}|${Object.keys(game.customTrailDefs).length}`
     if (tKey !== this.terrainKey) {
       this.terrainKey = tKey
-      const canvas = paintTerrain(moodFromWeather(weather), game.seed)
+      const canvas = paintTerrain(moodFromWeather(weather), game.seed, builtClearings(game))
       const texture = Texture.from(canvas)
       if (this.terrainSprite) {
         const old = this.terrainSprite.texture
@@ -389,6 +402,55 @@ export class MountainScene {
     this.updateGuests(game)
     this.updateChairs(game)
     this.updateWeather(game)
+    this.updateDrawPreview(buildMode)
+  }
+
+  /** live overlay while drawing a trail: ribbon ghost, uphill warnings, snap rings */
+  private updateDrawPreview(buildMode: BuildMode): void {
+    const g = this.drawPreview
+    g.clear()
+    if (buildMode?.type !== 'draw-trail') return
+
+    const committed = buildMode.points
+    const preview = this.mouseWorld && !this.dragging ? [...committed, this.mouseWorld] : committed
+
+    // snap rings on network nodes — endpoints want to live here
+    for (const node of Object.values(NODE_MAP)) {
+      g.circle(node.pos.x, node.pos.y, 10).stroke({ width: 2, color: 0xa97949, alpha: 0.55 })
+      g.circle(node.pos.x, node.pos.y, 3).fill({ color: 0xa97949, alpha: 0.7 })
+    }
+
+    if (preview.length >= 2) {
+      // ribbon ghost
+      strokePath(g, preview, 15, 0xffffff, 0.55)
+      strokePath(g, preview, 2.5, 0x2f6fb2, 0.85)
+      // paint uphill stretches in alarm orange
+      const analysis = analyzePath(preview)
+      if (analysis.uphillSegments.length > 0) {
+        const mp = measurePath(preview)
+        for (const seg of analysis.uphillSegments) {
+          const steps = 8
+          for (let i = 0; i < steps; i++) {
+            const a = pointAt(mp, seg.t0 + ((seg.t1 - seg.t0) * i) / steps)
+            const b = pointAt(mp, seg.t0 + ((seg.t1 - seg.t0) * (i + 1)) / steps)
+            g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 6, color: 0xd95d2e, alpha: 0.85 })
+          }
+        }
+      }
+    }
+    // committed waypoints
+    for (const p of committed) {
+      g.circle(p.x, p.y, 4.5).fill({ color: 0x2f6fb2 })
+      g.circle(p.x, p.y, 2).fill({ color: 0xffffff })
+    }
+    // cursor crosshair snapping hint
+    if (this.mouseWorld) {
+      const snap = nearestNodeId(this.mouseWorld)
+      if (snap) {
+        const node = NODE_MAP[snap]
+        g.circle(node.pos.x, node.pos.y, 14).stroke({ width: 2.5, color: 0x2e7d4f, alpha: 0.9 })
+      }
+    }
   }
 
   // ------------------------------------------------------ static rebuild
@@ -407,14 +469,15 @@ export class MountainScene {
   }
 
   private drawTrails(game: GameState, selection: Selection, buildMode: BuildMode, overlay: Overlay): void {
-    for (const def of TRAILS) {
+    for (const def of allTrailDefs(game)) {
       const st = game.trails[def.id]
-      const mp = TRAIL_PATHS[def.id]
+      if (!st) continue // custom def without state shouldn't happen, but be safe
+      const mp = getTrailPath(game, def.id)
       const g = new Graphics()
       const width = Math.max(10, def.widthM * 0.55)
 
       if (st.built) {
-        const ribbonColor = overlayTrailColor(overlay, st, def.difficulty)
+        const ribbonColor = overlayTrailColor(overlay, st, def)
         // carved-edge shadow so the piste reads against open snowfield
         strokePath(g, mp.points, width + 5, 0x9db4c4, st.open ? 0.5 : 0.3)
         // ribbon
@@ -734,10 +797,10 @@ function dashPath(g: Graphics, mp: { points: Vec2[]; cum: number[]; total: numbe
   }
 }
 
-function overlayTrailColor(overlay: Overlay, st: TrailState, difficulty: string): { color: number; alpha: number } {
+function overlayTrailColor(overlay: Overlay, st: TrailState, def: TrailDef): { color: number; alpha: number } {
   switch (overlay) {
     case 'difficulty':
-      return { color: DIFF_COLOR[difficulty], alpha: 0.55 }
+      return { color: DIFF_COLOR[def.difficulty], alpha: 0.55 }
     case 'snow': {
       const depth = Math.min(1, st.snowDepthCm / 100)
       // thin = warm alarm, deep = rich blue
@@ -745,7 +808,6 @@ function overlayTrailColor(overlay: Overlay, st: TrailState, difficulty: string)
       return { color, alpha: 0.6 }
     }
     case 'crowding': {
-      const def = TRAIL_MAP[st.trailId]
       const load = st.skierIds.length / def.capacity
       const color = load > 0.85 ? 0xc0392b : load > 0.5 ? 0xd9913d : 0x2e7d4f
       return { color, alpha: 0.55 }
@@ -826,7 +888,10 @@ function structureKeyOf(game: GameState, selection: Selection, buildMode: BuildM
     .map((l) => `${l.siteId}:${l.kind}:${l.open ? 1 : 0}:${l.forcedClosed ?? ''}`)
     .join(',')
   const trails = Object.values(game.trails)
-    .map((t) => `${t.trailId}:${t.built ? 1 : 0}:${t.open ? 1 : 0}:${t.surface}:${t.hasSnowmaking ? 1 : 0}${overlay === 'snow' ? ':' + Math.round(t.snowDepthCm) : ''}${overlay === 'crowding' ? ':' + Math.min(9, Math.floor((t.skierIds.length / TRAIL_MAP[t.trailId].capacity) * 4)) : ''}`)
+    .map((t) => {
+      const cap = (TRAIL_MAP[t.trailId] ?? game.customTrailDefs[t.trailId])?.capacity ?? 50
+      return `${t.trailId}:${t.built ? 1 : 0}:${t.open ? 1 : 0}:${t.surface}:${t.hasSnowmaking ? 1 : 0}${overlay === 'snow' ? ':' + Math.round(t.snowDepthCm) : ''}${overlay === 'crowding' ? ':' + Math.min(9, Math.floor((t.skierIds.length / cap) * 4)) : ''}`
+    })
     .join(',')
   const fac = Object.entries(game.facilities)
     .map(([k, v]) => `${k}:${v ?? ''}`)

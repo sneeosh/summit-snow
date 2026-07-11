@@ -57,6 +57,12 @@ export interface TrailDef {
   buildCost: number
   /** max comfortable simultaneous skiers before crowding bites */
   capacity: number
+  /** player-drawn trail (lives in GameState.customTrailDefs, not content) */
+  isCustom?: boolean
+  /** progress ranges where the line climbs back uphill — skiers get stuck */
+  uphillSegments?: { t0: number; t1: number; climbM: number }[]
+  uphillFraction?: number
+  totalClimbM?: number
 }
 
 export type LiftKind = 'surface' | 'chair' | 'high-speed-chair' | 'gondola'
@@ -212,6 +218,8 @@ export interface Guest {
   isChild: boolean
   /** menu price at the venue the guest is heading to */
   venuePrice: number
+  /** index of the uphill segment the guest is currently slogging through (-1 = none) */
+  stuckSegIdx: number
 }
 
 // ------------------------------------------------------------------ lifts
@@ -405,6 +413,8 @@ export interface GameState {
 
   lifts: Record<string, LiftState>
   trails: Record<string, TrailState>
+  /** player-drawn trail definitions, keyed by trail id */
+  customTrailDefs: Record<string, TrailDef>
   facilities: Record<string, FacilityKind | null> // slotId -> built facility
 
   weatherSeason: WeatherDay[] // true weather for full season (forecast adds noise)

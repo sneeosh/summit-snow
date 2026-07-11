@@ -192,6 +192,14 @@ export const FACILITIES: Record<FacilityKind, FacilitySpec> = {
   },
 }
 
+// ---- custom (player-drawn) trails
+export const CUSTOM_TRAIL_WIDTH_M = 28
+/** groundwork per metre of trail cut */
+export const TRAIL_COST_PER_M = 8
+/** felling + hauling one tree out of the corridor */
+export const TREE_CLEAR_COST = 180
+export const CUSTOM_TRAIL_NAMES_FALLBACK = 'Line'
+
 export const SNOWMAKING_INSTALL_COST = 12_000
 export const SNOWMAKING_ENERGY_PER_NIGHT = 220
 export const SNOWMAKING_CM_PER_NIGHT = 8

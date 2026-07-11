@@ -27,16 +27,9 @@ import {
   WALK_SPEED,
   WARMTH_DRAIN_BASE,
 } from '../content/balance'
-import {
-  FACILITY_SLOTS,
-  LIFT_LINES,
-  LIFT_SITE_MAP,
-  NODE_MAP,
-  pointAt,
-  TRAIL_MAP,
-  TRAIL_PATHS,
-} from '../content/mountain'
+import { FACILITY_SLOTS, LIFT_LINES, LIFT_SITE_MAP, NODE_MAP, pointAt } from '../content/mountain'
 import { FIRST_NAMES, LAST_NAMES } from '../content/names'
+import { getTrailDef, getTrailPath } from './trails'
 import type { Rng } from './rng'
 import {
   foodCapacity,
@@ -148,6 +141,7 @@ function makeGuest(state: GameState, rng: Rng): Guest {
     noRestroomComplained: false,
     isChild,
     venuePrice: 0,
+    stuckSegIdx: -1,
   }
 }
 
@@ -463,7 +457,7 @@ function tickSkiing(state: GameState, guest: Guest, rng: Rng): void {
     decideNext(state, guest)
     return
   }
-  const def = TRAIL_MAP[trailId]
+  const def = getTrailDef(state, trailId)
   const trail = state.trails[trailId]
   const surfaceSpeed: Record<string, number> = {
     'fresh-powder': 0.85,
@@ -474,9 +468,29 @@ function tickSkiing(state: GameState, guest: Guest, rng: Rng): void {
     thin: 0.8,
     'wind-affected': 0.85,
   }
-  const speed = SKI_SPEED[guest.skill] * (surfaceSpeed[trail.surface] ?? 1)
+  let speed = SKI_SPEED[guest.skill] * (surfaceSpeed[trail.surface] ?? 1)
+
+  // a line that climbs back uphill stops being skiing: guests slog through
+  // at hiking pace and remember whose bright idea this trail was
+  const segs = def.uphillSegments ?? []
+  const segIdx = segs.findIndex((s) => guest.progress >= s.t0 && guest.progress < s.t1)
+  if (segIdx >= 0) {
+    speed *= 0.2
+    if (guest.stuckSegIdx !== segIdx) {
+      guest.stuckSegIdx = segIdx
+      if (rng.chance(0.6)) {
+        remember(guest, 'stuck-trail', `got stuck hiking uphill on ${def.name}`, -10, state.minute)
+      } else {
+        guest.satisfaction = clamp(guest.satisfaction - 5, 0, 100)
+      }
+      guest.energy = clamp(guest.energy - 4, 0, 100)
+    }
+  } else if (guest.stuckSegIdx !== -1) {
+    guest.stuckSegIdx = -1
+  }
+
   guest.progress += (speed * TICK_MINUTES) / def.lengthM
-  guest.pos = pointAt(TRAIL_PATHS[trailId], guest.progress)
+  guest.pos = pointAt(getTrailPath(state, trailId), guest.progress)
 
   // incident roll
   const crowd = trail.skierIds.length / def.capacity
@@ -508,7 +522,7 @@ function handleIncident(state: GameState, guest: Guest, rng: Rng): void {
   remember(guest, 'injury', 'took a bad fall', serious ? -45 : -18, state.minute)
   if (serious) {
     state.incidentsToday++
-    pushAlert(state, 'critical', `Skier down on ${TRAIL_MAP[trailId].name} — patrol responding`)
+    pushAlert(state, 'critical', `Skier down on ${getTrailDef(state, trailId).name} — patrol responding`)
   }
   // patrol sleds them to the base
   guest.routeTrailId = null
@@ -528,17 +542,30 @@ function handleIncident(state: GameState, guest: Guest, rng: Rng): void {
 
 function finishRun(state: GameState, guest: Guest, rng: Rng): void {
   const trailId = guest.routeTrailId!
-  const def = TRAIL_MAP[trailId]
+  const def = getTrailDef(state, trailId)
   const trail = state.trails[trailId]
   trail.skierIds = trail.skierIds.filter((id) => id !== guest.id)
   trail.ridesToday++
   trail.traffic += 1
   guest.routeTrailId = null
   guest.progress = 0
-  guest.atNodeId = def.bottomNodeId
-  guest.pos = { ...NODE_MAP[def.bottomNodeId].pos }
+  guest.stuckSegIdx = -1
   guest.runsCompleted++
   guest.lastTrailId = trailId
+
+  const bottom = NODE_MAP[def.bottomNodeId]
+  if (bottom) {
+    guest.atNodeId = def.bottomNodeId
+    guest.pos = { ...bottom.pos }
+  } else {
+    // the run dead-ends in the middle of nowhere — patrol sleds them out
+    remember(guest, 'stranded', `got stranded at the end of ${def.name}`, -18, state.minute)
+    if (trail.ridesToday === 1) {
+      pushAlert(state, 'warning', `${def.name} dead-ends mid-mountain — patrol is sledding skiers back to base`)
+    }
+    guest.atNodeId = 'base'
+    guest.pos = { ...NODE_MAP.base.pos }
+  }
 
   // ---- experience of the run
   const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
@@ -821,8 +848,16 @@ const DIFF_ORDER = { green: 0, blue: 1, black: 2, 'double-black': 3 } as const
 /** easiest open trail leading downhill from a node (recursive-safe: one hop) */
 function easiestTrailDown(state: GameState, nodeId: string): string | null {
   const candidates = Object.values(state.trails)
-    .filter((t) => t.built && t.open && TRAIL_MAP[t.trailId].topNodeId === nodeId)
-    .sort((a, b) => DIFF_ORDER[TRAIL_MAP[a.trailId].difficulty] - DIFF_ORDER[TRAIL_MAP[b.trailId].difficulty])
+    .filter((t) => {
+      if (!t.built || !t.open) return false
+      const def = getTrailDef(state, t.trailId)
+      // never route someone home via a dead-end line
+      return def.topNodeId === nodeId && Boolean(NODE_MAP[def.bottomNodeId])
+    })
+    .sort(
+      (a, b) =>
+        DIFF_ORDER[getTrailDef(state, a.trailId).difficulty] - DIFF_ORDER[getTrailDef(state, b.trailId).difficulty],
+    )
   return candidates[0]?.trailId ?? null
 }
 
@@ -841,7 +876,7 @@ export function onLiftArrival(state: GameState, guest: Guest, liftId: string): v
   }
   const planned = guest.plannedTrailId
   guest.plannedTrailId = null
-  if (planned && state.trails[planned]?.open && TRAIL_MAP[planned].topNodeId === site.topNodeId) {
+  if (planned && state.trails[planned]?.open && getTrailDef(state, planned).topNodeId === site.topNodeId) {
     startSkiing(state, guest, planned)
   } else {
     decideNext(state, guest)
@@ -856,7 +891,7 @@ function startSkiing(state: GameState, guest: Guest, trailId: string): void {
   guest.plan = []
   guest.plannedTrailId = null
   state.trails[trailId].skierIds.push(guest.id)
-  guest.pos = pointAt(TRAIL_PATHS[trailId], 0)
+  guest.pos = pointAt(getTrailPath(state, trailId), 0)
 }
 
 // ---- trail choice ----------------------------------------------------
@@ -888,7 +923,7 @@ export function chooseTrail(state: GameState, guest: Guest): TrailChoice | null 
 
   for (const trail of Object.values(state.trails)) {
     if (!trail.built || !trail.open) continue
-    const def = TRAIL_MAP[trail.trailId]
+    const def = getTrailDef(state, trail.trailId)
     if (!reach.has(def.topNodeId)) continue
     const plan = planLifts(state, from, def.topNodeId)
     if (plan === null) continue
@@ -907,6 +942,8 @@ export function chooseTrail(state: GameState, guest: Guest): TrailChoice | null 
     if (guest.prefersTrees) score *= 1 + def.treeCoverage * 0.15
     // long lap chains are slightly less attractive
     score *= 1 - plan.length * 0.06
+    // word gets around about lines that climb back uphill
+    score *= Math.max(0.12, 1 - (def.uphillFraction ?? 0) * 2.2)
 
     options.push({ trailId: trail.trailId, liftPlan: plan, score })
   }

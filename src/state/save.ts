@@ -18,7 +18,18 @@ interface SavePayload {
 
 /** version → upgrade fn producing the next version's payload */
 const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
-  // e.g. 1: (p) => ({ ...p, version: 2, state: { ...p.state, newField: 0 } }),
+  // v2: freeform trails — custom defs container + per-guest stuck tracking
+  1: (p) => ({
+    ...p,
+    version: 2,
+    state: {
+      ...p.state,
+      customTrailDefs: {},
+      guests: Object.fromEntries(
+        Object.entries(p.state.guests).map(([id, g]) => [id, { ...g, stuckSegIdx: -1 }]),
+      ),
+    },
+  }),
 }
 
 export function saveGame(slot: string, state: GameState, label: string): boolean {

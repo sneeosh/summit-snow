@@ -60,6 +60,7 @@ export function MountainCanvas() {
               if (s.buildMode?.type === 'trail') s.buildTrail(trailId)
               if (s.buildMode?.type === 'snowmaking') s.installSnowmaking(trailId)
             },
+            onDrawPoint: (p) => useStore.getState().addDrawPoint(p),
           },
         )
         sceneRef.current = scene

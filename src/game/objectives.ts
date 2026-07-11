@@ -1,6 +1,6 @@
 /** Scenario objective tracking, evaluated at each day end. */
 import { OBJ_GUESTS_IN_DAY, OBJ_MAX_SERIOUS_INCIDENTS, OBJ_SATISFACTION_TARGET } from '../content/balance'
-import { TRAIL_MAP } from '../content/mountain'
+import { getTrailDef } from './trails'
 import type { DailyReport, GameState } from './types'
 
 export function updateObjectives(state: GameState, report: DailyReport, seasonIncidents: number): void {
@@ -34,7 +34,7 @@ export function updateObjectives(state: GameState, report: DailyReport, seasonIn
       }
       case 'blue-trail': {
         const anyBlue = Object.values(state.trails).some(
-          (t) => t.built && t.open && TRAIL_MAP[t.trailId].difficulty === 'blue',
+          (t) => t.built && t.open && getTrailDef(state, t.trailId).difficulty === 'blue',
         )
         if (anyBlue) {
           obj.achieved = true

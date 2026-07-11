@@ -37,6 +37,8 @@ export const MEMORY_COPY: Record<string, { good: boolean; report: string }> = {
   'injury': { good: false, report: 'Safety concerns on the hill' },
   'breakdown': { good: false, report: 'Lift breakdowns' },
   'no-rental': { good: false, report: 'Couldn’t rent equipment' },
+  'stuck-trail': { good: false, report: 'Runs that climb back uphill' },
+  'stranded': { good: false, report: 'Runs that dead-end mid-mountain' },
 }
 
 interface ReviewTemplate {
@@ -111,6 +113,8 @@ const LOWLIGHT_TEXT: Record<string, string> = {
   injury: 'the safety situation',
   breakdown: 'the unreliable lifts',
   'no-rental': 'the rental situation',
+  'stuck-trail': 'the run that climbs uphill',
+  stranded: 'getting stranded mid-mountain',
 }
 
 export function renderReview(
@@ -124,6 +128,22 @@ export function renderReview(
   out = out.charAt(0).toUpperCase() + out.slice(1)
   return out
 }
+
+/** names handed out to player-drawn trails, in order of creation */
+export const CUSTOM_TRAIL_NAMES = [
+  'Jackrabbit',
+  'Sluice Box',
+  'Wanderer',
+  'Snow Ghost',
+  'Sidewinder',
+  'Lucky Find',
+  'Moose Alley',
+  'Whiteout',
+  'Falline',
+  'Long Way Home',
+  'Second Thoughts',
+  'Widowmaker',
+]
 
 export const SKILL_LABEL: Record<SkillLevel, string> = {
   'first-timer': 'First-timer',

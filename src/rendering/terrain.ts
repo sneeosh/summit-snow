@@ -8,8 +8,15 @@
  * trail corridor, so unbuilt trails read as natural clearings.
  */
 import { hashNoise } from '../game/rng'
-import { LIFT_LINES, TRAILS, WORLD_H, WORLD_W, type MeasuredPath, TRAIL_PATHS } from '../content/mountain'
-import type { WeatherDay } from '../game/types'
+import { WORLD_H, WORLD_W } from '../content/mountain'
+import { distToPath, scatterTrees, SKYLINE, skylineYAt } from '../game/terrainModel'
+import type { Vec2, WeatherDay } from '../game/types'
+
+/** a felled corridor from a built custom trail — no trees painted inside */
+export interface Clearing {
+  path: Vec2[]
+  halfWu: number
+}
 
 export interface TerrainMood {
   /** 0..1 cloudiness dims and cools the palette */
@@ -18,24 +25,6 @@ export interface TerrainMood {
   visibility: number
   snowing: boolean
 }
-
-/** the mountain skyline polygon (x rises to summit, ridge, descends right) */
-const SKYLINE: [number, number][] = [
-  [0, 560],
-  [130, 520],
-  [300, 460],
-  [470, 400],
-  [620, 330],
-  [780, 230],
-  [940, 170],
-  [1040, 205],
-  [1160, 250],
-  [1270, 290],
-  [1370, 330],
-  [1520, 420],
-  [1680, 520],
-  [1920, 640],
-]
 
 /** distant background ridges, painted in atmospheric blues */
 const FAR_RIDGES: [number, number][][] = [
@@ -59,7 +48,7 @@ const FAR_RIDGES: [number, number][][] = [
   ],
 ]
 
-export function paintTerrain(mood: TerrainMood, seed: number): HTMLCanvasElement {
+export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearing[] = []): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   canvas.width = WORLD_W
   canvas.height = WORLD_H
@@ -170,7 +159,7 @@ export function paintTerrain(mood: TerrainMood, seed: number): HTMLCanvasElement
   }
 
   // ---- forests (avoid all trail corridors + village)
-  paintForests(ctx, seed, dim)
+  paintForests(ctx, seed, dim, clearings)
 
   // ---- village ground: gentle warm clearing at the bottom
   const village = ctx.createRadialGradient(980, 1120, 60, 980, 1120, 520)
@@ -191,72 +180,19 @@ export function paintTerrain(mood: TerrainMood, seed: number): HTMLCanvasElement
   return canvas
 }
 
-function skylineYAt(x: number): number {
-  for (let i = 1; i < SKYLINE.length; i++) {
-    if (SKYLINE[i][0] >= x) {
-      const [x0, y0] = SKYLINE[i - 1]
-      const [x1, y1] = SKYLINE[i]
-      const f = (x - x0) / (x1 - x0)
-      return y0 + (y1 - y0) * f
-    }
-  }
-  return SKYLINE[SKYLINE.length - 1][1]
-}
-
-function distToPath(x: number, y: number, mp: MeasuredPath): number {
-  let best = Infinity
-  const pts = mp.points
-  for (let i = 1; i < pts.length; i++) {
-    best = Math.min(best, distToSegment(x, y, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y))
-  }
-  return best
-}
-
-function distToSegment(px: number, py: number, x0: number, y0: number, x1: number, y1: number): number {
-  const dx = x1 - x0
-  const dy = y1 - y0
-  const lenSq = dx * dx + dy * dy
-  let t = lenSq === 0 ? 0 : ((px - x0) * dx + (py - y0) * dy) / lenSq
-  t = Math.max(0, Math.min(1, t))
-  return Math.hypot(px - (x0 + dx * t), py - (y0 + dy * t))
-}
-
-function paintForests(ctx: CanvasRenderingContext2D, seed: number, dim: number): void {
-  const corridorHalfWidth = (widthM: number) => widthM / 2 + 14
-
-  for (let i = 0; i < 1500; i++) {
-    const x = hashNoise(seed, i, 11) * WORLD_W
-    const y = hashNoise(seed, i, 12) * WORLD_H
-
-    const skyY = skylineYAt(x)
-    if (y < skyY + 30) continue // above treeline near ridge
-    if (y < skyY + 120 && hashNoise(seed, i, 13) < 0.7) continue // sparse near treeline
-    if (y > 1040) continue // village floor
-    // density noise: clumpy forests, open bowls
-    const clump = hashNoise(seed, Math.floor(x / 140), Math.floor(y / 140) + 900)
-    if (hashNoise(seed, i, 14) > clump * 1.25) continue
-
-    // keep every trail corridor clear
-    let blocked = false
-    for (const t of TRAILS) {
-      if (distToPath(x, y, TRAIL_PATHS[t.id]) < corridorHalfWidth(t.widthM)) {
-        blocked = true
+function paintForests(ctx: CanvasRenderingContext2D, seed: number, dim: number, clearings: Clearing[]): void {
+  for (const tree of scatterTrees(seed)) {
+    // built custom trails have felled everything in their corridor
+    let cleared = false
+    for (const c of clearings) {
+      if (distToPath(tree, { points: c.path }) < c.halfWu) {
+        cleared = true
         break
       }
     }
-    if (blocked) continue
-    // keep lift lines clear-ish
-    if (nearLiftLine(x, y)) continue
-
-    drawSpruce(ctx, x, y, 7 + hashNoise(seed, i, 15) * 9, hashNoise(seed, i, 16), dim)
+    if (cleared) continue
+    drawSpruce(ctx, tree.x, tree.y, tree.size, tree.tone, dim)
   }
-}
-
-function nearLiftLine(x: number, y: number): boolean {
-  for (const key of Object.keys(LIFT_LINES)) {
-    if (distToPath(x, y, LIFT_LINES[key]) < 16) return true
-  }
-  return false
 }
 
 function drawSpruce(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, tone: number, dim: number): void {

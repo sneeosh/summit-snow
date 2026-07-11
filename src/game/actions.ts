@@ -8,7 +8,9 @@ import { FACILITIES, LIFT_TYPES, LOAN_OFFERS, SNOWMAKING_INSTALL_COST, TRAIL_MIN
 import { LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
 import { pushAlert } from './guests'
 import { makeLiftState } from './init'
-import type { FacilityKind, GameState, LiftKind, Prices, StaffRole } from './types'
+import { getTrailDef, makeCustomTrailDef, planCustomTrail } from './trails'
+import { computeSurface } from './weather'
+import type { FacilityKind, GameState, LiftKind, Prices, StaffRole, TrailState, Vec2 } from './types'
 
 function spend(state: GameState, amount: number): string | null {
   if (state.cash < amount) return `Not enough cash ($${Math.round(amount).toLocaleString()} needed)`
@@ -79,6 +81,46 @@ export function buildTrail(state: GameState, trailId: string): string | null {
   return null
 }
 
+/**
+ * Cut a player-drawn trail along `points`. Deliberately permissive: bad
+ * lines (uphill stretches, dead ends, unreachable tops) build fine — the
+ * skiers will render their verdict. Costs groundwork + tree clearing.
+ */
+export function buildCustomTrail(state: GameState, points: Vec2[]): string | null {
+  if (points.length < 2) return 'Draw at least two points'
+  const plan = planCustomTrail(state, points)
+  if (plan.analysis.lengthM < 120) return 'That’s barely a slide — draw a longer line'
+  const err = spend(state, plan.totalCost)
+  if (err) return err
+
+  const def = makeCustomTrailDef(state, points, plan)
+  state.customTrailDefs[def.id] = def
+
+  // starts with the same snowpack its neighbours have
+  const built = Object.values(state.trails).filter((t) => t.built)
+  const depth =
+    built.length > 0 ? built.reduce((s, t) => s + t.snowDepthCm, 0) / built.length : 40
+  const trailState: TrailState = {
+    trailId: def.id,
+    built: true,
+    open: false,
+    snowDepthCm: Math.round(depth),
+    surface: 'packed-powder',
+    groomedOvernight: false,
+    hasSnowmaking: false,
+    skierIds: [],
+    ridesToday: 0,
+    traffic: 0,
+  }
+  trailState.surface = computeSurface(trailState, state.weatherSeason[state.day - 1], (id) => getTrailDef(state, id))
+  trailState.open = trailState.snowDepthCm >= TRAIL_MIN_DEPTH_CM
+  state.trails[def.id] = trailState
+
+  const treeNote = plan.treesToClear > 0 ? ` — ${plan.treesToClear} trees cleared` : ''
+  pushAlert(state, 'info', `${def.name} cut${treeNote}, ${trailState.open ? 'open' : 'awaiting snow'}`)
+  return null
+}
+
 export function setTrailOpen(state: GameState, trailId: string, open: boolean): string | null {
   const trail = state.trails[trailId]
   if (!trail?.built) return 'Trail not cut yet'
@@ -96,7 +138,7 @@ export function installSnowmaking(state: GameState, trailId: string): string | n
   const err = spend(state, SNOWMAKING_INSTALL_COST)
   if (err) return err
   trail.hasSnowmaking = true
-  pushAlert(state, 'info', `Snow guns installed on ${TRAIL_MAP[trailId].name}`)
+  pushAlert(state, 'info', `Snow guns installed on ${getTrailDef(state, trailId).name}`)
   return null
 }
 

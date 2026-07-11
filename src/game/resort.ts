@@ -9,7 +9,8 @@ import {
   TRAILS_PER_PATROLLER,
   TRAILS_PER_SNOW_TECH,
 } from '../content/balance'
-import { LIFT_SITE_MAP, TRAIL_MAP } from '../content/mountain'
+import { LIFT_SITE_MAP } from '../content/mountain'
+import { getTrailDef } from './trails'
 import type { FacilityKind, GameState, LiftState, StaffRole, TrailState } from './types'
 
 export function countFacility(state: GameState, kind: FacilityKind): number {
@@ -108,13 +109,13 @@ export function liftMaintenanceDaily(state: GameState): number {
 /** count of open trails by difficulty, for demand & guest terrain matching */
 export function openTrailsByDifficulty(state: GameState): Record<string, number> {
   const counts: Record<string, number> = { green: 0, blue: 0, black: 0, 'double-black': 0 }
-  for (const t of openTrails(state)) counts[TRAIL_MAP[t.trailId].difficulty]++
+  for (const t of openTrails(state)) counts[getTrailDef(state, t.trailId).difficulty]++
   return counts
 }
 
 /** true when the trail's top is reachable via currently running lifts from a base */
 export function trailReachable(state: GameState, trailId: string): boolean {
-  return reachableNodes(state).has(TRAIL_MAP[trailId].topNodeId)
+  return reachableNodes(state).has(getTrailDef(state, trailId).topNodeId)
 }
 
 /** nodes reachable uphill from base areas via running lifts */

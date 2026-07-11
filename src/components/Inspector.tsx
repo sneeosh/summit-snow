@@ -1,6 +1,7 @@
 /** Contextual right-side inspector for the current selection. */
 import { FACILITIES, LIFT_TYPES, TRAIL_MIN_DEPTH_CM } from '../content/balance'
-import { LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
+import { LIFT_SITE_MAP, NODE_MAP, SLOT_MAP } from '../content/mountain'
+import { getTrailDef } from '../game/trails'
 import { SKILL_LABEL } from '../content/names'
 import { isLiftRunning } from '../game/resort'
 import { formatMoney, useStore } from '../state/store'
@@ -45,7 +46,7 @@ function TrailCard({ id }: { id: string }) {
   const setTrailOpen = useStore((s) => s.setTrailOpen)
   const installSnowmaking = useStore((s) => s.installSnowmaking)
   const buildTrail = useStore((s) => s.buildTrail)
-  const def = TRAIL_MAP[id]
+  const def = getTrailDef(game, id)
   const st = game.trails[id]
 
   return (
@@ -86,6 +87,16 @@ function TrailCard({ id }: { id: string }) {
             <span className="text-right">{st.groomedOvernight ? 'Overnight ✓' : '—'}</span>
           </div>
 
+          {(def.totalClimbM ?? 0) > 2 && (
+            <div className="rounded-lg bg-safety/10 px-2.5 py-1.5 text-[11px] font-medium text-safety">
+              ⚠ Climbs {def.totalClimbM} m back uphill — skiers get stuck here.
+            </div>
+          )}
+          {!NODE_MAP[def.bottomNodeId] && (
+            <div className="rounded-lg bg-safety/10 px-2.5 py-1.5 text-[11px] font-medium text-safety">
+              ⚠ Dead-ends mid-mountain — patrol sleds skiers out.
+            </div>
+          )}
           <button
             className={`btn w-full ${st.open ? 'btn-ghost' : 'btn-primary'}`}
             onClick={() => setTrailOpen(id, !st.open)}
@@ -219,7 +230,7 @@ function GuestCard({ id }: { id: number }) {
       </div>
       <div className="mt-2 rounded-lg bg-ink/4 px-2.5 py-1.5 text-[12px] font-medium">
         {OBJECTIVE_LABEL[guest.objective]}
-        {guest.routeTrailId ? ` — ${TRAIL_MAP[guest.routeTrailId].name}` : ''}
+        {guest.routeTrailId ? ` — ${getTrailDef(game, guest.routeTrailId).name}` : ''}
         {guest.routeLiftId ? ` — ${LIFT_SITE_MAP[guest.routeLiftId].name}` : ''}
       </div>
       <div className="mt-2.5 space-y-1.5 text-[11px]">

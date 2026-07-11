@@ -15,9 +15,20 @@ import {
   SNOWMAKING_MAX_TEMP,
   TRAIL_MIN_DEPTH_CM,
 } from '../content/balance'
-import { isExposedTrail, isUpperTrail, TRAIL_MAP } from '../content/mountain'
 import { hashNoise, Rng } from './rng'
-import type { TrailState, WeatherDay } from './types'
+import { elevationAt } from './terrainModel'
+import type { TrailDef, TrailState, WeatherDay } from './types'
+
+/** resolves a trail id to its def (static content or player-drawn) */
+export type TrailDefLookup = (id: string) => TrailDef
+
+function isUpper(def: TrailDef): boolean {
+  return elevationAt(def.path[0]) >= 2000
+}
+
+function isExposed(def: TrailDef): boolean {
+  return def.treeCoverage < 0.3
+}
 
 export function generateSeasonWeather(seed: number): WeatherDay[] {
   const rng = new Rng(seed ^ 0x5eed)
@@ -103,6 +114,7 @@ export function processOvernight(
     snowmakingBoost: number // pump station multiplier
     snowBonusCm: number // event-granted bonus
   },
+  defOf: TrailDefLookup,
 ): OvernightResult {
   const result: OvernightResult = { groomedTrails: [], snowmadeTrails: [], meltedCm: 0 }
 
@@ -124,9 +136,9 @@ export function processOvernight(
     : []
 
   for (const t of built) {
-    const def = TRAIL_MAP[t.trailId]
+    const def = defOf(t.trailId)
     // natural snowfall (upper mountain catches more)
-    const bonus = isUpperTrail(def) ? 1 + ELEVATION_SNOW_BONUS : 1
+    const bonus = isUpper(def) ? 1 + ELEVATION_SNOW_BONUS : 1
     t.snowDepthCm += tonight.snowfallCm * bonus + opts.snowBonusCm
 
     // melt on warm afternoons
@@ -137,7 +149,7 @@ export function processOvernight(
     }
 
     // wind strips exposed trails
-    if (tonight.windKph > 45 && isExposedTrail(def)) {
+    if (tonight.windKph > 45 && isExposed(def)) {
       t.snowDepthCm -= WIND_STRIP_CM
     }
 
@@ -156,7 +168,7 @@ export function processOvernight(
       t.traffic *= 0.5 // some natural settling
     }
 
-    t.surface = computeSurface(t, tonight)
+    t.surface = computeSurface(t, tonight, defOf)
     // trails without snow force-close
     if (t.snowDepthCm < TRAIL_MIN_DEPTH_CM) t.open = false
   }
@@ -164,10 +176,10 @@ export function processOvernight(
   return result
 }
 
-export function computeSurface(t: TrailState, weather: WeatherDay): TrailState['surface'] {
-  const def = TRAIL_MAP[t.trailId]
+export function computeSurface(t: TrailState, weather: WeatherDay, defOf: TrailDefLookup): TrailState['surface'] {
+  const def = defOf(t.trailId)
   if (t.snowDepthCm < 30) return 'thin'
-  if (weather.windKph > 45 && isExposedTrail(def)) return 'wind-affected'
+  if (weather.windKph > 45 && isExposed(def)) return 'wind-affected'
   if (weather.snowfallCm >= 10) return 'fresh-powder'
   // overnight grooming tills freeze-thaw crust back into corduroy
   if (t.groomedOvernight) return 'groomed'

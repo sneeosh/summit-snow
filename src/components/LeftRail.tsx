@@ -100,27 +100,41 @@ function BuildPanel() {
         </div>
       </Section>
 
-      <Section title="Trails" hint={unbuiltTrails.length === 0 ? 'All corridors cut' : 'Select, then click a dotted corridor'}>
+      <Section title="Trails" hint="Draw your own line, or cut a pre-surveyed corridor">
         <button
-          onClick={() => setBuildMode(buildMode?.type === 'trail' ? null : { type: 'trail' })}
+          onClick={() => setBuildMode(buildMode?.type === 'draw-trail' ? null : { type: 'draw-trail', points: [] })}
           className={`w-full rounded-xl border p-2 text-left transition-colors ${
-            buildMode?.type === 'trail' ? 'border-diff-blue bg-diff-blue/10' : 'border-ink/10 hover:border-ink/25'
+            buildMode?.type === 'draw-trail' ? 'border-pine bg-pine/10' : 'border-ink/10 hover:border-ink/25'
           }`}
-          disabled={unbuiltTrails.length === 0}
         >
-          <div className="text-[12px] font-semibold">Cut a new trail</div>
-          <div className="text-[10px] text-ink-faint">Corridors surveyed by the mountain planner:</div>
+          <div className="text-[12px] font-semibold">✏️ Draw a custom trail</div>
+          <div className="text-[10px] text-ink-faint">
+            Click waypoints down the mountain. You’ll pay to clear trees — and skiers will judge your line.
+          </div>
         </button>
-        <div className="mt-1.5 space-y-1">
-          {unbuiltTrails.map((t) => (
-            <div key={t.id} className="flex items-center justify-between rounded-lg bg-ink/4 px-2 py-1 text-[11px]">
-              <span className="flex items-center gap-1.5 font-medium">
-                <DiffBadge difficulty={t.difficulty} /> {t.name}
-              </span>
-              <span className="stat-number text-wood">{formatMoney(t.buildCost)}</span>
+        {unbuiltTrails.length > 0 && (
+          <>
+            <button
+              onClick={() => setBuildMode(buildMode?.type === 'trail' ? null : { type: 'trail' })}
+              className={`mt-1.5 w-full rounded-xl border p-2 text-left transition-colors ${
+                buildMode?.type === 'trail' ? 'border-diff-blue bg-diff-blue/10' : 'border-ink/10 hover:border-ink/25'
+              }`}
+            >
+              <div className="text-[12px] font-semibold">Cut a surveyed corridor</div>
+              <div className="text-[10px] text-ink-faint">Pre-cleared by the mountain planner:</div>
+            </button>
+            <div className="mt-1.5 space-y-1">
+              {unbuiltTrails.map((t) => (
+                <div key={t.id} className="flex items-center justify-between rounded-lg bg-ink/4 px-2 py-1 text-[11px]">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <DiffBadge difficulty={t.difficulty} /> {t.name}
+                  </span>
+                  <span className="stat-number text-wood">{formatMoney(t.buildCost)}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </Section>
 
       <Section title="Snowmaking" hint="Guns fire on cold nights; needs snowmaking techs">

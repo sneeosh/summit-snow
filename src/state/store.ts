@@ -6,12 +6,14 @@
  */
 import { create } from 'zustand'
 import { TICK_MINUTES, TICK_REAL_MS } from '../content/balance'
+import { NODE_MAP } from '../content/mountain'
 import * as actions from '../game/actions'
+import { nearestNodeId } from '../game/trails'
 import { resolveEvent } from '../game/events'
 import { newGame } from '../game/init'
 import { fastForwardDay, openResort, startNextDay, tick } from '../game/simulation'
 import { AUTOSAVE_SLOT, loadGame, saveGame } from './save'
-import type { FacilityKind, GameMode, GameState, LiftKind, Prices, StaffRole } from '../game/types'
+import type { FacilityKind, GameMode, GameState, LiftKind, Prices, StaffRole, Vec2 } from '../game/types'
 
 export type Screen = 'menu' | 'playing'
 export type Speed = 0 | 1 | 4
@@ -26,6 +28,7 @@ export type Selection =
 export type BuildMode =
   | { type: 'lift'; kind: LiftKind }
   | { type: 'trail' }
+  | { type: 'draw-trail'; points: Vec2[] }
   | { type: 'snowmaking' }
   | { type: 'facility'; kind: FacilityKind }
   | null
@@ -60,6 +63,11 @@ interface Store {
   endDayNow: () => void
   advanceToNextDay: () => void
   runTicks: (n: number) => void
+
+  // trail drawing
+  addDrawPoint: (p: Vec2) => void
+  undoDrawPoint: () => void
+  confirmDrawTrail: () => void
 
   // UI
   select: (sel: Selection) => void
@@ -181,6 +189,34 @@ export const useStore = create<Store>((set, get) => {
         set({ showReport: true, speed: 0 })
       }
       set({ game: { ...game }, tickCount: get().tickCount + 1 })
+    },
+
+    addDrawPoint: (p) => {
+      const bm = get().buildMode
+      if (bm?.type !== 'draw-trail') return
+      // snap to a lift station / junction when close — that's how skiers
+      // enter and leave a run
+      const snapped = nearestNodeId(p)
+      const point = snapped ? { ...NODE_MAP[snapped].pos } : p
+      set({ buildMode: { type: 'draw-trail', points: [...bm.points, point] } })
+    },
+    undoDrawPoint: () => {
+      const bm = get().buildMode
+      if (bm?.type !== 'draw-trail') return
+      set({ buildMode: { type: 'draw-trail', points: bm.points.slice(0, -1) } })
+    },
+    confirmDrawTrail: () => {
+      const bm = get().buildMode
+      if (bm?.type !== 'draw-trail' || bm.points.length < 2) return
+      const game = get().game
+      if (!game) return
+      const err = actions.buildCustomTrail(game, bm.points)
+      set({
+        game: { ...game },
+        actionError: err,
+        tickCount: get().tickCount + 1,
+        ...(err ? {} : { buildMode: null }),
+      })
     },
 
     select: (selection) => set({ selection }),
