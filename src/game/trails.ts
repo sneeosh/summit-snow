@@ -29,11 +29,16 @@ import {
   type MeasuredPath,
 } from '../content/mountain'
 import { CUSTOM_TRAIL_NAMES } from '../content/names'
-import { clearingHalfWidthWu, distToPath, elevationAt, treesInCorridor } from './terrainModel'
+import { clearingHalfWidthWu, distToPath, elevationAt, skylineYAt, treesInCorridor } from './terrainModel'
 import type { Difficulty, GameState, LiftKind, LiftSiteDef, MountainNode, TrailDef, Vec2 } from './types'
 
 /** snap radius for attaching trail endpoints to network nodes (world units) */
 export const NODE_SNAP_WU = 45
+
+/** true when the point is on the mountain face — at or below the ridgeline */
+export function isOnMountain(p: Vec2): boolean {
+  return p.y >= skylineYAt(p.x) - 4 && p.x >= 0 && p.x <= 1920 && p.y <= 1200
+}
 
 // ------------------------------------------------------- network lookups
 
@@ -317,6 +322,9 @@ export function planCustomLift(state: GameState, a: Vec2, b: Vec2, kind: LiftKin
   }
   if (riseM < LIFT_MIN_RISE_M) {
     warnings.push(`Only ${riseM} m of rise — a lift needs at least ${LIFT_MIN_RISE_M} m.`)
+  }
+  if (!isOnMountain(lo.pos) || !isOnMountain(hi.pos)) {
+    warnings.push('Terminal is past the ridgeline or outside the area — nothing but sky and backcountry there.')
   }
 
   return {

@@ -22,7 +22,7 @@ import {
   nearestNodeId,
   planCustomLift,
 } from '../game/trails'
-import { SKYLINE, skylineYAt } from '../game/terrainModel'
+import { skylineYAt } from '../game/terrainModel'
 import { guestLook, guestTexture } from './sprites'
 import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
@@ -36,41 +36,49 @@ const DIFF_COLOR: Record<string, number> = {
 }
 
 /**
- * The ski-area boundary: an orange rope with pennants hugging the ridgeline
- * and the world edges. Everything beyond it is backcountry — pannable, not
- * skiable.
+ * The ski-area boundary: orange ropes with pennants down the side edges and
+ * along the base, where the terrain genuinely continues. The ridgeline is
+ * NOT roped — the whole face up to the top of the mountain is in play.
  */
 function makeBoundary(): Container {
   const c = new Container()
   const g = new Graphics()
   const inset = 8
-  const ridgeDrop = 20 // rope runs just below the skyline
 
-  // boundary polyline: up the left edge, along the ridge, down the right edge
-  const pts: Vec2[] = [{ x: inset, y: WORLD_H - inset }]
-  pts.push({ x: inset, y: skylineYAt(inset) + ridgeDrop })
-  for (const [x, y] of SKYLINE) {
-    if (x <= inset || x >= WORLD_W - inset) continue
-    pts.push({ x, y: y + ridgeDrop })
-  }
-  pts.push({ x: WORLD_W - inset, y: skylineYAt(WORLD_W - inset) + ridgeDrop })
-  pts.push({ x: WORLD_W - inset, y: WORLD_H - inset })
-  pts.push({ x: inset, y: WORLD_H - inset }) // bottom rope closes the loop
+  const segments: Vec2[][] = [
+    // left edge: ridge down to the bottom corner
+    [
+      { x: inset, y: skylineYAt(inset) + 6 },
+      { x: inset, y: WORLD_H - inset },
+    ],
+    // base of the world
+    [
+      { x: inset, y: WORLD_H - inset },
+      { x: WORLD_W - inset, y: WORLD_H - inset },
+    ],
+    // right edge: bottom corner up to the ridge
+    [
+      { x: WORLD_W - inset, y: WORLD_H - inset },
+      { x: WORLD_W - inset, y: skylineYAt(WORLD_W - inset) + 6 },
+    ],
+  ]
 
-  const mp = measurePath(pts)
-  // dashed rope
-  let d = 0
-  while (d < mp.total) {
-    const a = pointAt(mp, d / mp.total)
-    const b = pointAt(mp, Math.min(1, (d + 9) / mp.total))
-    g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 2, color: 0xd95d2e, alpha: 0.55, cap: 'round' })
-    d += 16
-  }
-  // pennant flags on posts
-  for (let f = 40; f < mp.total; f += 150) {
-    const p = pointAt(mp, f / mp.total)
-    g.moveTo(p.x, p.y).lineTo(p.x, p.y - 9).stroke({ width: 1.4, color: 0x5a4632, alpha: 0.85 })
-    g.poly([p.x, p.y - 9, p.x + 7, p.y - 6.8, p.x, p.y - 4.6]).fill({ color: 0xd95d2e, alpha: 0.9 })
+  for (const seg of segments) {
+    const mp = measurePath(seg)
+    // dashed rope
+    let d = 0
+    while (d < mp.total) {
+      const a = pointAt(mp, d / mp.total)
+      const b = pointAt(mp, Math.min(1, (d + 9) / mp.total))
+      g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 2, color: 0xd95d2e, alpha: 0.55, cap: 'round' })
+      d += 16
+    }
+    // pennant flags on posts
+    for (let f = 40; f < mp.total; f += 150) {
+      const p = pointAt(mp, f / mp.total)
+      g.moveTo(p.x, p.y).lineTo(p.x, p.y - 9).stroke({ width: 1.4, color: 0x5a4632, alpha: 0.85 })
+      g.poly([p.x, p.y - 9, p.x + 7, p.y - 6.8, p.x, p.y - 4.6]).fill({ color: 0xd95d2e, alpha: 0.9 })
+    }
   }
   c.addChild(g)
 

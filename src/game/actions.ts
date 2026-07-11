@@ -18,7 +18,15 @@ import { LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
 import { CUSTOM_LIFT_NAMES } from '../content/names'
 import { pushAlert } from './guests'
 import { makeLiftState } from './init'
-import { ensureNode, getLiftSite, getTrailDef, makeCustomTrailDef, planCustomLift, planCustomTrail } from './trails'
+import {
+  ensureNode,
+  getLiftSite,
+  getTrailDef,
+  isOnMountain,
+  makeCustomTrailDef,
+  planCustomLift,
+  planCustomTrail,
+} from './trails'
 import { computeSurface } from './weather'
 import type { FacilityKind, GameState, LiftKind, LiftSiteDef, Prices, StaffRole, TrailState, Vec2 } from './types'
 
@@ -68,6 +76,9 @@ export function upgradeLift(state: GameState, siteId: string, kind: LiftKind): s
  */
 export function buildCustomLift(state: GameState, a: Vec2, b: Vec2, kind: LiftKind): string | null {
   const plan = planCustomLift(state, a, b, kind)
+  if (!isOnMountain(plan.bottom) || !isOnMountain(plan.top)) {
+    return 'Terminals must stand on the mountain — the ridgeline is the top'
+  }
   if (plan.riseM < LIFT_MIN_RISE_M) {
     return `A lift needs at least ${LIFT_MIN_RISE_M} m of rise (this line gains ${plan.riseM} m)`
   }
@@ -137,6 +148,9 @@ export function buildTrail(state: GameState, trailId: string): string | null {
  */
 export function buildCustomTrail(state: GameState, points: Vec2[]): string | null {
   if (points.length < 2) return 'Draw at least two points'
+  if (points.some((p) => !isOnMountain(p))) {
+    return 'The line leaves the mountain — stay below the ridgeline and inside the area'
+  }
   const plan = planCustomTrail(state, points)
   if (plan.analysis.lengthM < 120) return 'That’s barely a slide — draw a longer line'
   const err = spend(state, plan.totalCost)

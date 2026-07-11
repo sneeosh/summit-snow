@@ -143,6 +143,18 @@ describe('building custom trails', () => {
     expect(plan.totalCost).toBe(plan.lineCost + plan.clearingCost)
   })
 
+  it('the ridgeline is the limit: summit builds work, sky builds don’t', () => {
+    const g = fundedGame()
+    // straight up to Alder Summit (940, 170) — the very top of the mountain
+    expect(buildCustomLift(g, { x: 950, y: 1040 }, { x: 940, y: 170 }, 'chair')).toBeNull()
+    const site = getLiftSite(g, Object.keys(g.customLiftSites)[0])
+    expect(site.topNodeId).toBe('summit')
+
+    // above the ridgeline is sky
+    expect(buildCustomLift(g, { x: 950, y: 1040 }, { x: 300, y: 200 }, 'chair')).toContain('ridgeline')
+    expect(buildCustomTrail(g, [{ x: 300, y: 200 }, { x: 500, y: 900 }])).toContain('ridgeline')
+  })
+
   it('builds point-to-point, auto-orients, and creates network nodes', () => {
     const g = fundedGame()
     const cashBefore = g.cash
