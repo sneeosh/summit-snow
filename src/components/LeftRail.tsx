@@ -37,7 +37,7 @@ export function LeftRail() {
       </div>
 
       {leftTab && (
-        <div className="glass scroll-thin max-h-full w-[300px] overflow-y-auto rounded-2xl p-3.5 rise-in">
+        <div className="glass scroll-thin max-h-full w-[min(300px,calc(100vw-90px))] overflow-y-auto rounded-2xl p-3.5 rise-in">
           {leftTab === 'build' && <BuildPanel />}
           {leftTab === 'staff' && <StaffPanel />}
           {leftTab === 'pricing' && <PricingPanel />}

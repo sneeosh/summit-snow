@@ -17,7 +17,7 @@ const STEPS: Step[] = [
   {
     id: 'inspect',
     title: 'Look around the mountain',
-    body: 'Drag to pan, scroll to zoom. Click any trail, lift, or building to inspect it. Meadow Carpet and the two green trails are already running.',
+    body: 'Drag or use WASD to move around, scroll to zoom. Click any trail, lift, or building to inspect it. Meadow Carpet and the two green trails are already running.',
     done: (_g, ui) => ui.selection !== null,
   },
   {
@@ -89,7 +89,7 @@ export function Tutorial() {
   const index = STEPS.indexOf(current)
 
   return (
-    <div className="pointer-events-auto absolute bottom-6 left-3 z-20 w-[270px]">
+    <div className="pointer-events-auto absolute bottom-6 left-3 z-20 w-[min(270px,calc(100vw-24px))]">
       <div className="glass rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in" key={current.id}>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pine">

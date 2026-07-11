@@ -30,7 +30,8 @@ watch them buy tickets, rent gear, ride lifts, pick trails that match their
 ability, get hungry and cold, spend money, and leave a verdict that becomes
 your reputation. At 16:30 the day settles into an operating report.
 
-- **Drag** to pan, **scroll** to zoom, **click** anything to inspect it.
+- **Drag** or **WASD**/arrow keys to move around, **scroll** to zoom,
+  **click** anything to inspect it.
 - **Space** pauses, **1**/**2** set speed, **Esc** cancels build mode.
 - Build panel: pick a lift type / trail / facility, then click the matching
   ghost site on the map. Lifts need operators; grooming and snowmaking need

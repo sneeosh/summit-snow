@@ -13,8 +13,8 @@ export function Inspector() {
   if (!game || !selection) return null
 
   return (
-    <div className="pointer-events-auto absolute right-3 top-20 z-20 w-[290px]">
-      <div className="glass rounded-2xl p-3.5 rise-in">
+    <div className="pointer-events-auto absolute right-3 top-20 z-20 w-[min(290px,calc(100vw-24px))]">
+      <div className="glass scroll-thin max-h-[calc(100vh-100px)] overflow-y-auto rounded-2xl p-3.5 rise-in">
         <button
           className="absolute right-2.5 top-2 rounded-md px-1.5 text-[14px] text-ink-faint hover:bg-ink/6 hover:text-ink"
           onClick={() => select(null)}

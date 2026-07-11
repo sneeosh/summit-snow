@@ -83,6 +83,10 @@ export class MountainScene {
   private dragStart = { x: 0, y: 0 }
   private worldStart = { x: 0, y: 0 }
   private dragMoved = false
+  private panKeys = new Set<string>()
+  private onKeyDown = (e: KeyboardEvent) => this.handlePanKey(e, true)
+  private onKeyUp = (e: KeyboardEvent) => this.handlePanKey(e, false)
+  private onBlur = () => this.panKeys.clear()
 
   constructor(
     app: Application,
@@ -106,6 +110,9 @@ export class MountainScene {
   }
 
   destroy(): void {
+    window.removeEventListener('keydown', this.onKeyDown)
+    window.removeEventListener('keyup', this.onKeyUp)
+    window.removeEventListener('blur', this.onBlur)
     this.app.destroy(true, { children: true })
   }
 
@@ -170,6 +177,46 @@ export class MountainScene {
       this.dragging = false
       if (!this.dragMoved) this.handleClick(e)
     })
+
+    // WASD / arrow-key panning, applied continuously in the frame loop
+    window.addEventListener('keydown', this.onKeyDown)
+    window.addEventListener('keyup', this.onKeyUp)
+    window.addEventListener('blur', this.onBlur)
+  }
+
+  private static readonly PAN_KEYS: Record<string, string> = {
+    w: 'up',
+    a: 'left',
+    s: 'down',
+    d: 'right',
+    arrowup: 'up',
+    arrowleft: 'left',
+    arrowdown: 'down',
+    arrowright: 'right',
+  }
+
+  private handlePanKey(e: KeyboardEvent, down: boolean): void {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    const dir = MountainScene.PAN_KEYS[e.key.toLowerCase()]
+    if (!dir) return
+    if (down) {
+      this.panKeys.add(dir)
+      e.preventDefault() // keep arrow keys from scrolling the page
+    } else {
+      this.panKeys.delete(dir)
+    }
+  }
+
+  /** apply held pan keys; called every frame with the ticker's delta */
+  private panCamera(deltaMS: number): void {
+    if (this.panKeys.size === 0) return
+    const step = 0.9 * deltaMS // screen px — steady speed regardless of zoom
+    if (this.panKeys.has('up')) this.world.y += step
+    if (this.panKeys.has('down')) this.world.y -= step
+    if (this.panKeys.has('left')) this.world.x += step
+    if (this.panKeys.has('right')) this.world.x -= step
+    this.clampCamera()
   }
 
   private toWorld(e: PointerEvent | MouseEvent): Vec2 {
@@ -307,6 +354,8 @@ export class MountainScene {
   // ---------------------------------------------------------- frame loop
 
   private frame(): void {
+    this.panCamera(this.app.ticker.deltaMS)
+
     const { game, selection, buildMode, overlay } = this.getState()
     if (!game) return
 

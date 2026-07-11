@@ -20,7 +20,7 @@ export function DailyReportModal() {
 
   return (
     <div className="fade-in absolute inset-0 z-40 flex items-center justify-center bg-ink/30 p-6 backdrop-blur-[2px]">
-      <div className="glass max-h-full w-[680px] overflow-y-auto scroll-thin rounded-3xl p-6 rise-in">
+      <div className="glass max-h-full w-[min(680px,100%)] overflow-y-auto scroll-thin rounded-3xl p-6 rise-in">
         <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-faint">Operating report</div>
         <h2 className="font-display text-[26px] font-semibold leading-tight">
           Day {report.day} — {report.netProfit >= 0 ? 'in the black' : 'in the red'}

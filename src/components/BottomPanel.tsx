@@ -12,9 +12,9 @@ export function BottomPanel() {
   const unreadCritical = game.alerts.filter((a) => a.day === game.day && a.severity !== 'info').length
 
   return (
-    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-20 -translate-x-1/2">
+    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-20 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
       {tab && (
-        <div className="glass mb-2 h-[190px] w-[640px] overflow-hidden rounded-2xl rise-in">
+        <div className="glass mb-2 h-[190px] w-[min(640px,calc(100vw-16px))] overflow-hidden rounded-2xl rise-in">
           {tab === 'alerts' && <AlertsTab />}
           {tab === 'guests' && <GuestsTab />}
           {tab === 'finance' && <FinanceTab />}

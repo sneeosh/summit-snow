@@ -22,8 +22,8 @@ export function TopBar() {
   const operating = game.phase === 'operating'
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-3 z-30 -translate-x-1/2">
-      <div className="glass flex items-center gap-4 rounded-2xl px-4 py-2">
+    <div className="pointer-events-auto absolute left-1/2 top-3 z-30 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
+      <div className="glass flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-2xl px-4 py-2">
         {/* brand */}
         <div className="pr-3 border-r border-ink/10">
           <div className="font-display text-[15px] font-semibold leading-tight tracking-tight">Summit &amp; Snow</div>
@@ -130,8 +130,8 @@ export function TopBar() {
       </div>
 
       {showForecast && (
-        <div className="glass mt-2 rounded-xl px-3 py-2.5 rise-in">
-          <div className="flex gap-1.5">
+        <div className="glass mt-2 max-w-full overflow-x-auto rounded-xl px-3 py-2.5 rise-in">
+          <div className="flex w-max gap-1.5">
             {Array.from({ length: 7 }, (_, i) => {
               const day = game.day + i
               if (day > SEASON_DAYS) return null

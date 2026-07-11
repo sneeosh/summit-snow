@@ -19,8 +19,8 @@ export function EventsUI() {
   const event = pending[0]
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-24 z-30 w-[420px] -translate-x-1/2">
-      <div className="glass rounded-2xl p-4 rise-in border-l-4 !border-l-wood">
+    <div className="pointer-events-auto absolute left-1/2 top-24 z-30 w-[min(420px,calc(100vw-24px))] -translate-x-1/2">
+      <div className="glass scroll-thin max-h-[calc(100vh-140px)] overflow-y-auto rounded-2xl border-l-4 !border-l-wood p-4 rise-in">
         <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-wood">
           {CATEGORY_LABEL[event.category]} · Day {event.day}
         </div>

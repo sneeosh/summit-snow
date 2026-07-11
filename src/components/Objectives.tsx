@@ -10,7 +10,7 @@ export function Objectives() {
   const done = game.objectives.filter((o) => o.achieved).length
 
   return (
-    <div className="pointer-events-auto absolute right-3 bottom-6 z-10 w-[250px]">
+    <div className="pointer-events-auto absolute right-3 bottom-20 z-20 w-[min(260px,calc(100vw-24px))]">
       <div className="glass rounded-2xl p-3">
         <button className="flex w-full items-center justify-between" onClick={() => setOpen((v) => !v)}>
           <span className="panel-title text-[14px]">
@@ -21,7 +21,7 @@ export function Objectives() {
           </span>
         </button>
         {open && (
-          <ul className="mt-2 space-y-2">
+          <ul className="scroll-thin mt-2 max-h-[min(46vh,420px)] space-y-2 overflow-y-auto">
             {game.objectives.map((o) => (
               <li key={o.id} className="text-[11px]">
                 <div className="flex items-start gap-1.5">
