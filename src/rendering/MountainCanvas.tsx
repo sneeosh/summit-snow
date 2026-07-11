@@ -13,11 +13,13 @@ export function MountainCanvas() {
     if (!host) return
     let cancelled = false
     let scene: MountainScene | null = null
+    let observer: ResizeObserver | null = null
 
     const app = new Application()
     app
       .init({
-        resizeTo: host,
+        width: Math.max(1, host.clientWidth),
+        height: Math.max(1, host.clientHeight),
         background: '#dfe9ef',
         antialias: true,
         resolution: Math.min(2, window.devicePixelRatio || 1),
@@ -53,15 +55,28 @@ export function MountainCanvas() {
           },
         )
         sceneRef.current = scene
-        const onResize = () => scene?.fitCamera()
-        window.addEventListener('resize', onResize)
-        ;(scene as MountainScene & { _onResize?: () => void })._onResize = onResize
+
+        // Source of truth for canvas size: the host element's laid-out box.
+        // ResizeObserver fires once on observe, correcting any init-time
+        // measurement, and again on every window/layout change.
+        const syncSize = () => {
+          const w = host.clientWidth
+          const h = host.clientHeight
+          if (w < 1 || h < 1) return
+          const screen = app.renderer.screen
+          if (screen.width !== w || screen.height !== h) {
+            app.renderer.resize(w, h)
+            scene?.fitCamera()
+          }
+        }
+        observer = new ResizeObserver(syncSize)
+        observer.observe(host)
+        syncSize()
       })
 
     return () => {
       cancelled = true
-      const s = sceneRef.current as (MountainScene & { _onResize?: () => void }) | null
-      if (s?._onResize) window.removeEventListener('resize', s._onResize)
+      observer?.disconnect()
       sceneRef.current?.destroy()
       sceneRef.current = null
     }
