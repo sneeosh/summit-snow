@@ -166,9 +166,26 @@ export class MountainScene {
   private worldStart = { x: 0, y: 0 }
   private dragMoved = false
   private panKeys = new Set<string>()
+  private destroyed = false
   private onKeyDown = (e: KeyboardEvent) => this.handlePanKey(e, true)
   private onKeyUp = (e: KeyboardEvent) => this.handlePanKey(e, false)
   private onBlur = () => this.panKeys.clear()
+  private onPointerMove = (e: PointerEvent) => {
+    if (this.destroyed) return
+    this.mouseWorld = this.toWorld(e)
+    if (!this.dragging) return
+    const dx = e.clientX - this.dragStart.x
+    const dy = e.clientY - this.dragStart.y
+    if (Math.abs(dx) + Math.abs(dy) > 6) this.dragMoved = true
+    this.world.x = this.worldStart.x + dx
+    this.world.y = this.worldStart.y + dy
+    this.clampCamera()
+  }
+  private onPointerUp = (e: PointerEvent) => {
+    if (this.destroyed || !this.dragging) return
+    this.dragging = false
+    if (!this.dragMoved) this.handleClick(e)
+  }
 
   constructor(
     app: Application,
@@ -195,9 +212,12 @@ export class MountainScene {
   }
 
   destroy(): void {
+    this.destroyed = true
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('blur', this.onBlur)
+    window.removeEventListener('pointermove', this.onPointerMove)
+    window.removeEventListener('pointerup', this.onPointerUp)
     this.app.destroy(true, { children: true })
   }
 
@@ -243,21 +263,8 @@ export class MountainScene {
       this.dragStart = { x: e.clientX, y: e.clientY }
       this.worldStart = { x: this.world.x, y: this.world.y }
     })
-    window.addEventListener('pointermove', (e) => {
-      this.mouseWorld = this.toWorld(e)
-      if (!this.dragging) return
-      const dx = e.clientX - this.dragStart.x
-      const dy = e.clientY - this.dragStart.y
-      if (Math.abs(dx) + Math.abs(dy) > 6) this.dragMoved = true
-      this.world.x = this.worldStart.x + dx
-      this.world.y = this.worldStart.y + dy
-      this.clampCamera()
-    })
-    window.addEventListener('pointerup', (e) => {
-      if (!this.dragging) return
-      this.dragging = false
-      if (!this.dragMoved) this.handleClick(e)
-    })
+    window.addEventListener('pointermove', this.onPointerMove)
+    window.addEventListener('pointerup', this.onPointerUp)
 
     // WASD / arrow-key panning, applied continuously in the frame loop
     window.addEventListener('keydown', this.onKeyDown)

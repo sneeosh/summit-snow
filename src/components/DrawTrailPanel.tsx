@@ -3,8 +3,7 @@
  * uphill stretches, unreachable tops, and dead ends — but never blocks
  * the build. Full control means full responsibility.
  */
-import { NODE_MAP } from '../content/mountain'
-import { planCustomTrail } from '../game/trails'
+import { getNode, planCustomTrail } from '../game/trails'
 import { formatMoney, useStore } from '../state/store'
 import { DiffBadge } from './shared'
 
@@ -70,8 +69,8 @@ export function DrawTrailPanel() {
             )}
             {plan.warnings.length === 0 && a.topNodeId && (
               <div className="mt-2 text-[11px] font-medium text-diff-green">
-                ✓ Clean line from {NODE_MAP[a.topNodeId].name}
-                {a.bottomNodeId ? ` down to ${NODE_MAP[a.bottomNodeId].name}` : ''}
+                ✓ Clean line from {getNode(game, a.topNodeId)?.name ?? 'the station'}
+                {a.bottomNodeId ? ` down to ${getNode(game, a.bottomNodeId)?.name ?? 'the station'}` : ''}
               </div>
             )}
           </>

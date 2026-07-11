@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BottomPanel } from './components/BottomPanel'
 import { DailyReportModal } from './components/DailyReport'
 import { DrawTrailPanel } from './components/DrawTrailPanel'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { EventsUI } from './components/EventsUI'
 import { Inspector } from './components/Inspector'
 import { LeftRail } from './components/LeftRail'
@@ -59,18 +60,20 @@ export default function App() {
     <div className="relative h-full w-full select-none overflow-hidden bg-snow-1">
       <MountainCanvas />
       <div className="pointer-events-none absolute inset-0">
-        <TopBar />
-        <LeftRail />
-        <Inspector />
-        <BottomPanel />
-        <Objectives />
-        <Tutorial />
-        <EventsUI />
-        <BuildModeHint />
-        <DrawTrailPanel />
-        <DailyReportModal />
-        <GameOverBanner />
-        <Toast />
+        <ErrorBoundary label="HUD">
+          <TopBar />
+          <LeftRail />
+          <Inspector />
+          <BottomPanel />
+          <Objectives />
+          <Tutorial />
+          <EventsUI />
+          <BuildModeHint />
+          <DrawTrailPanel />
+          <DailyReportModal />
+          <GameOverBanner />
+          <Toast />
+        </ErrorBoundary>
       </div>
     </div>
   )

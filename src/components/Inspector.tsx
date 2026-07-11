@@ -1,7 +1,7 @@
 /** Contextual right-side inspector for the current selection. */
 import { FACILITIES, LIFT_BASE_COST, LIFT_COST_PER_M, LIFT_TYPES, TRAIL_MIN_DEPTH_CM } from '../content/balance'
-import { NODE_MAP, SLOT_MAP } from '../content/mountain'
-import { getLiftSite, getTrailDef } from '../game/trails'
+import { SLOT_MAP } from '../content/mountain'
+import { getLiftSite, getNode, getTrailDef } from '../game/trails'
 import { SKILL_LABEL } from '../content/names'
 import { isLiftRunning } from '../game/resort'
 import { formatMoney, useStore } from '../state/store'
@@ -92,7 +92,7 @@ function TrailCard({ id }: { id: string }) {
               ⚠ Climbs {def.totalClimbM} m back uphill — skiers get stuck here.
             </div>
           )}
-          {!NODE_MAP[def.bottomNodeId] && (
+          {!getNode(game, def.bottomNodeId) && (
             <div className="rounded-lg bg-safety/10 px-2.5 py-1.5 text-[11px] font-medium text-safety">
               ⚠ Dead-ends mid-mountain — patrol sleds skiers out.
             </div>
