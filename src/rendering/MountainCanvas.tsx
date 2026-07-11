@@ -81,9 +81,11 @@ export function MountainCanvas() {
         observer.observe(host)
         syncSize()
         console.info(
-          `[summit-snow] canvas r2: host ${host.clientWidth}x${host.clientHeight}, ` +
+          `[summit-snow] canvas r3: host ${host.clientWidth}x${host.clientHeight}, ` +
             `screen ${app.renderer.screen.width}x${app.renderer.screen.height}, dpr ${window.devicePixelRatio}`,
         )
+        if (import.meta.env.DEV) reportDiagnostics(host, app, 'boot')
+        if (import.meta.env.DEV) setTimeout(() => reportDiagnostics(host, app, 't+2s'), 2000)
       })
 
     return () => {
@@ -95,4 +97,39 @@ export function MountainCanvas() {
   }, [])
 
   return <div ref={hostRef} className="absolute inset-0 overflow-hidden" />
+}
+
+/** dev-only: ship layout measurements to the dev server for remote debugging */
+function reportDiagnostics(host: HTMLElement, app: Application, phase: string): void {
+  try {
+    const rect = (el: Element | null) =>
+      el
+        ? (({ x, y, width, height }) => ({ x: Math.round(x), y: Math.round(y), w: Math.round(width), h: Math.round(height) }))(
+            el.getBoundingClientRect(),
+          )
+        : null
+    const canvas = app.canvas as HTMLCanvasElement
+    const payload = {
+      phase,
+      ua: navigator.userAgent,
+      dpr: window.devicePixelRatio,
+      inner: { w: window.innerWidth, h: window.innerHeight },
+      visualViewport: window.visualViewport
+        ? { w: Math.round(window.visualViewport.width), h: Math.round(window.visualViewport.height), scale: window.visualViewport.scale }
+        : null,
+      html: rect(document.documentElement),
+      body: rect(document.body),
+      root: rect(document.getElementById('root')),
+      hostParent: rect(host.parentElement),
+      host: rect(host),
+      canvas: rect(canvas),
+      canvasStyle: { w: canvas.style.width, h: canvas.style.height },
+      canvasBuffer: { w: canvas.width, h: canvas.height },
+      screen: { w: app.renderer.screen.width, h: app.renderer.screen.height },
+      resolution: app.renderer.resolution,
+    }
+    void fetch('/__diag', { method: 'POST', body: JSON.stringify(payload) })
+  } catch {
+    // diagnostics must never break the game
+  }
 }
