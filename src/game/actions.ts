@@ -4,13 +4,23 @@
  * state only on success. Building is allowed in any phase — including while
  * paused mid-day — per the vision.
  */
-import { FACILITIES, LIFT_TYPES, LOAN_OFFERS, SNOWMAKING_INSTALL_COST, TRAIL_MIN_DEPTH_CM } from '../content/balance'
+import {
+  FACILITIES,
+  LIFT_BASE_COST,
+  LIFT_COST_PER_M,
+  LIFT_MIN_RISE_M,
+  LIFT_TYPES,
+  LOAN_OFFERS,
+  SNOWMAKING_INSTALL_COST,
+  TRAIL_MIN_DEPTH_CM,
+} from '../content/balance'
 import { LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
+import { CUSTOM_LIFT_NAMES } from '../content/names'
 import { pushAlert } from './guests'
 import { makeLiftState } from './init'
-import { getTrailDef, makeCustomTrailDef, planCustomTrail } from './trails'
+import { ensureNode, getLiftSite, getTrailDef, makeCustomTrailDef, planCustomLift, planCustomTrail } from './trails'
 import { computeSurface } from './weather'
-import type { FacilityKind, GameState, LiftKind, Prices, StaffRole, TrailState, Vec2 } from './types'
+import type { FacilityKind, GameState, LiftKind, LiftSiteDef, Prices, StaffRole, TrailState, Vec2 } from './types'
 
 function spend(state: GameState, amount: number): string | null {
   if (state.cash < amount) return `Not enough cash ($${Math.round(amount).toLocaleString()} needed)`
@@ -32,25 +42,64 @@ export function buildLift(state: GameState, siteId: string, kind: LiftKind): str
 }
 
 export function upgradeLift(state: GameState, siteId: string, kind: LiftKind): string | null {
-  const site = LIFT_SITE_MAP[siteId]
+  const site = getLiftSite(state, siteId)
   const existing = state.lifts[siteId]
   if (!site || !existing) return 'No lift to upgrade'
   if (!site.allowedKinds.includes(kind)) return 'That lift type doesn’t fit this alignment'
   if (existing.kind === kind) return 'Already this lift type'
-  // upgrade credit: half the old lift's value
-  const cost = LIFT_TYPES[kind].buildCost - LIFT_TYPES[existing.kind].buildCost * 0.5
-  const err = spend(state, Math.max(0, cost))
+  // upgrade credit: half the old lift's value (length-priced for custom lines)
+  const priceOf = (k: LiftKind) =>
+    site.isCustom ? LIFT_BASE_COST[k] + existing.lengthM * LIFT_COST_PER_M[k] : LIFT_TYPES[k].buildCost
+  const cost = priceOf(kind) - priceOf(existing.kind) * 0.5
+  const err = spend(state, Math.max(0, Math.round(cost)))
   if (err) return err
   const wasOpen = existing.open
-  state.lifts[siteId] = makeLiftState(siteId, kind)
+  state.lifts[siteId] = makeLiftState(siteId, kind, site.isCustom ? existing.lengthM : undefined)
   state.lifts[siteId].open = wasOpen
   pushAlert(state, 'info', `${site.name} upgraded to ${LIFT_TYPES[kind].label}`)
   return null
 }
 
+/**
+ * Build a lift between two clicked points. Endpoints snap to network nodes;
+ * unsnapped terminals create new stations (which future trails and lifts can
+ * connect to). The lower end is always the bottom. Requires real vertical
+ * rise — everything else is the designer's call.
+ */
+export function buildCustomLift(state: GameState, a: Vec2, b: Vec2, kind: LiftKind): string | null {
+  const plan = planCustomLift(state, a, b, kind)
+  if (plan.riseM < LIFT_MIN_RISE_M) {
+    return `A lift needs at least ${LIFT_MIN_RISE_M} m of rise (this line gains ${plan.riseM} m)`
+  }
+  if (plan.lengthM < 120) return 'Too short — walk it'
+  const err = spend(state, plan.totalCost)
+  if (err) return err
+
+  const bottomNodeId = ensureNode(state, plan.bottomNodeId, plan.bottom)
+  const topNodeId = ensureNode(state, plan.topNodeId, plan.top)
+  const n = Object.keys(state.customLiftSites).length
+  const id = `cl-${state.day}-${n + 1}`
+  const site: LiftSiteDef = {
+    id,
+    name: CUSTOM_LIFT_NAMES[n % CUSTOM_LIFT_NAMES.length] ?? `Lift ${n + 1}`,
+    bottomNodeId,
+    topNodeId,
+    allowedKinds: ['surface', 'chair', 'high-speed-chair', 'gondola'],
+    isCustom: true,
+    buildCost: plan.totalCost,
+  }
+  state.customLiftSites[id] = site
+  state.lifts[id] = makeLiftState(id, kind, plan.lengthM)
+  state.lifts[id].open = true
+
+  const treeNote = plan.treesToClear > 0 ? ` — ${plan.treesToClear} trees cleared` : ''
+  pushAlert(state, 'info', `${site.name} built — ${LIFT_TYPES[kind].label}, ${plan.lengthM.toLocaleString()} m${treeNote}`)
+  return null
+}
+
 export function setLiftOpen(state: GameState, siteId: string, open: boolean): string | null {
   const lift = state.lifts[siteId]
-  if (!lift) return 'Lift not built'
+  if (!lift || !getLiftSite(state, siteId)) return 'Lift not built'
   lift.open = open
   if (!open) {
     // guests in line re-plan; riders finish their ride

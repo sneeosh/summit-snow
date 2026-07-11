@@ -9,8 +9,7 @@ import {
   TRAILS_PER_PATROLLER,
   TRAILS_PER_SNOW_TECH,
 } from '../content/balance'
-import { LIFT_SITE_MAP } from '../content/mountain'
-import { getTrailDef } from './trails'
+import { getLiftSite, getTrailDef } from './trails'
 import type { FacilityKind, GameState, LiftState, StaffRole, TrailState } from './types'
 
 export function countFacility(state: GameState, kind: FacilityKind): number {
@@ -126,7 +125,7 @@ export function reachableNodes(state: GameState): Set<string> {
   while (grew) {
     grew = false
     for (const lift of running) {
-      const site = LIFT_SITE_MAP[lift.siteId]
+      const site = getLiftSite(state, lift.siteId)
       if (reach.has(site.bottomNodeId) && !reach.has(site.topNodeId)) {
         reach.add(site.topNodeId)
         grew = true

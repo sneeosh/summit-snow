@@ -18,6 +18,13 @@ export interface Clearing {
   halfWu: number
 }
 
+/**
+ * Out-of-bounds margin painted around the world (world units). The camera
+ * may overscroll into it; it reads as unpatrolled backcountry beyond the
+ * ski-area boundary rope.
+ */
+export const WORLD_PAD = 260
+
 export interface TerrainMood {
   /** 0..1 cloudiness dims and cools the palette */
   cloud: number
@@ -50,9 +57,14 @@ const FAR_RIDGES: [number, number][][] = [
 
 export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearing[] = []): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
-  canvas.width = WORLD_W
-  canvas.height = WORLD_H
+  canvas.width = WORLD_W + WORLD_PAD * 2
+  canvas.height = WORLD_H + WORLD_PAD * 2
   const ctx = canvas.getContext('2d')!
+  // draw in world coordinates; the scene offsets the sprite by -WORLD_PAD
+  ctx.translate(WORLD_PAD, WORLD_PAD)
+  const L = -WORLD_PAD
+  const R = WORLD_W + WORLD_PAD
+  const B = WORLD_H + WORLD_PAD
 
   const dim = mood.cloud * 0.6 + (1 - mood.visibility) * 0.4 // 0 clear .. ~1 socked in
 
@@ -72,7 +84,7 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
     sky.addColorStop(1, '#d4dbdf')
   }
   ctx.fillStyle = sky
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H)
+  ctx.fillRect(L, L, R - L, B - L)
 
   // low sun, clear days only
   if (dim < 0.35) {
@@ -91,10 +103,11 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
   const ridgeColors = ['rgba(148, 170, 189, ALPHA)', 'rgba(170, 190, 205, ALPHA)']
   FAR_RIDGES.forEach((ridge, i) => {
     ctx.beginPath()
-    ctx.moveTo(ridge[0][0], ridge[0][1])
+    ctx.moveTo(L, ridge[0][1])
     for (const [x, y] of ridge) ctx.lineTo(x, y)
-    ctx.lineTo(WORLD_W, WORLD_H)
-    ctx.lineTo(0, WORLD_H)
+    ctx.lineTo(R, ridge[ridge.length - 1][1])
+    ctx.lineTo(R, B)
+    ctx.lineTo(L, B)
     ctx.closePath()
     ctx.fillStyle = ridgeColors[i].replace('ALPHA', String(0.5 * ridgeAlpha + 0.15))
     ctx.fill()
@@ -102,10 +115,11 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
 
   // ---- main mountain snowfield
   ctx.beginPath()
-  ctx.moveTo(SKYLINE[0][0], SKYLINE[0][1])
+  ctx.moveTo(L, SKYLINE[0][1])
   for (const [x, y] of SKYLINE) ctx.lineTo(x, y)
-  ctx.lineTo(WORLD_W, WORLD_H)
-  ctx.lineTo(0, WORLD_H)
+  ctx.lineTo(R, SKYLINE[SKYLINE.length - 1][1] + 60)
+  ctx.lineTo(R, B)
+  ctx.lineTo(L, B)
   ctx.closePath()
   const snow = ctx.createLinearGradient(0, 150, 0, WORLD_H)
   if (dim < 0.5) {
@@ -171,13 +185,30 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
 
   ctx.restore()
 
+  // ---- untouched backcountry forest in the out-of-bounds margin
+  paintBackcountry(ctx, seed, dim)
+
   // ---- fog wash when visibility is poor
   if (mood.visibility < 0.6) {
     ctx.fillStyle = `rgba(222, 229, 233, ${(0.6 - mood.visibility) * 0.9})`
-    ctx.fillRect(0, 0, WORLD_W, WORLD_H)
+    ctx.fillRect(-WORLD_PAD, -WORLD_PAD, WORLD_W + WORLD_PAD * 2, WORLD_H + WORLD_PAD * 2)
   }
 
   return canvas
+}
+
+/** dense, unmanaged trees beyond the boundary — the hill clearly continues */
+function paintBackcountry(ctx: CanvasRenderingContext2D, seed: number, dim: number): void {
+  for (let i = 0; i < 900; i++) {
+    const x = -WORLD_PAD + hashNoise(seed, i, 41) * (WORLD_W + WORLD_PAD * 2)
+    const y = -WORLD_PAD + hashNoise(seed, i, 42) * (WORLD_H + WORLD_PAD * 2)
+    // margin only — the in-bounds forest is the shared sim scatter
+    if (x > 6 && x < WORLD_W - 6 && y > 6 && y < WORLD_H - 6) continue
+    const skyY = skylineYAt(Math.max(0, Math.min(WORLD_W, x)))
+    if (y < skyY + 26) continue
+    if (hashNoise(seed, i, 43) > 0.75) continue
+    drawSpruce(ctx, x, y, 6 + hashNoise(seed, i, 44) * 9, hashNoise(seed, i, 45), dim)
+  }
 }
 
 function paintForests(ctx: CanvasRenderingContext2D, seed: number, dim: number, clearings: Clearing[]): void {

@@ -1,6 +1,14 @@
 /** Left-side construction & management toolbar: icon rail + active panel. */
-import { FACILITIES, LIFT_TYPES, LOAN_OFFERS, SNOWMAKING_INSTALL_COST, STAFF_WAGES } from '../content/balance'
-import { LIFT_SITES, TRAILS } from '../content/mountain'
+import {
+  FACILITIES,
+  LIFT_BASE_COST,
+  LIFT_COST_PER_M,
+  LIFT_TYPES,
+  LOAN_OFFERS,
+  SNOWMAKING_INSTALL_COST,
+  STAFF_WAGES,
+} from '../content/balance'
+import { TRAILS } from '../content/mountain'
 import { liftStaffRequired, staffCount } from '../game/resort'
 import type { FacilityKind, LiftKind, StaffRole } from '../game/types'
 import { formatMoney, useStore, type LeftTab, type Overlay } from '../state/store'
@@ -70,29 +78,28 @@ function BuildPanel() {
   const buildMode = useStore((s) => s.buildMode)
   const setBuildMode = useStore((s) => s.setBuildMode)
 
-  const unbuiltSites = LIFT_SITES.filter((s) => !game.lifts[s.id])
   const unbuiltTrails = TRAILS.filter((t) => !game.trails[t.id].built)
   const plumbable = TRAILS.filter((t) => game.trails[t.id].built && !game.trails[t.id].hasSnowmaking)
 
   return (
     <div className="space-y-4">
-      <Section title="Lifts" hint={unbuiltSites.length === 0 ? 'Every alignment is built' : 'Pick a type, then click a dashed alignment on the map'}>
+      <Section title="Lifts" hint="Pick a type, then click the bottom and top points anywhere on the mountain">
         <div className="grid grid-cols-2 gap-1.5">
           {(Object.keys(LIFT_TYPES) as LiftKind[]).map((kind) => {
             const spec = LIFT_TYPES[kind]
-            const active = buildMode?.type === 'lift' && buildMode.kind === kind
-            const anySite = unbuiltSites.some((s) => s.allowedKinds.includes(kind))
+            const active = buildMode?.type === 'draw-lift' && buildMode.kind === kind
             return (
               <button
                 key={kind}
-                disabled={!anySite}
-                onClick={() => setBuildMode(active ? null : { type: 'lift', kind })}
+                onClick={() => setBuildMode(active ? null : { type: 'draw-lift', kind, first: null })}
                 className={`rounded-xl border p-2 text-left transition-colors ${
                   active ? 'border-wood bg-wood/10' : 'border-ink/10 hover:border-ink/25'
-                } ${!anySite ? 'opacity-40' : ''}`}
+                }`}
               >
                 <div className="text-[12px] font-semibold leading-tight">{spec.label}</div>
-                <div className="stat-number text-[13px] text-wood">{formatMoney(spec.buildCost)}</div>
+                <div className="stat-number text-[13px] text-wood">
+                  {formatMoney(LIFT_BASE_COST[kind])} + {formatMoney(LIFT_COST_PER_M[kind])}/m
+                </div>
                 <div className="text-[10px] text-ink-faint">{spec.hourlyCapacity}/hr · {spec.staffRequired} ops</div>
               </button>
             )

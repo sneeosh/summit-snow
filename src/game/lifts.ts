@@ -3,7 +3,7 @@
  * queues at the type's hourly capacity, and delivering riders to the top.
  */
 import { LIFT_TYPES, TICK_MINUTES } from '../content/balance'
-import { LIFT_SITE_MAP } from '../content/mountain'
+import { getLiftSite } from './trails'
 import { onLiftArrival, pushAlert, remember } from './guests'
 import type { Rng } from './rng'
 import { runningLifts } from './resort'
@@ -14,7 +14,7 @@ export function tickLifts(state: GameState, rng: Rng): void {
 
   for (const lift of Object.values(state.lifts)) {
     const spec = LIFT_TYPES[lift.kind]
-    const site = LIFT_SITE_MAP[lift.siteId]
+    const site = getLiftSite(state, lift.siteId)
 
     // ---- wind holds come and go with the day's wind
     if (lift.forcedClosed === 'wind') {
@@ -88,7 +88,7 @@ export function rollBreakdowns(state: GameState, rng: Rng): void {
       lift.forcedClosed = 'breakdown'
       const repairBase = rng.range(45, 150)
       lift.breakdownMinutesLeft = Math.round(repairBase * (hasGarage ? 0.7 : 1) * Math.max(0.5, 1 - mechanics * 0.1))
-      const site = LIFT_SITE_MAP[lift.siteId]
+      const site = getLiftSite(state, lift.siteId)
       pushAlert(state, 'critical', `${site.name} is down with a mechanical fault (~${lift.breakdownMinutesLeft} min)`)
       dumpQueue(state, lift.siteId, 'breakdown')
     }

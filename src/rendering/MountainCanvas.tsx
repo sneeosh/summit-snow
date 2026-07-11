@@ -51,10 +51,7 @@ export function MountainCanvas() {
               const s = useStore.getState()
               if (s.buildMode?.type === 'facility') s.buildFacility(slotId, s.buildMode.kind)
             },
-            onLiftSiteClick: (siteId) => {
-              const s = useStore.getState()
-              if (s.buildMode?.type === 'lift') s.buildLift(siteId, s.buildMode.kind)
-            },
+            onLiftPoint: (p) => useStore.getState().addLiftPoint(p),
             onTrailClick: (trailId) => {
               const s = useStore.getState()
               if (s.buildMode?.type === 'trail') s.buildTrail(trailId)

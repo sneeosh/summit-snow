@@ -11,16 +11,66 @@
 import {
   CUSTOM_TRAIL_NAMES_FALLBACK,
   CUSTOM_TRAIL_WIDTH_M,
+  LIFT_BASE_COST,
+  LIFT_CLEAR_WIDTH_M,
+  LIFT_COST_PER_M,
+  LIFT_MIN_RISE_M,
   TRAIL_COST_PER_M,
   TREE_CLEAR_COST,
 } from '../content/balance'
-import { measurePath, NODES, TRAIL_MAP, TRAIL_PATHS, type MeasuredPath } from '../content/mountain'
+import {
+  LIFT_LINES,
+  LIFT_SITE_MAP,
+  measurePath,
+  NODE_MAP,
+  NODES,
+  TRAIL_MAP,
+  TRAIL_PATHS,
+  type MeasuredPath,
+} from '../content/mountain'
 import { CUSTOM_TRAIL_NAMES } from '../content/names'
 import { clearingHalfWidthWu, distToPath, elevationAt, treesInCorridor } from './terrainModel'
-import type { Difficulty, GameState, TrailDef, Vec2 } from './types'
+import type { Difficulty, GameState, LiftKind, LiftSiteDef, MountainNode, TrailDef, Vec2 } from './types'
 
 /** snap radius for attaching trail endpoints to network nodes (world units) */
 export const NODE_SNAP_WU = 45
+
+// ------------------------------------------------------- network lookups
+
+/** a network node: surveyed (content) or created by a custom lift terminal */
+export function getNode(state: GameState, nodeId: string): MountainNode | undefined {
+  return NODE_MAP[nodeId] ?? state.customNodes[nodeId]
+}
+
+export function allNodes(state: GameState): MountainNode[] {
+  return [...NODES, ...Object.values(state.customNodes)]
+}
+
+export function getLiftSite(state: GameState, siteId: string): LiftSiteDef {
+  return LIFT_SITE_MAP[siteId] ?? state.customLiftSites[siteId]
+}
+
+const liftLineCache = new WeakMap<LiftSiteDef, MeasuredPath>()
+
+export function getLiftLine(state: GameState, siteId: string): MeasuredPath {
+  const staticLine = LIFT_LINES[siteId]
+  if (staticLine) return staticLine
+  const site = state.customLiftSites[siteId]
+  let mp = liftLineCache.get(site)
+  if (!mp) {
+    mp = measurePath([getNode(state, site.bottomNodeId)!.pos, getNode(state, site.topNodeId)!.pos])
+    liftLineCache.set(site, mp)
+  }
+  return mp
+}
+
+/** slope length in metres for any lift site (horizontal scale + vertical rise) */
+export function liftSlopeLengthM(state: GameState, site: LiftSiteDef): number {
+  const a = getNode(state, site.bottomNodeId)!
+  const b = getNode(state, site.topNodeId)!
+  const horiz = Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y) * 2
+  return Math.round(Math.hypot(horiz, b.elevation - a.elevation))
+}
 
 // ----------------------------------------------------------- def lookups
 
@@ -68,10 +118,10 @@ export interface PathAnalysis {
   bottomNodeId: string | null
 }
 
-export function nearestNodeId(p: Vec2, radius = NODE_SNAP_WU): string | null {
+export function nearestNodeId(p: Vec2, radius = NODE_SNAP_WU, nodes: MountainNode[] = NODES): string | null {
   let best: string | null = null
   let bestD = radius
-  for (const node of NODES) {
+  for (const node of nodes) {
     const d = Math.hypot(node.pos.x - p.x, node.pos.y - p.y)
     if (d < bestD) {
       bestD = d
@@ -81,7 +131,7 @@ export function nearestNodeId(p: Vec2, radius = NODE_SNAP_WU): string | null {
   return best
 }
 
-export function analyzePath(points: Vec2[]): PathAnalysis {
+export function analyzePath(points: Vec2[], nodes: MountainNode[] = NODES): PathAnalysis {
   const empty: PathAnalysis = {
     lengthM: 0,
     verticalM: 0,
@@ -90,8 +140,8 @@ export function analyzePath(points: Vec2[]): PathAnalysis {
     uphillSegments: [],
     uphillFraction: 0,
     totalClimbM: 0,
-    topNodeId: points.length > 0 ? nearestNodeId(points[0]) : null,
-    bottomNodeId: points.length > 1 ? nearestNodeId(points[points.length - 1]) : null,
+    topNodeId: points.length > 0 ? nearestNodeId(points[0], NODE_SNAP_WU, nodes) : null,
+    bottomNodeId: points.length > 1 ? nearestNodeId(points[points.length - 1], NODE_SNAP_WU, nodes) : null,
   }
   if (points.length < 2) return empty
 
@@ -143,8 +193,8 @@ export function analyzePath(points: Vec2[]): PathAnalysis {
     uphillSegments,
     uphillFraction: Math.round(uphillLen * 1000) / 1000,
     totalClimbM: Math.round(totalClimbM),
-    topNodeId: nearestNodeId(points[0]),
-    bottomNodeId: nearestNodeId(points[points.length - 1]),
+    topNodeId: nearestNodeId(points[0], NODE_SNAP_WU, nodes),
+    bottomNodeId: nearestNodeId(points[points.length - 1], NODE_SNAP_WU, nodes),
   }
 }
 
@@ -160,7 +210,7 @@ export interface TrailPlan {
 }
 
 export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
-  const analysis = analyzePath(points)
+  const analysis = analyzePath(points, allNodes(state))
 
   // trees in this corridor that aren't already cleared by an existing custom trail
   const inCorridor = points.length >= 2 ? treesInCorridor(state.seed, points, CUSTOM_TRAIL_WIDTH_M) : []
@@ -197,12 +247,110 @@ export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
   }
 }
 
-/** clearings from already-built custom trails (for repaint + dedup costing) */
+/** clearings from built custom trails and lift lines (repaint + dedup costing) */
 export function builtClearings(state: GameState): { path: Vec2[]; halfWu: number }[] {
-  return Object.values(state.customTrailDefs).map((def) => ({
+  const trails = Object.values(state.customTrailDefs).map((def) => ({
     path: def.path,
     halfWu: clearingHalfWidthWu(def.widthM),
   }))
+  const lifts = Object.values(state.customLiftSites).map((site) => ({
+    path: getLiftLine(state, site.id).points,
+    halfWu: clearingHalfWidthWu(LIFT_CLEAR_WIDTH_M),
+  }))
+  return [...trails, ...lifts]
+}
+
+// ------------------------------------------------- point-to-point lifts
+
+export interface LiftPlan {
+  /** endpoints after node snapping, oriented bottom → top */
+  bottom: Vec2
+  top: Vec2
+  bottomNodeId: string | null // existing node it snapped to
+  topNodeId: string | null
+  lengthM: number
+  riseM: number
+  treesToClear: number
+  lineCost: number
+  clearingCost: number
+  totalCost: number
+  warnings: string[]
+}
+
+/**
+ * Price and sanity-check a lift between two clicked points. Endpoints snap
+ * to existing network nodes; the lower end becomes the bottom regardless of
+ * click order.
+ */
+export function planCustomLift(state: GameState, a: Vec2, b: Vec2, kind: LiftKind): LiftPlan {
+  const nodes = allNodes(state)
+  const resolve = (p: Vec2) => {
+    const id = nearestNodeId(p, NODE_SNAP_WU, nodes)
+    return { id, pos: id ? getNode(state, id)!.pos : p }
+  }
+  let lo = resolve(a)
+  let hi = resolve(b)
+  const elev = (r: { id: string | null; pos: Vec2 }) => (r.id ? getNode(state, r.id)!.elevation : elevationAt(r.pos))
+  if (elev(lo) > elev(hi)) [lo, hi] = [hi, lo]
+
+  const horiz = Math.hypot(lo.pos.x - hi.pos.x, lo.pos.y - hi.pos.y) * 2
+  const riseM = Math.round(elev(hi) - elev(lo))
+  const lengthM = Math.round(Math.hypot(horiz, riseM))
+
+  const trees = treesInCorridor(state.seed, [lo.pos, hi.pos], LIFT_CLEAR_WIDTH_M)
+  const alreadyCleared = builtClearings(state)
+  const treesToClear = trees.filter(
+    (tree) => !alreadyCleared.some((c) => distToPath(tree, { points: c.path }) < c.halfWu),
+  ).length
+
+  const lineCost = Math.round(LIFT_BASE_COST[kind] + lengthM * LIFT_COST_PER_M[kind])
+  const clearingCost = treesToClear * TREE_CLEAR_COST
+
+  const warnings: string[] = []
+  const bottomNode = lo.id ? getNode(state, lo.id) : undefined
+  if (!bottomNode?.isBase) {
+    warnings.push(
+      bottomNode
+        ? `Loads at ${bottomNode.name} — only guests coming off a run there can ride it.`
+        : 'The bottom terminal is out in the snow — guests can only reach it if a run ends there.',
+    )
+  }
+  if (riseM < LIFT_MIN_RISE_M) {
+    warnings.push(`Only ${riseM} m of rise — a lift needs at least ${LIFT_MIN_RISE_M} m.`)
+  }
+
+  return {
+    bottom: lo.pos,
+    top: hi.pos,
+    bottomNodeId: lo.id,
+    topNodeId: hi.id,
+    lengthM,
+    riseM,
+    treesToClear,
+    lineCost,
+    clearingCost,
+    totalCost: lineCost + clearingCost,
+    warnings,
+  }
+}
+
+/** base-area flats: terminals placed this low become walk-to-able nodes */
+const BASE_ELEVATION_CUTOFF = 1268
+
+/** create (or reuse) the network node for a custom lift terminal */
+export function ensureNode(state: GameState, nodeId: string | null, pos: Vec2): string {
+  if (nodeId) return nodeId
+  const n = Object.keys(state.customNodes).length + 1
+  const id = `cn-${n}`
+  const elevation = Math.round(elevationAt(pos))
+  state.customNodes[id] = {
+    id,
+    name: `Station ${n}`,
+    pos: { x: Math.round(pos.x), y: Math.round(pos.y) },
+    elevation,
+    isBase: elevation <= BASE_ELEVATION_CUTOFF,
+  }
+  return id
 }
 
 // ---------------------------------------------------------------- creation

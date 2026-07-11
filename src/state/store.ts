@@ -6,9 +6,8 @@
  */
 import { create } from 'zustand'
 import { TICK_MINUTES, TICK_REAL_MS } from '../content/balance'
-import { NODE_MAP } from '../content/mountain'
 import * as actions from '../game/actions'
-import { nearestNodeId } from '../game/trails'
+import { allNodes, getNode, nearestNodeId } from '../game/trails'
 import { resolveEvent } from '../game/events'
 import { newGame } from '../game/init'
 import { fastForwardDay, openResort, startNextDay, tick } from '../game/simulation'
@@ -26,7 +25,7 @@ export type Selection =
   | null
 
 export type BuildMode =
-  | { type: 'lift'; kind: LiftKind }
+  | { type: 'draw-lift'; kind: LiftKind; first: Vec2 | null }
   | { type: 'trail' }
   | { type: 'draw-trail'; points: Vec2[] }
   | { type: 'snowmaking' }
@@ -68,6 +67,9 @@ interface Store {
   addDrawPoint: (p: Vec2) => void
   undoDrawPoint: () => void
   confirmDrawTrail: () => void
+
+  // lift placement
+  addLiftPoint: (p: Vec2) => void
 
   // UI
   select: (sel: Selection) => void
@@ -193,11 +195,12 @@ export const useStore = create<Store>((set, get) => {
 
     addDrawPoint: (p) => {
       const bm = get().buildMode
-      if (bm?.type !== 'draw-trail') return
+      const game = get().game
+      if (bm?.type !== 'draw-trail' || !game) return
       // snap to a lift station / junction when close — that's how skiers
-      // enter and leave a run
-      const snapped = nearestNodeId(p)
-      const point = snapped ? { ...NODE_MAP[snapped].pos } : p
+      // enter and leave a run (custom lift terminals count!)
+      const snapped = nearestNodeId(p, undefined, allNodes(game))
+      const point = snapped ? { ...getNode(game, snapped)!.pos } : p
       set({ buildMode: { type: 'draw-trail', points: [...bm.points, point] } })
     },
     undoDrawPoint: () => {
@@ -215,6 +218,27 @@ export const useStore = create<Store>((set, get) => {
         game: { ...game },
         actionError: err,
         tickCount: get().tickCount + 1,
+        ...(err ? {} : { buildMode: null }),
+      })
+    },
+
+    addLiftPoint: (p) => {
+      const bm = get().buildMode
+      const game = get().game
+      if (bm?.type !== 'draw-lift' || !game) return
+      if (bm.first === null) {
+        // snap the first terminal to a network node when close
+        const snapped = nearestNodeId(p, undefined, allNodes(game))
+        const point = snapped ? { ...getNode(game, snapped)!.pos } : p
+        set({ buildMode: { ...bm, first: point } })
+        return
+      }
+      const err = actions.buildCustomLift(game, bm.first, p, bm.kind)
+      set({
+        game: { ...game },
+        actionError: err,
+        tickCount: get().tickCount + 1,
+        // keep the mode armed after an error so the player can adjust the top
         ...(err ? {} : { buildMode: null }),
       })
     },

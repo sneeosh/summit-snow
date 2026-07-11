@@ -81,8 +81,10 @@ function BuildModeHint() {
   const setBuildMode = useStore((s) => s.setBuildMode)
   if (!buildMode || buildMode.type === 'draw-trail') return null // draw mode has its own panel
   const label =
-    buildMode.type === 'lift'
-      ? 'Click a dashed alignment to build the lift'
+    buildMode.type === 'draw-lift'
+      ? buildMode.first === null
+        ? 'Click the BOTTOM terminal — anywhere on the mountain (rings snap to stations)'
+        : 'Now click the TOP terminal — the label shows live cost and warnings'
       : buildMode.type === 'trail'
         ? 'Click a dotted corridor to cut the trail'
         : buildMode.type === 'snowmaking'

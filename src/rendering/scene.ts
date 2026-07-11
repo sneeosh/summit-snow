@@ -7,31 +7,90 @@
  * key changes; guests and chairs update every animation frame.
  */
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
-import {
-  FACILITY_SLOTS,
-  LIFT_LINES,
-  LIFT_SITES,
-  measurePath,
-  NODE_MAP,
-  pointAt,
-  TRAIL_MAP,
-  WORLD_H,
-  WORLD_W,
-} from '../content/mountain'
+import { FACILITY_SLOTS, measurePath, pointAt, TRAIL_MAP, WORLD_H, WORLD_W } from '../content/mountain'
 import { FACILITIES } from '../content/balance'
 import { hashNoise } from '../game/rng'
 import { isLiftRunning } from '../game/resort'
-import { allTrailDefs, analyzePath, builtClearings, getTrailPath, nearestNodeId } from '../game/trails'
+import {
+  allNodes,
+  allTrailDefs,
+  analyzePath,
+  builtClearings,
+  getLiftLine,
+  getLiftSite,
+  getTrailPath,
+  nearestNodeId,
+  planCustomLift,
+} from '../game/trails'
+import { SKYLINE, skylineYAt } from '../game/terrainModel'
 import { guestLook, guestTexture } from './sprites'
 import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
-import { moodFromWeather, paintTerrain } from './terrain'
+import { moodFromWeather, paintTerrain, WORLD_PAD } from './terrain'
 
 const DIFF_COLOR: Record<string, number> = {
   green: 0x2e7d4f,
   blue: 0x2f6fb2,
   black: 0x22262a,
   'double-black': 0x22262a,
+}
+
+/**
+ * The ski-area boundary: an orange rope with pennants hugging the ridgeline
+ * and the world edges. Everything beyond it is backcountry — pannable, not
+ * skiable.
+ */
+function makeBoundary(): Container {
+  const c = new Container()
+  const g = new Graphics()
+  const inset = 8
+  const ridgeDrop = 20 // rope runs just below the skyline
+
+  // boundary polyline: up the left edge, along the ridge, down the right edge
+  const pts: Vec2[] = [{ x: inset, y: WORLD_H - inset }]
+  pts.push({ x: inset, y: skylineYAt(inset) + ridgeDrop })
+  for (const [x, y] of SKYLINE) {
+    if (x <= inset || x >= WORLD_W - inset) continue
+    pts.push({ x, y: y + ridgeDrop })
+  }
+  pts.push({ x: WORLD_W - inset, y: skylineYAt(WORLD_W - inset) + ridgeDrop })
+  pts.push({ x: WORLD_W - inset, y: WORLD_H - inset })
+  pts.push({ x: inset, y: WORLD_H - inset }) // bottom rope closes the loop
+
+  const mp = measurePath(pts)
+  // dashed rope
+  let d = 0
+  while (d < mp.total) {
+    const a = pointAt(mp, d / mp.total)
+    const b = pointAt(mp, Math.min(1, (d + 9) / mp.total))
+    g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 2, color: 0xd95d2e, alpha: 0.55, cap: 'round' })
+    d += 16
+  }
+  // pennant flags on posts
+  for (let f = 40; f < mp.total; f += 150) {
+    const p = pointAt(mp, f / mp.total)
+    g.moveTo(p.x, p.y).lineTo(p.x, p.y - 9).stroke({ width: 1.4, color: 0x5a4632, alpha: 0.85 })
+    g.poly([p.x, p.y - 9, p.x + 7, p.y - 6.8, p.x, p.y - 4.6]).fill({ color: 0xd95d2e, alpha: 0.9 })
+  }
+  c.addChild(g)
+
+  // a few small signs so the rope reads as a boundary, not decoration
+  for (const [sx, sy, angle] of [
+    [inset + 20, WORLD_H * 0.55, -90],
+    [WORLD_W * 0.5, WORLD_H - inset - 12, 0],
+    [WORLD_W - inset - 20, WORLD_H * 0.55, 90],
+  ] as [number, number, number][]) {
+    const label = new Text({
+      text: 'SKI AREA BOUNDARY',
+      style: { fontFamily: 'Instrument Sans, sans-serif', fontSize: 9, fontWeight: '700', fill: 0xd95d2e, letterSpacing: 1.5 },
+    })
+    label.alpha = 0.7
+    label.anchor.set(0.5)
+    label.position.set(sx, sy)
+    label.angle = angle
+    c.addChild(label)
+  }
+  return c
 }
 
 /** shortest signed angular difference a→b in radians */
@@ -45,9 +104,9 @@ function angleDelta(a: number, b: number): number {
 export interface SceneCallbacks {
   onSelect: (sel: Selection) => void
   onSlotClick: (slotId: string) => void
-  onLiftSiteClick: (siteId: string) => void
   onTrailClick: (trailId: string) => void
   onDrawPoint: (p: Vec2) => void
+  onLiftPoint: (p: Vec2) => void
 }
 
 export class MountainScene {
@@ -68,6 +127,17 @@ export class MountainScene {
   private dotTexture: Texture
   private flakeTexture: Texture
   private drawPreview = new Graphics()
+  private previewLabel = new Text({
+    text: '',
+    style: {
+      fontFamily: 'Instrument Sans, sans-serif',
+      fontSize: 12,
+      fontWeight: '700',
+      fill: 0x16232b,
+      stroke: { color: 0xffffff, width: 4 },
+      lineHeight: 15,
+    },
+  })
   private mouseWorld: Vec2 | null = null
 
   private structureKey = ''
@@ -103,7 +173,8 @@ export class MountainScene {
 
     // drawPreview sits outside previewLayer: rebuilds destroy previewLayer's
     // children, but the draw-mode overlay is redrawn per frame instead
-    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.guestLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.weatherLayer)
+    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.guestLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.previewLabel, this.weatherLayer)
+    this.previewLabel.visible = false
     app.stage.addChild(this.world)
 
     this.dotTexture = this.makeCircleTexture(5)
@@ -128,8 +199,8 @@ export class MountainScene {
     const w = this.app.renderer.width / this.app.renderer.resolution
     const h = this.app.renderer.height / this.app.renderer.resolution
     const fit = Math.max(w / WORLD_W, h / WORLD_H)
-    // zooming all the way out still shows the whole mountain…
-    this.minZoom = fit
+    // zooming all the way out shows the mountain plus the backcountry margin
+    this.minZoom = Math.max(w / (WORLD_W + WORLD_PAD * 2), h / (WORLD_H + WORLD_PAD * 2))
     // …but open closer in, centred on the base village, so there's terrain
     // to pan across from the first moment
     this.zoom = fit * 1.35
@@ -139,13 +210,15 @@ export class MountainScene {
     this.clampCamera()
   }
 
+  /** camera may roam into the painted out-of-bounds margin, never past it */
   private clampCamera(): void {
     const w = this.app.renderer.width / this.app.renderer.resolution
     const h = this.app.renderer.height / this.app.renderer.resolution
-    const ww = WORLD_W * this.zoom
-    const wh = WORLD_H * this.zoom
-    this.world.x = ww <= w ? (w - ww) / 2 : Math.min(0, Math.max(w - ww, this.world.x))
-    this.world.y = wh <= h ? (h - wh) / 2 : Math.min(0, Math.max(h - wh, this.world.y))
+    const pad = WORLD_PAD * this.zoom
+    const ww = WORLD_W * this.zoom + pad * 2
+    const wh = WORLD_H * this.zoom + pad * 2
+    this.world.x = ww <= w ? (w - ww) / 2 + pad : Math.min(pad, Math.max(w - WORLD_W * this.zoom - pad, this.world.x))
+    this.world.y = wh <= h ? (h - wh) / 2 + pad : Math.min(pad, Math.max(h - WORLD_H * this.zoom - pad, this.world.y))
   }
 
   private bindInput(): void {
@@ -271,12 +344,9 @@ export class MountainScene {
         return
       }
     }
-    if (buildMode?.type === 'lift') {
-      const site = this.nearestLiftSite(p, 40, game, true)
-      if (site) {
-        this.callbacks.onLiftSiteClick(site)
-        return
-      }
+    if (buildMode?.type === 'draw-lift') {
+      this.callbacks.onLiftPoint(p)
+      return
     }
     if (buildMode?.type === 'trail' || buildMode?.type === 'snowmaking') {
       const trailId = this.nearestTrail(game, p, 34)
@@ -297,8 +367,8 @@ export class MountainScene {
       this.callbacks.onSelect({ type: 'facility', id: slotId })
       return
     }
-    const lift = this.nearestLiftSite(p, 22, game, false)
-    if (lift && game.lifts[lift]) {
+    const lift = this.nearestLiftSite(game, p, 22)
+    if (lift) {
       this.callbacks.onSelect({ type: 'lift', id: lift })
       return
     }
@@ -353,15 +423,15 @@ export class MountainScene {
     return best
   }
 
-  private nearestLiftSite(p: Vec2, threshold: number, game: GameState, unbuiltOnly: boolean): string | null {
+  private nearestLiftSite(game: GameState, p: Vec2, threshold: number): string | null {
     let best: string | null = null
     let bestD = threshold
-    for (const site of LIFT_SITES) {
-      if (unbuiltOnly && game.lifts[site.id]) continue
-      const d = distToMeasured(p, LIFT_LINES[site.id])
+    for (const lift of Object.values(game.lifts)) {
+      if (!getLiftSite(game, lift.siteId)) continue
+      const d = distToMeasured(p, getLiftLine(game, lift.siteId))
       if (d < bestD) {
         bestD = d
-        best = site.id
+        best = lift.siteId
       }
     }
     return best
@@ -390,7 +460,7 @@ export class MountainScene {
 
     // terrain mood repaint (rare)
     const weather = game.weatherSeason[game.day - 1]
-    const tKey = `${game.day}|${weather.cloud.toFixed(2)}|${weather.visibility.toFixed(2)}|${Object.keys(game.customTrailDefs).length}`
+    const tKey = `${game.day}|${weather.cloud.toFixed(2)}|${weather.visibility.toFixed(2)}|${Object.keys(game.customTrailDefs).length}|${Object.keys(game.customLiftSites).length}`
     if (tKey !== this.terrainKey) {
       this.terrainKey = tKey
       const canvas = paintTerrain(moodFromWeather(weather), game.seed, builtClearings(game))
@@ -401,7 +471,9 @@ export class MountainScene {
         old.destroy(true)
       } else {
         this.terrainSprite = new Sprite(texture)
+        this.terrainSprite.position.set(-WORLD_PAD, -WORLD_PAD)
         this.world.addChildAt(this.terrainSprite, 0)
+        this.world.addChildAt(makeBoundary(), 1)
       }
     }
 
@@ -415,54 +487,90 @@ export class MountainScene {
     this.updateGuests(game)
     this.updateChairs(game)
     this.updateWeather(game)
-    this.updateDrawPreview(buildMode)
+    this.updateDrawPreview(game, buildMode)
   }
 
-  /** live overlay while drawing a trail: ribbon ghost, uphill warnings, snap rings */
-  private updateDrawPreview(buildMode: BuildMode): void {
+  /** live overlay while drawing a trail or placing a lift */
+  private updateDrawPreview(game: GameState, buildMode: BuildMode): void {
     const g = this.drawPreview
     g.clear()
-    if (buildMode?.type !== 'draw-trail') return
+    this.previewLabel.visible = false
+    if (buildMode?.type !== 'draw-trail' && buildMode?.type !== 'draw-lift') return
 
-    const committed = buildMode.points
-    const preview = this.mouseWorld && !this.dragging ? [...committed, this.mouseWorld] : committed
+    const nodes = allNodes(game)
 
     // snap rings on network nodes — endpoints want to live here
-    for (const node of Object.values(NODE_MAP)) {
+    for (const node of nodes) {
       g.circle(node.pos.x, node.pos.y, 10).stroke({ width: 2, color: 0xa97949, alpha: 0.55 })
       g.circle(node.pos.x, node.pos.y, 3).fill({ color: 0xa97949, alpha: 0.7 })
     }
+    // cursor snapping hint
+    if (this.mouseWorld) {
+      const snap = nearestNodeId(this.mouseWorld, undefined, nodes)
+      if (snap) {
+        const node = nodes.find((n) => n.id === snap)!
+        g.circle(node.pos.x, node.pos.y, 14).stroke({ width: 2.5, color: 0x2e7d4f, alpha: 0.9 })
+      }
+    }
 
-    if (preview.length >= 2) {
-      // ribbon ghost
-      strokePath(g, preview, 15, 0xffffff, 0.55)
-      strokePath(g, preview, 2.5, 0x2f6fb2, 0.85)
-      // paint uphill stretches in alarm orange
-      const analysis = analyzePath(preview)
-      if (analysis.uphillSegments.length > 0) {
-        const mp = measurePath(preview)
-        for (const seg of analysis.uphillSegments) {
-          const steps = 8
-          for (let i = 0; i < steps; i++) {
-            const a = pointAt(mp, seg.t0 + ((seg.t1 - seg.t0) * i) / steps)
-            const b = pointAt(mp, seg.t0 + ((seg.t1 - seg.t0) * (i + 1)) / steps)
-            g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 6, color: 0xd95d2e, alpha: 0.85 })
+    if (buildMode.type === 'draw-trail') {
+      const committed = buildMode.points
+      const preview = this.mouseWorld && !this.dragging ? [...committed, this.mouseWorld] : committed
+
+      if (preview.length >= 2) {
+        // ribbon ghost
+        strokePath(g, preview, 15, 0xffffff, 0.55)
+        strokePath(g, preview, 2.5, 0x2f6fb2, 0.85)
+        // paint uphill stretches in alarm orange
+        const analysis = analyzePath(preview, nodes)
+        if (analysis.uphillSegments.length > 0) {
+          const mp = measurePath(preview)
+          for (const seg of analysis.uphillSegments) {
+            const steps = 8
+            for (let i = 0; i < steps; i++) {
+              const a = pointAt(mp, seg.t0 + ((seg.t1 - seg.t0) * i) / steps)
+              const b = pointAt(mp, seg.t0 + ((seg.t1 - seg.t0) * (i + 1)) / steps)
+              g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 6, color: 0xd95d2e, alpha: 0.85 })
+            }
           }
         }
       }
-    }
-    // committed waypoints
-    for (const p of committed) {
-      g.circle(p.x, p.y, 4.5).fill({ color: 0x2f6fb2 })
-      g.circle(p.x, p.y, 2).fill({ color: 0xffffff })
-    }
-    // cursor crosshair snapping hint
-    if (this.mouseWorld) {
-      const snap = nearestNodeId(this.mouseWorld)
-      if (snap) {
-        const node = NODE_MAP[snap]
-        g.circle(node.pos.x, node.pos.y, 14).stroke({ width: 2.5, color: 0x2e7d4f, alpha: 0.9 })
+      // committed waypoints
+      for (const p of committed) {
+        g.circle(p.x, p.y, 4.5).fill({ color: 0x2f6fb2 })
+        g.circle(p.x, p.y, 2).fill({ color: 0xffffff })
       }
+      return
+    }
+
+    // ---- draw-lift: ghost cable from the first terminal to the cursor
+    const first = buildMode.first
+    if (first) {
+      g.circle(first.x, first.y, 6).fill({ color: 0xa97949 })
+      g.circle(first.x, first.y, 2.5).fill({ color: 0xffffff })
+    }
+    const cursor = this.mouseWorld
+    if (first && cursor && !this.dragging) {
+      const snap = nearestNodeId(cursor, undefined, nodes)
+      const end = snap ? nodes.find((n) => n.id === snap)!.pos : cursor
+      dashPath(g, measurePath([first, end]), 10, 8, 2.5, 0xa97949, 0.95)
+      // tower ticks along the ghost
+      const mp = measurePath([first, end])
+      const towers = Math.max(2, Math.floor(mp.total / 90))
+      for (let i = 1; i < towers; i++) {
+        const q = pointAt(mp, i / towers)
+        g.moveTo(q.x, q.y).lineTo(q.x, q.y + 8).stroke({ width: 2.5, color: 0xa97949, alpha: 0.7 })
+      }
+      g.roundRect(end.x - 7, end.y - 5, 14, 10, 3).stroke({ width: 2, color: 0xa97949, alpha: 0.9 })
+
+      // live cost readout riding beside the cursor
+      const plan = planCustomLift(game, first, end, buildMode.kind)
+      this.previewLabel.text =
+        `${plan.lengthM.toLocaleString()} m · ↑${plan.riseM} m\n` +
+        `${plan.treesToClear} trees · $${plan.totalCost.toLocaleString()}` +
+        (plan.warnings.length > 0 ? `\n⚠ ${plan.warnings.length} warning${plan.warnings.length > 1 ? 's' : ''}` : '')
+      this.previewLabel.position.set(end.x + 16, end.y - 10)
+      this.previewLabel.visible = true
     }
   }
 
@@ -550,30 +658,15 @@ export class MountainScene {
     }
   }
 
-  private drawLifts(game: GameState, selection: Selection, buildMode: BuildMode): void {
-    for (const site of LIFT_SITES) {
-      const lift = game.lifts[site.id]
-      const mp = LIFT_LINES[site.id]
+  private drawLifts(game: GameState, selection: Selection, _buildMode: BuildMode): void {
+    // every built lift, surveyed or player-placed — lifts go anywhere now
+    for (const lift of Object.values(game.lifts)) {
+      const site = getLiftSite(game, lift.siteId)
+      if (!site) continue
+      const mp = getLiftLine(game, site.id)
       const a = mp.points[0]
       const b = mp.points[mp.points.length - 1]
       const g = new Graphics()
-
-      if (!lift) {
-        // ghost alignment in lift build mode
-        if (buildMode?.type === 'lift') {
-          dashPath(g, mp, 10, 8, 2.5, 0xa97949, 0.9)
-          g.circle(a.x, a.y, 7).stroke({ width: 2.5, color: 0xa97949, alpha: 0.95 })
-          g.circle(b.x, b.y, 7).stroke({ width: 2.5, color: 0xa97949, alpha: 0.95 })
-          const label = new Text({
-            text: `${site.name}`,
-            style: { fontFamily: 'Instrument Sans, sans-serif', fontSize: 11, fontWeight: '700', fill: 0xa97949, stroke: { color: 0xffffff, width: 3 } },
-          })
-          label.position.set((a.x + b.x) / 2 + 8, (a.y + b.y) / 2)
-          this.liftLayer.addChild(label)
-        }
-        this.liftLayer.addChild(g)
-        continue
-      }
 
       const running = isLiftRunning(game, site.id)
       const lineColor = lift.forcedClosed ? 0xb3543a : running ? 0x37474f : 0x8fa0aa
@@ -741,7 +834,7 @@ export class MountainScene {
     for (const { liftId, sprites } of this.chairSprites) {
       const lift = game.lifts[liftId]
       if (!lift) continue
-      const mp = LIFT_LINES[liftId]
+      const mp = getLiftLine(game, liftId)
       const running = isLiftRunning(game, liftId) && game.phase === 'operating'
       const cycleSec = Math.max(20, lift.rideMinutes * 14) // aesthetic speed, not 1:1 sim
       for (let i = 0; i < sprites.length; i++) {

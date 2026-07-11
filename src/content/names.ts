@@ -145,6 +145,18 @@ export const CUSTOM_TRAIL_NAMES = [
   'Widowmaker',
 ]
 
+/** names for player-placed lifts, in order of creation */
+export const CUSTOM_LIFT_NAMES = [
+  'Eagle Chair',
+  'Sunrise Express',
+  'Ridge Runner',
+  'Timber Flyer',
+  'Bluebird Chair',
+  'Highline',
+  'Snowfield Shuttle',
+  'Backbowl Express',
+]
+
 export const SKILL_LABEL: Record<SkillLevel, string> = {
   'first-timer': 'First-timer',
   beginner: 'Beginner',

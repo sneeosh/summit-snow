@@ -16,7 +16,7 @@ import { Rng } from './rng'
 import { computeSurface, generateSeasonWeather } from './weather'
 import type { GameMode, GameState, LiftState, StaffRole, TrailState } from './types'
 
-export const SAVE_VERSION = 2
+export const SAVE_VERSION = 3
 
 export function newGame(mode: GameMode, seed: number): GameState {
   const rng = new Rng(seed)
@@ -77,6 +77,8 @@ export function newGame(mode: GameMode, seed: number): GameState {
     lifts,
     trails,
     customTrailDefs: {},
+    customLiftSites: {},
+    customNodes: {},
     facilities,
     weatherSeason,
     guests: {},
@@ -105,9 +107,8 @@ export function newGame(mode: GameMode, seed: number): GameState {
   }
 }
 
-export function makeLiftState(siteId: string, kind: LiftState['kind']): LiftState {
-  const site = LIFT_SITES.find((s) => s.id === siteId)!
-  const lengthM = liftLengthM(site)
+export function makeLiftState(siteId: string, kind: LiftState['kind'], customLengthM?: number): LiftState {
+  const lengthM = customLengthM ?? liftLengthM(LIFT_SITES.find((s) => s.id === siteId)!)
   return {
     siteId,
     kind,

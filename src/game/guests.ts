@@ -27,9 +27,9 @@ import {
   WALK_SPEED,
   WARMTH_DRAIN_BASE,
 } from '../content/balance'
-import { FACILITY_SLOTS, LIFT_LINES, LIFT_SITE_MAP, NODE_MAP, pointAt } from '../content/mountain'
+import { FACILITY_SLOTS, NODE_MAP, pointAt } from '../content/mountain'
 import { FIRST_NAMES, LAST_NAMES } from '../content/names'
-import { getTrailDef, getTrailPath } from './trails'
+import { allNodes, getLiftLine, getLiftSite, getNode, getTrailDef, getTrailPath } from './trails'
 import type { Rng } from './rng'
 import {
   foodCapacity,
@@ -397,8 +397,8 @@ function tickToLift(state: GameState, guest: Guest): void {
     decideNext(state, guest)
     return
   }
-  const site = LIFT_SITE_MAP[liftId]
-  const bottom = NODE_MAP[site.bottomNodeId].pos
+  const site = getLiftSite(state, liftId)
+  const bottom = getNode(state, site.bottomNodeId)!.pos
   if (moveToward(guest, bottom, WALK_SPEED * 1.4)) {
     const lift = state.lifts[liftId]
     // lift may have closed while walking over
@@ -418,9 +418,9 @@ function tickQueueing(state: GameState, guest: Guest): void {
   // shuffle queue dot cloud near the lift base
   const liftId = guest.plan[0]
   if (!liftId) return
-  const site = LIFT_SITE_MAP[liftId]
+  const site = getLiftSite(state, liftId)
   const idx = state.lifts[liftId]?.queue.indexOf(guest.id) ?? 0
-  const bottom = NODE_MAP[site.bottomNodeId].pos
+  const bottom = getNode(state, site.bottomNodeId)!.pos
   guest.pos = { x: bottom.x + 6 + (idx % 8) * 3.4, y: bottom.y + 6 + Math.floor(idx / 8) * 3.2 }
 
   const grace = QUEUE_GRACE_MIN * (0.5 + guest.patience / 100)
@@ -444,7 +444,7 @@ function updateRiderPos(state: GameState, guest: Guest): void {
   const rider = lift?.riders.find((r) => r.guestId === guest.id)
   if (!lift || !rider) return
   const t = clamp01((minuteOf(state) - rider.boardedMinute) / lift.rideMinutes)
-  guest.pos = pointAt(LIFT_LINES[liftId], t)
+  guest.pos = pointAt(getLiftLine(state, liftId), t)
 }
 
 function minuteOf(state: GameState): number {
@@ -553,7 +553,7 @@ function finishRun(state: GameState, guest: Guest, rng: Rng): void {
   guest.runsCompleted++
   guest.lastTrailId = trailId
 
-  const bottom = NODE_MAP[def.bottomNodeId]
+  const bottom = getNode(state, def.bottomNodeId)
   if (bottom) {
     guest.atNodeId = def.bottomNodeId
     guest.pos = { ...bottom.pos }
@@ -631,7 +631,7 @@ export function decideNext(state: GameState, guest: Guest): void {
     return
   }
 
-  const atBase = guest.atNodeId === null || NODE_MAP[guest.atNodeId]?.isBase
+  const atBase = guest.atNodeId === null || getNode(state, guest.atNodeId)?.isBase
 
   // needs first (services mostly live at the base; m1 is the mid-mountain slot)
   if (guest.hunger > 68) {
@@ -819,7 +819,7 @@ function routeToBaseThenContinue(state: GameState, guest: Guest): void {
     startSkiing(state, guest, down)
   } else {
     // stranded — download on a lift if one runs here, else patrol assist
-    const lift = runningLifts(state).find((l) => LIFT_SITE_MAP[l.siteId].topNodeId === guest.atNodeId)
+    const lift = runningLifts(state).find((l) => getLiftSite(state, l.siteId).topNodeId === guest.atNodeId)
     guest.atNodeId = 'base'
     guest.pos = { ...NODE_MAP.base.pos }
     if (!lift) guest.satisfaction = clamp(guest.satisfaction - 5, 0, 100)
@@ -828,7 +828,7 @@ function routeToBaseThenContinue(state: GameState, guest: Guest): void {
 }
 
 function routeTowardExit(state: GameState, guest: Guest): void {
-  const atBase = guest.atNodeId === null || NODE_MAP[guest.atNodeId]?.isBase
+  const atBase = guest.atNodeId === null || getNode(state, guest.atNodeId)?.isBase
   if (atBase) {
     guest.objective = 'leaving'
     return
@@ -852,7 +852,7 @@ function easiestTrailDown(state: GameState, nodeId: string): string | null {
       if (!t.built || !t.open) return false
       const def = getTrailDef(state, t.trailId)
       // never route someone home via a dead-end line
-      return def.topNodeId === nodeId && Boolean(NODE_MAP[def.bottomNodeId])
+      return def.topNodeId === nodeId && Boolean(getNode(state, def.bottomNodeId))
     })
     .sort(
       (a, b) =>
@@ -863,10 +863,10 @@ function easiestTrailDown(state: GameState, nodeId: string): string | null {
 
 /** called by the lift system when a rider reaches the top station */
 export function onLiftArrival(state: GameState, guest: Guest, liftId: string): void {
-  const site = LIFT_SITE_MAP[liftId]
+  const site = getLiftSite(state, liftId)
   guest.routeLiftId = null
   guest.atNodeId = site.topNodeId
-  guest.pos = { ...NODE_MAP[site.topNodeId].pos }
+  guest.pos = { ...getNode(state, site.topNodeId)!.pos }
   guest.queuedMinutes = 0
   if (guest.plan[0] === liftId) guest.plan.shift()
 
@@ -973,13 +973,16 @@ export function planLifts(state: GameState, fromNodeId: string, toNodeId: string
   if (fromNodeId === toNodeId) return []
   const running = runningLifts(state)
   // base areas are interconnected on foot
-  const startNodes = NODE_MAP[fromNodeId]?.isBase ? ['base', 'beginner-base'] : [fromNodeId]
+  // guests stroll freely between all base-area stations
+  const startNodes = getNode(state, fromNodeId)?.isBase
+    ? allNodes(state).filter((n) => n.isBase).map((n) => n.id)
+    : [fromNodeId]
   const visited = new Set(startNodes)
   const queue: { node: string; path: string[] }[] = startNodes.map((n) => ({ node: n, path: [] }))
   while (queue.length > 0) {
     const cur = queue.shift()!
     for (const lift of running) {
-      const site = LIFT_SITE_MAP[lift.siteId]
+      const site = getLiftSite(state, lift.siteId)
       if (site.bottomNodeId !== cur.node || visited.has(site.topNodeId)) continue
       const path = [...cur.path, lift.siteId]
       if (site.topNodeId === toNodeId) return path

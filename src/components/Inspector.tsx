@@ -1,7 +1,7 @@
 /** Contextual right-side inspector for the current selection. */
-import { FACILITIES, LIFT_TYPES, TRAIL_MIN_DEPTH_CM } from '../content/balance'
-import { LIFT_SITE_MAP, NODE_MAP, SLOT_MAP } from '../content/mountain'
-import { getTrailDef } from '../game/trails'
+import { FACILITIES, LIFT_BASE_COST, LIFT_COST_PER_M, LIFT_TYPES, TRAIL_MIN_DEPTH_CM } from '../content/balance'
+import { NODE_MAP, SLOT_MAP } from '../content/mountain'
+import { getLiftSite, getTrailDef } from '../game/trails'
 import { SKILL_LABEL } from '../content/names'
 import { isLiftRunning } from '../game/resort'
 import { formatMoney, useStore } from '../state/store'
@@ -119,12 +119,14 @@ function LiftCard({ id }: { id: string }) {
   const game = useStore((s) => s.game)!
   const setLiftOpen = useStore((s) => s.setLiftOpen)
   const upgradeLift = useStore((s) => s.upgradeLift)
-  const site = LIFT_SITE_MAP[id]
+  const site = getLiftSite(game, id)
   const lift = game.lifts[id]
-  if (!lift) return null
+  if (!lift || !site) return null
   const spec = LIFT_TYPES[lift.kind]
   const running = isLiftRunning(game, id)
-  const upgrades = site.allowedKinds.filter((k) => LIFT_TYPES[k].buildCost > spec.buildCost)
+  const priceOf = (k: (typeof site.allowedKinds)[number]) =>
+    site.isCustom ? LIFT_BASE_COST[k] + lift.lengthM * LIFT_COST_PER_M[k] : LIFT_TYPES[k].buildCost
+  const upgrades = site.allowedKinds.filter((k) => priceOf(k) > priceOf(lift.kind))
 
   return (
     <div>
@@ -164,7 +166,7 @@ function LiftCard({ id }: { id: string }) {
         </button>
         {upgrades.map((k) => (
           <button key={k} className="btn btn-wood w-full" onClick={() => upgradeLift(id, k)}>
-            Upgrade to {LIFT_TYPES[k].label} — {formatMoney(Math.max(0, LIFT_TYPES[k].buildCost - spec.buildCost * 0.5))}
+            Upgrade to {LIFT_TYPES[k].label} — {formatMoney(Math.max(0, Math.round(priceOf(k) - priceOf(lift.kind) * 0.5)))}
           </button>
         ))}
       </div>
@@ -231,7 +233,7 @@ function GuestCard({ id }: { id: number }) {
       <div className="mt-2 rounded-lg bg-ink/4 px-2.5 py-1.5 text-[12px] font-medium">
         {OBJECTIVE_LABEL[guest.objective]}
         {guest.routeTrailId ? ` — ${getTrailDef(game, guest.routeTrailId).name}` : ''}
-        {guest.routeLiftId ? ` — ${LIFT_SITE_MAP[guest.routeLiftId].name}` : ''}
+        {guest.routeLiftId ? ` — ${getLiftSite(game, guest.routeLiftId).name}` : ''}
       </div>
       <div className="mt-2.5 space-y-1.5 text-[11px]">
         <BarRow label="Satisfaction" value={guest.satisfaction} color={satColor(guest.satisfaction)} />

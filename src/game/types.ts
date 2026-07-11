@@ -85,7 +85,7 @@ export interface LiftTypeSpec {
   energyPerHour: number
 }
 
-/** A predefined lift alignment guests can ride once built. */
+/** A lift alignment guests can ride once built (surveyed or player-placed). */
 export interface LiftSiteDef {
   id: string
   name: string
@@ -94,6 +94,10 @@ export interface LiftSiteDef {
   allowedKinds: LiftKind[]
   /** prebuilt lifts start the scenario already constructed */
   prebuilt?: LiftKind
+  /** player-placed point-to-point lift (lives in GameState.customLiftSites) */
+  isCustom?: boolean
+  /** what this alignment cost to build (custom lifts price by length + trees) */
+  buildCost?: number
 }
 
 // ------------------------------------------------------------- facilities
@@ -415,6 +419,10 @@ export interface GameState {
   trails: Record<string, TrailState>
   /** player-drawn trail definitions, keyed by trail id */
   customTrailDefs: Record<string, TrailDef>
+  /** player-placed lift alignments, keyed by site id */
+  customLiftSites: Record<string, LiftSiteDef>
+  /** network points created by custom lift terminals, keyed by node id */
+  customNodes: Record<string, MountainNode>
   facilities: Record<string, FacilityKind | null> // slotId -> built facility
 
   weatherSeason: WeatherDay[] // true weather for full season (forecast adds noise)

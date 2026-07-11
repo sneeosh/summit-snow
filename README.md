@@ -33,8 +33,11 @@ your reputation. At 16:30 the day settles into an operating report.
 - **Drag** or **WASD**/arrow keys to move around, **scroll** or **.**/**\/**
   to zoom, **click** anything to inspect it.
 - **Space** pauses, **1**/**2** set speed, **Esc** cancels build mode.
-- Build panel: pick a lift type / trail / facility, then click the matching
-  ghost site on the map. Lifts need operators; grooming and snowmaking need
+- **Lifts go anywhere**: pick a lift type, then click the bottom and top
+  terminals — anywhere with vertical rise. Cost scales with length (plus
+  trees cleared under the line); a live label shows the price before you
+  commit. Unsnapped terminals become new stations that future trails and
+  lifts can connect to. Lifts need operators; grooming and snowmaking need
   their own crews (see Staff panel).
 - **Draw your own trails**: Build → “Draw a custom trail”, then click
   waypoints down the mountain (endpoints snap to the ringed stations).

@@ -192,6 +192,26 @@ export const FACILITIES: Record<FacilityKind, FacilitySpec> = {
   },
 }
 
+// ---- custom (player-placed) point-to-point lifts
+/** terminals + drive: flat install cost per lift kind */
+export const LIFT_BASE_COST: Record<LiftKind, number> = {
+  surface: 6_000,
+  chair: 12_000,
+  'high-speed-chair': 25_000,
+  gondola: 50_000,
+}
+/** towers + haul rope, per slope metre */
+export const LIFT_COST_PER_M: Record<LiftKind, number> = {
+  surface: 21,
+  chair: 38,
+  'high-speed-chair': 104,
+  gondola: 131,
+}
+/** felled corridor under the line */
+export const LIFT_CLEAR_WIDTH_M = 12
+/** a lift needs at least this much vertical to be a lift */
+export const LIFT_MIN_RISE_M = 25
+
 // ---- custom (player-drawn) trails
 export const CUSTOM_TRAIL_WIDTH_M = 28
 /** groundwork per metre of trail cut */

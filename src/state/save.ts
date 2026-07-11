@@ -30,6 +30,12 @@ const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
       ),
     },
   }),
+  // v3: point-to-point lifts — custom alignments + dynamic network nodes
+  2: (p) => ({
+    ...p,
+    version: 3,
+    state: { ...p.state, customLiftSites: {}, customNodes: {} },
+  }),
 }
 
 export function saveGame(slot: string, state: GameState, label: string): boolean {

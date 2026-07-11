@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { buildCustomTrail, setStaffCount, takeLoan } from './actions'
-import { buildLift } from './actions'
+import { buildCustomLift, buildCustomTrail, buildLift, setStaffCount, takeLoan } from './actions'
+import { planLifts } from './guests'
 import { newGame } from './init'
 import { fastForwardDay, openResort } from './simulation'
 import { elevationAt, scatterTrees, treesInCorridor } from './terrainModel'
-import { analyzePath, getTrailDef, planCustomTrail } from './trails'
+import { analyzePath, getLiftSite, getNode, getTrailDef, planCustomLift, planCustomTrail } from './trails'
 import type { GameState, Vec2 } from './types'
 
 // mid station (800,560) → base (950,1040): a clean fall-line descent
@@ -130,6 +130,55 @@ describe('building custom trails', () => {
     const overlapping = planCustomTrail(g, UPHILL_LINE)
     expect(overlapping.treesToClear).toBeLessThanOrEqual(first.treesToClear)
     expect(overlapping.treesToClear).toBe(0)
+  })
+
+  it('rejects lifts without rise; prices by length and clears trees', () => {
+    const g = fundedGame()
+    // flat line along the village: no rise
+    expect(buildCustomLift(g, { x: 700, y: 1020 }, { x: 1100, y: 1020 }, 'chair')).toContain('rise')
+
+    const plan = planCustomLift(g, { x: 950, y: 1040 }, { x: 600, y: 400 }, 'chair')
+    expect(plan.riseM).toBeGreaterThan(100)
+    expect(plan.lengthM).toBeGreaterThan(800)
+    expect(plan.totalCost).toBe(plan.lineCost + plan.clearingCost)
+  })
+
+  it('builds point-to-point, auto-orients, and creates network nodes', () => {
+    const g = fundedGame()
+    const cashBefore = g.cash
+    // clicked top-first on purpose — the lower end must become the bottom
+    expect(buildCustomLift(g, { x: 600, y: 400 }, { x: 950, y: 1040 }, 'chair')).toBeNull()
+    expect(g.cash).toBeLessThan(cashBefore)
+
+    const id = Object.keys(g.customLiftSites)[0]
+    const site = getLiftSite(g, id)
+    expect(site.bottomNodeId).toBe('base') // snapped to the village
+    const top = getNode(g, site.topNodeId)!
+    expect(top.id.startsWith('cn-')).toBe(true) // new station created
+    expect(top.elevation).toBeGreaterThan(getNode(g, 'base')!.elevation)
+    expect(g.lifts[id].open).toBe(true)
+
+    // the new station is routable
+    setStaffCount(g, 'lift-ops', 4)
+    expect(planLifts(g, 'base', site.topNodeId)).toEqual([id])
+  })
+
+  it('custom lift + custom trail compose into a working circuit', () => {
+    const g = fundedGame()
+    takeLoan(g, 'operating')
+    expect(buildCustomLift(g, { x: 950, y: 1040 }, { x: 620, y: 450 }, 'chair')).toBeNull()
+    const site = getLiftSite(g, Object.keys(g.customLiftSites)[0])
+    const top = getNode(g, site.topNodeId)!
+    // draw a run from the new top station back to the village
+    expect(buildCustomTrail(g, [top.pos, { x: 780, y: 760 }, { x: 950, y: 1040 }])).toBeNull()
+    const trailId = Object.keys(g.customTrailDefs)[0]
+    expect(getTrailDef(g, trailId).topNodeId).toBe(site.topNodeId)
+
+    setStaffCount(g, 'lift-ops', 4)
+    setStaffCount(g, 'grooming', 2)
+    openResort(g)
+    fastForwardDay(g)
+    expect(g.trails[trailId].ridesToday).toBeGreaterThan(0)
   })
 
   it('skiers use a clean custom trail; flawed ones breed complaints', () => {
