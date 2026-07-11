@@ -22,8 +22,11 @@ export function MountainCanvas() {
         height: Math.max(1, host.clientHeight),
         background: '#dfe9ef',
         antialias: true,
-        resolution: Math.min(2, window.devicePixelRatio || 1),
-        autoDensity: true,
+        // resolution stays 1: some Chrome builds apply the GL viewport at
+        // logical size while the buffer is DPR-scaled, painting the scene
+        // into one quadrant. A 1:1 buffer can't mismatch anywhere.
+        resolution: 1,
+        autoDensity: false,
       })
       .then(() => {
         if (cancelled) {
@@ -81,7 +84,7 @@ export function MountainCanvas() {
         observer.observe(host)
         syncSize()
         console.info(
-          `[summit-snow] canvas r3: host ${host.clientWidth}x${host.clientHeight}, ` +
+          `[summit-snow] canvas r4: host ${host.clientWidth}x${host.clientHeight}, ` +
             `screen ${app.renderer.screen.width}x${app.renderer.screen.height}, dpr ${window.devicePixelRatio}`,
         )
         if (import.meta.env.DEV) reportDiagnostics(host, app, 'boot')
