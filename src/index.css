@@ -1,0 +1,178 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-sans: 'Instrument Sans', 'Helvetica Neue', sans-serif;
+
+  --color-snow-0: #f7f9fa;
+  --color-snow-1: #eef2f5;
+  --color-snow-2: #e0e8ed;
+  --color-snow-3: #cdd9e0;
+  --color-ink: #16232b;
+  --color-ink-soft: #3d5260;
+  --color-ink-faint: #74868f;
+  --color-pine: #2f4a3e;
+  --color-pine-deep: #223930;
+  --color-wood: #a97949;
+  --color-wood-light: #c89a6b;
+  --color-amber: #e8b26a;
+  --color-safety: #d95d2e;
+  --color-diff-green: #2e7d4f;
+  --color-diff-blue: #2f6fb2;
+  --color-diff-black: #22262a;
+}
+
+:root {
+  --glass: rgba(250, 252, 253, 0.86);
+  --glass-border: rgba(22, 35, 43, 0.08);
+  --shadow-panel: 0 1px 2px rgba(22, 35, 43, 0.06), 0 8px 28px rgba(22, 35, 43, 0.12);
+  --shadow-soft: 0 1px 2px rgba(22, 35, 43, 0.05), 0 4px 14px rgba(22, 35, 43, 0.08);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-snow-1);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+/* ---- shared component styles ---- */
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-panel);
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-weight: 550;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+  user-select: none;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--color-ink);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #243844;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink-soft);
+  border-color: rgba(22, 35, 43, 0.14);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(22, 35, 43, 0.05);
+  color: var(--color-ink);
+}
+
+.btn-wood {
+  background: var(--color-wood);
+  color: #fff;
+}
+.btn-wood:hover:not(:disabled) {
+  background: #96683c;
+}
+
+/* difficulty badges: authentic trail-marker shapes */
+.diff-badge {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+/* thin scrollbars inside panels */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(22, 35, 43, 0.22) transparent;
+}
+
+/* keyframes */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise-in {
+  animation: rise-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 0.25s ease both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
