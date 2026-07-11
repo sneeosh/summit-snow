@@ -17,7 +17,7 @@ const STEPS: Step[] = [
   {
     id: 'inspect',
     title: 'Look around the mountain',
-    body: 'Drag or use WASD to move around, scroll to zoom. Click any trail, lift, or building to inspect it. Meadow Carpet and the two green trails are already running.',
+    body: 'Drag or use WASD to move around, scroll or press . and / to zoom. Click any trail, lift, or building to inspect it. Meadow Carpet and the two green trails are already running.',
     done: (_g, ui) => ui.selection !== null,
   },
   {

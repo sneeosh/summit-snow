@@ -152,18 +152,8 @@ export class MountainScene {
     const canvas = this.app.canvas as HTMLCanvasElement
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault()
-      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
-      const newZoom = Math.max(this.minZoom, Math.min(3.2, this.zoom * factor))
       const rect = canvas.getBoundingClientRect()
-      const mx = e.clientX - rect.left
-      const my = e.clientY - rect.top
-      const worldX = (mx - this.world.x) / this.zoom
-      const worldY = (my - this.world.y) / this.zoom
-      this.zoom = newZoom
-      this.world.scale.set(newZoom)
-      this.world.x = mx - worldX * newZoom
-      this.world.y = my - worldY * newZoom
-      this.clampCamera()
+      this.zoomToward(e.deltaY < 0 ? 1.12 : 1 / 1.12, { x: e.clientX - rect.left, y: e.clientY - rect.top })
     }, { passive: false })
 
     canvas.addEventListener('pointerdown', (e) => {
@@ -203,6 +193,8 @@ export class MountainScene {
     arrowleft: 'left',
     arrowdown: 'down',
     arrowright: 'right',
+    '.': 'zoom-in',
+    '/': 'zoom-out',
   }
 
   private handlePanKey(e: KeyboardEvent, down: boolean): void {
@@ -218,7 +210,7 @@ export class MountainScene {
     }
   }
 
-  /** apply held pan keys; called every frame with the ticker's delta */
+  /** apply held pan/zoom keys; called every frame with the ticker's delta */
   private panCamera(deltaMS: number): void {
     if (this.panKeys.size === 0) return
     const step = 0.9 * deltaMS // screen px — steady speed regardless of zoom
@@ -226,6 +218,27 @@ export class MountainScene {
     if (this.panKeys.has('down')) this.world.y -= step
     if (this.panKeys.has('left')) this.world.x += step
     if (this.panKeys.has('right')) this.world.x -= step
+
+    if (this.panKeys.has('zoom-in') || this.panKeys.has('zoom-out')) {
+      const factor = this.panKeys.has('zoom-in') ? Math.pow(1.0042, deltaMS) : Math.pow(1.0042, -deltaMS)
+      this.zoomToward(factor, null)
+    }
+    this.clampCamera()
+  }
+
+  /** zoom by a factor toward a screen point (null = viewport centre) */
+  private zoomToward(factor: number, focus: { x: number; y: number } | null): void {
+    const w = this.app.renderer.width / this.app.renderer.resolution
+    const h = this.app.renderer.height / this.app.renderer.resolution
+    const fx = focus?.x ?? w / 2
+    const fy = focus?.y ?? h / 2
+    const newZoom = Math.max(this.minZoom, Math.min(3.2, this.zoom * factor))
+    const worldX = (fx - this.world.x) / this.zoom
+    const worldY = (fy - this.world.y) / this.zoom
+    this.zoom = newZoom
+    this.world.scale.set(newZoom)
+    this.world.x = fx - worldX * newZoom
+    this.world.y = fy - worldY * newZoom
     this.clampCamera()
   }
 
