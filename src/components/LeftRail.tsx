@@ -37,12 +37,26 @@ export function LeftRail() {
       </div>
 
       {leftTab && (
-        <div className="glass scroll-thin max-h-full w-[min(300px,calc(100vw-90px))] overflow-y-auto rounded-2xl p-3.5 rise-in">
-          {leftTab === 'build' && <BuildPanel />}
-          {leftTab === 'staff' && <StaffPanel />}
-          {leftTab === 'pricing' && <PricingPanel />}
-          {leftTab === 'finance' && <FinancePanel />}
-          {leftTab === 'overlays' && <OverlaysPanel />}
+        <div className="glass flex max-h-full w-[min(300px,calc(100vw-90px))] flex-col rounded-2xl rise-in">
+          <div className="flex flex-none items-center justify-between px-3.5 pb-1 pt-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-faint">
+              {TABS.find((t) => t.id === leftTab)?.label}
+            </span>
+            <button
+              className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-ink-faint transition-colors hover:bg-ink/6 hover:text-ink"
+              title="Collapse panel"
+              onClick={() => setLeftTab(null)}
+            >
+              « hide
+            </button>
+          </div>
+          <div className="scroll-thin overflow-y-auto px-3.5 pb-3.5">
+            {leftTab === 'build' && <BuildPanel />}
+            {leftTab === 'staff' && <StaffPanel />}
+            {leftTab === 'pricing' && <PricingPanel />}
+            {leftTab === 'finance' && <FinancePanel />}
+            {leftTab === 'overlays' && <OverlaysPanel />}
+          </div>
         </div>
       )}
     </div>
@@ -216,7 +230,6 @@ function PricingPanel() {
 
   return (
     <div className="space-y-3">
-      <h3 className="panel-title">Pricing</h3>
       <PriceRow label="Adult day ticket" value={p.adultTicket} step={2} onChange={(v) => setPrices({ adultTicket: v })} />
       <PriceRow label="Child day ticket" value={p.childTicket} step={2} onChange={(v) => setPrices({ childTicket: v })} />
       <PriceRow label="Equipment rental" value={p.rental} step={1} onChange={(v) => setPrices({ rental: v })} />
@@ -274,8 +287,6 @@ function FinancePanel() {
 
   return (
     <div className="space-y-3">
-      <h3 className="panel-title">Finance</h3>
-
       <div className="rounded-xl border border-ink/8 p-2.5">
         <div className="text-[10px] uppercase tracking-wider text-ink-faint">Today’s revenue</div>
         <div className="stat-number text-[20px]">{formatMoney(revTotal)}</div>
@@ -351,7 +362,6 @@ function OverlaysPanel() {
   const setOverlay = useStore((s) => s.setOverlay)
   return (
     <div className="space-y-1.5">
-      <h3 className="panel-title mb-2">Map views</h3>
       {OVERLAYS.map((o) => (
         <button
           key={o.id}

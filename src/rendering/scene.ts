@@ -122,11 +122,14 @@ export class MountainScene {
     const w = this.app.renderer.width / this.app.renderer.resolution
     const h = this.app.renderer.height / this.app.renderer.resolution
     const fit = Math.max(w / WORLD_W, h / WORLD_H)
-    this.zoom = fit
-    this.minZoom = Math.min(fit * 0.85, fit)
+    // zooming all the way out still shows the whole mountain…
+    this.minZoom = fit
+    // …but open closer in, centred on the base village, so there's terrain
+    // to pan across from the first moment
+    this.zoom = fit * 1.35
     this.world.scale.set(this.zoom)
-    // bottom-anchored: the base village must be on screen when the game opens
-    this.world.position.set((w - WORLD_W * this.zoom) / 2, h - WORLD_H * this.zoom)
+    const village = { x: 950, y: 1000 }
+    this.world.position.set(w / 2 - village.x * this.zoom, h - WORLD_H * this.zoom)
     this.clampCamera()
   }
 
