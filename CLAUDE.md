@@ -47,6 +47,13 @@ npm run build               # tsc + vite production build
 
 ## Gotchas
 
+- **Keep the Pixi renderer at `resolution: 1`** (`src/rendering/MountainCanvas.tsx`).
+  Some Chrome builds (seen on 148) apply the GL viewport at logical size while
+  the buffer is DPR-scaled, painting the scene into one quadrant at half size
+  even though every DOM measurement looks correct. If rendering looks wrong on
+  someone's machine, read `diag.log` — the app POSTs its layout chain to the
+  dev server's `/__diag` endpoint on boot (dev builds only).
+
 - World coordinates are a 1920×1200 trail-map view; 1 world unit ≈ 2 m
   horizontal (movement code divides m/min by 2).
 - A day runs 08:30–16:30 in 0.25-minute ticks; `fastForwardDay` runs the
