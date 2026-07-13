@@ -17,26 +17,35 @@ const STEPS: Step[] = [
   {
     id: 'inspect',
     title: 'Look around the mountain',
-    body: 'Drag or use WASD to move around, scroll or press . and / to zoom. Click any trail, lift, or building to inspect it. Meadow Carpet and the two green trails are already running.',
+    body: 'Drag or use WASD to move around, scroll or press . and / to zoom. Click any trail, lift, or building to inspect it. The carpet lift and two green runs are already in place.',
     done: (_g, ui) => ui.selection !== null,
   },
   {
     id: 'build-lift',
-    title: 'Reach the mid-mountain',
-    body: 'Open Build → pick a Fixed-grip chairlift, then click the dashed Alder Chair alignment. It unlocks the heart of the hill.',
-    done: (g) => Boolean(g.lifts['alder-chair'] || g.lifts['summit-gondola']),
+    title: 'String a lift up the hill',
+    body: 'Open Build → pick a Fixed-grip chairlift, then click a BOTTOM terminal near the village (rings snap to stations) and a TOP spot up the mountain. Higher means more vertical — and a pricier line.',
+    done: (g) => Object.keys(g.lifts).length >= 2,
   },
   {
     id: 'open-trail',
-    title: 'Cut an intermediate trail',
-    body: 'In Build → Trails, choose “Cut a new trail”, then click the dotted Alder Run corridor. Blues bring the biggest crowd.',
-    done: (g) => Object.values(g.trails).some((t) => t.built && getTrailDef(g, t.trailId).difficulty === 'blue'),
+    title: 'Give them a way down',
+    body: 'In Build → Trails, pick “Draw a custom trail”: start at your new top station, click waypoints downhill, and double-click (or press Enter) at a base station. Gentle zigzags grade green; the fall line grades black. On Mount Alder you can also cut a surveyed corridor.',
+    // every mountain starts with two prebuilt greens — any third trail counts
+    done: (g) =>
+      Object.values(g.trails).filter((t) => t.built).length > 2 ||
+      Object.values(g.trails).some((t) => t.built && getTrailDef(g, t.trailId).difficulty !== 'green'),
   },
   {
     id: 'hire-staff',
     title: 'Staff the lifts',
-    body: 'A chairlift needs 2 operators (the carpet needs 1). Open Staff and hire enough lift operators — unstaffed lifts don’t spin.',
+    body: 'A chairlift needs 2 operators (the carpet needs 1). Open Staff and hire enough lift operators — unstaffed lifts don’t spin, and the morning alert will call it out.',
     done: (g) => staffCount(g, 'lift-ops') >= liftStaffRequired(g) && liftStaffRequired(g) > 0,
+  },
+  {
+    id: 'rentals',
+    title: 'Gear up the crowd',
+    body: 'Nearly half of guests arrive without skis — no rental gear and they turn around at the ticket window. Build a Rental shop, hire a couple of rental staff. Short on cash? Finance offers an operating loan.',
+    done: (g) => Object.values(g.facilities).includes('rental-shop') && staffCount(g, 'rental') > 0,
   },
   {
     id: 'set-price',
@@ -62,7 +71,7 @@ const STEPS: Step[] = [
   {
     id: 'day-report',
     title: 'Close out the day',
-    body: 'At 16:30 the mountain empties and the daily report settles the books. Survive to Day 2 and start growing.',
+    body: 'At 16:30 the mountain empties and the daily report settles the books. Survive to Day 2 and start growing — one day, more mountains (see the Resorts tab).',
     done: (g) => g.reports.length >= 1,
   },
 ]
@@ -89,7 +98,7 @@ export function Tutorial() {
   const index = STEPS.indexOf(current)
 
   return (
-    <div className="pointer-events-auto absolute bottom-6 left-3 z-20 w-[min(270px,calc(100vw-24px))]">
+    <div className="pointer-events-auto absolute bottom-16 left-3 z-20 w-[min(270px,calc(100vw-24px))] sm:bottom-6">
       <div className="glass rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in" key={current.id}>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pine">

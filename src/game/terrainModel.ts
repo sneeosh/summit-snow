@@ -5,28 +5,16 @@
  * see is exactly what you pay to cut down.
  */
 import { hashNoise } from './rng'
-import { LIFT_LINES, TRAIL_PATHS, TRAILS, WORLD_H, WORLD_W, type MeasuredPath } from '../content/mountain'
+import { ACTIVE_MOUNTAIN, LIFT_LINES, TRAIL_PATHS, TRAILS, WORLD_H, WORLD_W, type MeasuredPath } from '../content/mountain'
 import type { Vec2 } from './types'
 
-/** the mountain skyline polygon (x rises to summit, ridge, descends right) */
-export const SKYLINE: [number, number][] = [
-  [0, 560],
-  [130, 520],
-  [300, 460],
-  [470, 400],
-  [620, 330],
-  [780, 230],
-  [940, 170],
-  [1040, 205],
-  [1160, 250],
-  [1270, 290],
-  [1370, 330],
-  [1520, 420],
-  [1680, 520],
-  [1920, 640],
-]
+/** the active mountain's skyline polygon (x rises to summit, descends right) */
+export function skyline(): [number, number][] {
+  return ACTIVE_MOUNTAIN.skyline
+}
 
 export function skylineYAt(x: number): number {
+  const SKYLINE = ACTIVE_MOUNTAIN.skyline
   for (let i = 1; i < SKYLINE.length; i++) {
     if (SKYLINE[i][0] >= x) {
       const [x0, y0] = SKYLINE[i - 1]
@@ -39,13 +27,15 @@ export function skylineYAt(x: number): number {
 }
 
 /**
- * Continuous elevation (m) — the summit sits at y=170 (2,350 m) and the
- * base village at y=1040 (1,250 m); elevation is linear in y between and
- * beyond. Downhill therefore means increasing y.
+ * Continuous elevation (m) — linear in y between the active mountain's two
+ * anchors: topElev at y=ySummit and baseElev at the village floor (y=1040).
+ * Downhill therefore means increasing y, and a mountain with more vertical
+ * grades the same drawn line steeper.
  */
 export function elevationAt(p: Vec2): number {
-  const M_PER_Y = (2350 - 1250) / (1040 - 170)
-  return 2350 - (p.y - 170) * M_PER_Y
+  const m = ACTIVE_MOUNTAIN
+  const M_PER_Y = (m.topElev - m.baseElev) / (1040 - m.ySummit)
+  return m.topElev - (p.y - m.ySummit) * M_PER_Y
 }
 
 // ------------------------------------------------------------------ forest
@@ -57,31 +47,43 @@ export interface Tree {
   tone: number
 }
 
-const treeCache = new Map<number, Tree[]>()
+const treeCache = new Map<string, Tree[]>()
 
 /**
- * Every tree on the mountain, deterministic per seed. Trees already avoid
- * the surveyed trail corridors and lift lines (pre-cleared by the mountain
- * planner); custom trails must clear — and pay for — what they cross.
+ * Every tree on the mountain, deterministic per seed (and per mountain —
+ * an untouched hill is FOREST below its treeline; what varies by region is
+ * how thick, and how high the trees climb). Trees already avoid the
+ * surveyed trail corridors and lift lines; custom trails must clear — and
+ * pay for — what they cross. Returned sorted by y so painting reads with
+ * correct depth.
  */
 export function scatterTrees(seed: number): Tree[] {
-  const cached = treeCache.get(seed)
+  const cacheKey = `${ACTIVE_MOUNTAIN.id}:${seed}`
+  const cached = treeCache.get(cacheKey)
   if (cached) return cached
 
   const corridorHalfWidth = (widthM: number) => widthM / 2 + 14
+  const density = ACTIVE_MOUNTAIN.treeDensity
+  const treeline = ACTIVE_MOUNTAIN.treelineElev
   const trees: Tree[] = []
 
-  for (let i = 0; i < 1500; i++) {
+  for (let i = 0; i < 5200; i++) {
     const x = hashNoise(seed, i, 11) * WORLD_W
     const y = hashNoise(seed, i, 12) * WORLD_H
 
     const skyY = skylineYAt(x)
-    if (y < skyY + 30) continue // above treeline near ridge
-    if (y < skyY + 120 && hashNoise(seed, i, 13) < 0.7) continue // sparse near treeline
+    if (y < skyY + 24) continue // bare rock right at the ridgeline
     if (y > 1040) continue // village floor
-    // density noise: clumpy forests, open bowls
-    const clump = hashNoise(seed, Math.floor(x / 140), Math.floor(y / 140) + 900)
-    if (hashNoise(seed, i, 14) > clump * 1.25) continue
+
+    // regional treeline: nothing above it, thinning krummholz just below
+    const elev = elevationAt({ x, y })
+    if (elev > treeline) continue
+    const taper = Math.min(1, (treeline - elev) / 70) // sparse in the top 70 m
+    if (hashNoise(seed, i, 13) > taper) continue
+
+    // density noise: clumpy forests, open glades
+    const clump = 0.45 + hashNoise(seed, Math.floor(x / 140), Math.floor(y / 140) + 900) * 0.75
+    if (hashNoise(seed, i, 14) > clump * density) continue
 
     // surveyed corridors are already clear
     let blocked = false
@@ -97,7 +99,8 @@ export function scatterTrees(seed: number): Tree[] {
     trees.push({ x, y, size: 7 + hashNoise(seed, i, 15) * 9, tone: hashNoise(seed, i, 16) })
   }
 
-  treeCache.set(seed, trees)
+  trees.sort((a, b) => a.y - b.y) // paint top-down so canopies overlap correctly
+  treeCache.set(cacheKey, trees)
   return trees
 }
 

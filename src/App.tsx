@@ -16,6 +16,7 @@ import { startGameLoop, useStore } from './state/store'
 
 export default function App() {
   const screen = useStore((s) => s.screen)
+  const mountainId = useStore((s) => s.game?.mountainId)
 
   useEffect(() => {
     startGameLoop()
@@ -48,6 +49,12 @@ export default function App() {
             s.undoDrawPoint()
           }
           break
+        case 'Enter':
+          if (s.buildMode?.type === 'draw-trail' && s.buildMode.points.length >= 2) {
+            e.preventDefault()
+            s.confirmDrawTrail()
+          }
+          break
       }
     }
     window.addEventListener('keydown', onKey)
@@ -58,7 +65,8 @@ export default function App() {
 
   return (
     <div className="relative h-full w-full select-none overflow-hidden bg-snow-1">
-      <MountainCanvas />
+      {/* keyed by mountain: switching resorts rebuilds the whole Pixi scene */}
+      <MountainCanvas key={mountainId ?? 'none'} />
       <div className="pointer-events-none absolute inset-0">
         <ErrorBoundary label="HUD">
           <TopBar />
@@ -113,7 +121,7 @@ function GameOverBanner() {
   if (!game || !game.gameOver || showReport) return null
   const bankrupt = game.cash < -10000
   return (
-    <div className="fade-in absolute inset-0 z-40 flex items-center justify-center bg-ink/35 backdrop-blur-[2px]">
+    <div className="fade-in pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-ink/35 backdrop-blur-[2px]">
       <div className="glass w-[440px] rounded-3xl p-7 text-center rise-in">
         <h2 className="font-display text-[30px] font-semibold">{bankrupt ? 'Foreclosed' : 'Season’s end'}</h2>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">

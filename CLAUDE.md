@@ -29,9 +29,14 @@ npm run build               # tsc + vite production build
   back after use. Never call `Math.random()`/`Date.now()` inside the sim.
   Rendering/UI-only randomness must use `hashNoise` (stateless) so it never
   consumes the sim stream. Same-seed determinism is asserted by tests.
-- **Tunable numbers live in `src/content/balance.ts`**, mountain geometry in
-  `src/content/mountain.ts`, flavour copy in `src/content/names.ts` — not
-  inline in systems.
+- **Tunable numbers live in `src/content/balance.ts`**, the mountain roster
+  (geometry, climate, prices) in `src/content/mountains.ts`, flavour copy in
+  `src/content/names.ts` — not inline in systems.
+- **`src/content/mountain.ts` is the active-mountain registry.** Its exports
+  (NODES, TRAIL_MAP, skyline/elevation data…) are live bindings for whichever
+  mountain the current GameState simulates. Call
+  `ensureMountain(state.mountainId)` at any new sim/render entry point (cheap
+  string compare), and never alias those bindings at module top level.
 - **Player mutations go through `src/game/actions.ts`** (validate, then
   mutate, return error string or null) and are dispatched via the store's
   `mutate()` wrapper, which republishes `{ ...game }` so subscribers wake.
@@ -44,6 +49,12 @@ npm run build               # tsc + vite production build
   polls the store per frame; static layers (trails/lifts/buildings) rebuild
   only when `structureKeyOf()` changes — if you add state that should
   trigger a redraw, add it to that key.
+- **HUD overlays must opt back into pointer events.** The HUD wrapper is
+  `pointer-events-none` so the map stays interactive; any `absolute inset-0`
+  overlay with a z-index needs an explicit `pointer-events-auto` (or `-none`)
+  — enforced by `src/components/hud-invariants.test.ts`. When testing UI,
+  use real pointer clicks; programmatic `.click()` ignores hit-testing and
+  masks unclickable overlays.
 
 ## Gotchas
 

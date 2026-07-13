@@ -10,7 +10,7 @@ export function Objectives() {
   const done = game.objectives.filter((o) => o.achieved).length
 
   return (
-    <div className="pointer-events-auto absolute right-3 bottom-20 z-20 w-[min(260px,calc(100vw-24px))]">
+    <div className="pointer-events-auto absolute right-3 bottom-20 z-20 hidden w-[min(260px,calc(100vw-24px))] sm:block">
       <div className="glass rounded-2xl p-3">
         <button className="flex w-full items-center justify-between" onClick={() => setOpen((v) => !v)}>
           <span className="panel-title text-[14px]">

@@ -1,4 +1,5 @@
 /** Left-side construction & management toolbar: icon rail + active panel. */
+import { useState } from 'react'
 import {
   FACILITIES,
   LIFT_BASE_COST,
@@ -9,6 +10,8 @@ import {
   STAFF_WAGES,
 } from '../content/balance'
 import { TRAILS } from '../content/mountain'
+import { MOUNTAINS, snowfallLabel } from '../content/mountains'
+import { saleValue } from '../game/company'
 import { liftStaffRequired, staffCount } from '../game/resort'
 import type { FacilityKind, LiftKind, StaffRole } from '../game/types'
 import { formatMoney, useStore, type LeftTab, type Overlay } from '../state/store'
@@ -19,17 +22,21 @@ const TABS: { id: LeftTab & string; icon: string; label: string }[] = [
   { id: 'staff', icon: '🧑‍🔧', label: 'Staff' },
   { id: 'pricing', icon: '🎫', label: 'Pricing' },
   { id: 'finance', icon: '📒', label: 'Finance' },
+  { id: 'resorts', icon: '🏔', label: 'Resorts' },
   { id: 'overlays', icon: '🗺', label: 'Views' },
 ]
 
 export function LeftRail() {
   const leftTab = useStore((s) => s.leftTab)
   const setLeftTab = useStore((s) => s.setLeftTab)
+  const mode = useStore((s) => s.game?.mode)
+  // the scenario is a one-mountain story — no resort empire tab
+  const tabs = mode === 'scenario' ? TABS.filter((t) => t.id !== 'resorts') : TABS
 
   return (
     <div className="pointer-events-auto absolute left-3 top-20 bottom-24 z-20 flex items-start gap-2">
       <div className="glass flex flex-col gap-1 rounded-2xl p-1.5">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             title={t.label}
@@ -63,6 +70,7 @@ export function LeftRail() {
             {leftTab === 'staff' && <StaffPanel />}
             {leftTab === 'pricing' && <PricingPanel />}
             {leftTab === 'finance' && <FinancePanel />}
+            {leftTab === 'resorts' && <ResortsPanel />}
             {leftTab === 'overlays' && <OverlaysPanel />}
           </div>
         </div>
@@ -370,6 +378,102 @@ function FinancePanel() {
 }
 
 // ---------------------------------------------------------------- overlays
+
+// ---------------------------------------------------------------- resorts
+
+function ResortsPanel() {
+  const game = useStore((s) => s.game)!
+  const buy = useStore((s) => s.buyResort)
+  const sell = useStore((s) => s.sellResort)
+  const switchTo = useStore((s) => s.switchResortTo)
+  // selling throws away everything built there — make them say it twice
+  const [confirmSell, setConfirmSell] = useState<string | null>(null)
+
+  const ownedIds = new Set(game.company.holdings.map((h) => h.mountainId))
+  const operating = game.phase === 'operating'
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] leading-relaxed text-ink-soft">
+        Company cash travels with you; each mountain keeps its own season. Buy cheap hills, build them out, sell up.
+      </p>
+      {MOUNTAINS.map((m) => {
+        const owned = ownedIds.has(m.id)
+        const active = m.id === game.mountainId
+        const value = owned ? saleValue(game, m.id) : 0
+        return (
+          <div key={m.id} className={`rounded-xl border p-2.5 ${active ? 'border-pine bg-pine/5' : 'border-ink/10'}`}>
+            <div className="flex items-baseline justify-between">
+              <span className="text-[13px] font-bold">{m.name}</span>
+              {active && <span className="text-[9px] font-bold uppercase tracking-wider text-pine">Here now</span>}
+              {owned && !active && <span className="text-[9px] font-bold uppercase tracking-wider text-wood">Owned</span>}
+            </div>
+            <div className="text-[10px] text-ink-faint">{m.region}</div>
+            <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[10px] text-ink-soft">
+              <span>↕ {(m.topElev - m.baseElev).toLocaleString()} m</span>
+              <span>❄ {snowfallLabel(m.climate.snowfallMult)}</span>
+              <span>👥 ~{m.baseDemand}/day</span>
+              <span>🌲 {m.treeDensity >= 0.8 ? 'Forested' : m.treeDensity >= 0.4 ? 'Gladed' : 'Open alpine'}</span>
+            </div>
+            <p className="mt-1 text-[10.5px] leading-snug text-ink-soft">{m.blurb}</p>
+            <div className="mt-1.5 flex items-center justify-between">
+              {!owned && (
+                <>
+                  <span className="stat-number text-[12px] text-wood">{formatMoney(m.price)}</span>
+                  <button className="btn btn-primary !py-1 text-[11px]" disabled={game.cash < m.price} onClick={() => buy(m.id)}>
+                    {game.cash < m.price ? 'Can’t afford' : 'Buy'}
+                  </button>
+                </>
+              )}
+              {owned && !active && (
+                <>
+                  <span className="text-[10.5px] text-ink-soft">
+                    sells for <span className="stat-number">{formatMoney(value)}</span>
+                  </span>
+                  <span className="flex gap-1">
+                    {confirmSell === m.id ? (
+                      <>
+                        <button
+                          className="btn !py-1 text-[11px] !bg-[#c0392b] !text-white"
+                          onClick={() => {
+                            sell(m.id)
+                            setConfirmSell(null)
+                          }}
+                        >
+                          Sell for {formatMoney(value)}?
+                        </button>
+                        <button className="btn btn-ghost !py-1 text-[11px]" onClick={() => setConfirmSell(null)}>
+                          Keep
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn btn-ghost !py-1 text-[11px]" onClick={() => setConfirmSell(m.id)}>
+                          Sell
+                        </button>
+                        <button
+                          className="btn btn-primary !py-1 text-[11px]"
+                          disabled={operating}
+                          title={operating ? 'Close out the day first' : undefined}
+                          onClick={() => switchTo(m.id)}
+                        >
+                          Go
+                        </button>
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
+              {active && (
+                <span className="text-[10.5px] text-ink-faint">Switch away before selling this one.</span>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 const OVERLAYS: { id: Overlay; label: string; hint: string }[] = [
   { id: 'none', label: 'Natural', hint: 'The mountain as guests see it' },

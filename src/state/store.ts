@@ -7,6 +7,9 @@
 import { create } from 'zustand'
 import { TICK_MINUTES, TICK_REAL_MS } from '../content/balance'
 import * as actions from '../game/actions'
+import { ensureMountain } from '../content/mountain'
+import { buyResort, sellResort, switchResort } from '../game/company'
+import { nearestOnTrail } from '../game/junctions'
 import { allNodes, getNode, nearestNodeId } from '../game/trails'
 import { resolveEvent } from '../game/events'
 import { newGame } from '../game/init'
@@ -34,7 +37,7 @@ export type BuildMode =
 
 export type Overlay = 'none' | 'difficulty' | 'snow' | 'crowding' | 'coverage'
 
-export type LeftTab = 'build' | 'staff' | 'pricing' | 'finance' | 'overlays' | null
+export type LeftTab = 'build' | 'staff' | 'pricing' | 'finance' | 'overlays' | 'resorts' | null
 
 interface Store {
   screen: Screen
@@ -51,10 +54,15 @@ interface Store {
   tickCount: number
 
   // lifecycle
-  startNew: (mode: GameMode, seed?: number) => void
+  startNew: (mode: GameMode, seed?: number, mountainId?: string) => void
   loadSlot: (slot: string) => boolean
   saveSlot: (slot: string, label: string) => boolean
   toMenu: () => void
+
+  // the resort company
+  buyResort: (mountainId: string) => void
+  sellResort: (mountainId: string) => void
+  switchResortTo: (mountainId: string) => void
 
   // time
   setSpeed: (s: Speed) => void
@@ -67,6 +75,8 @@ interface Store {
   addDrawPoint: (p: Vec2) => void
   undoDrawPoint: () => void
   confirmDrawTrail: () => void
+  /** double-click finish: drop the duplicate point the second click added, then cut */
+  finishDrawTrail: () => void
 
   // lift placement
   addLiftPoint: (p: Vec2) => void
@@ -96,11 +106,17 @@ interface Store {
   resolveEventChoice: (eventId: string, choiceId: string) => void
 }
 
+/** phones start with panels closed — the mountain is the point */
+function defaultLeftTab(): LeftTab {
+  return typeof window !== 'undefined' && window.innerWidth < 768 ? null : 'build'
+}
+
 export const useStore = create<Store>((set, get) => {
   /** run a mutating game operation and publish the new reference */
   function mutate(fn: (g: GameState) => string | null | void): void {
     const game = get().game
     if (!game) return
+    ensureMountain(game.mountainId)
     const err = fn(game) ?? null
     set({ game: { ...game }, actionError: err, tickCount: get().tickCount + 1 })
   }
@@ -112,14 +128,14 @@ export const useStore = create<Store>((set, get) => {
     selection: null,
     buildMode: null,
     overlay: 'none',
-    leftTab: 'build',
+    leftTab: defaultLeftTab(),
     bottomTab: null,
     actionError: null,
     showReport: false,
     tickCount: 0,
 
-    startNew: (mode, seed) => {
-      const game = newGame(mode, seed ?? Math.floor(Math.random() * 2 ** 31))
+    startNew: (mode, seed, mountainId) => {
+      const game = newGame(mode, seed ?? Math.floor(Math.random() * 2 ** 31), mountainId)
       set({
         screen: 'playing',
         game,
@@ -127,7 +143,7 @@ export const useStore = create<Store>((set, get) => {
         selection: null,
         buildMode: null,
         overlay: 'none',
-        leftTab: 'build',
+        leftTab: defaultLeftTab(),
         bottomTab: null,
         showReport: false,
         tickCount: 0,
@@ -137,6 +153,7 @@ export const useStore = create<Store>((set, get) => {
     loadSlot: (slot) => {
       const state = loadGame(slot)
       if (!state) return false
+      ensureMountain(state.mountainId)
       set({
         screen: 'playing',
         game: state,
@@ -156,6 +173,27 @@ export const useStore = create<Store>((set, get) => {
     },
 
     toMenu: () => set({ screen: 'menu', speed: 0 }),
+
+    buyResort: (mountainId) => mutate((g) => buyResort(g, mountainId)),
+    sellResort: (mountainId) => mutate((g) => sellResort(g, mountainId)),
+    switchResortTo: (mountainId) => {
+      const game = get().game
+      if (!game) return
+      ensureMountain(game.mountainId)
+      const result = switchResort(game, mountainId)
+      if (typeof result === 'string') {
+        set({ actionError: result })
+        return
+      }
+      set({
+        game: result,
+        selection: null,
+        buildMode: null,
+        overlay: 'none',
+        showReport: result.phase === 'day-end',
+        tickCount: get().tickCount + 1,
+      })
+    },
 
     setSpeed: (s) => set({ speed: s }),
 
@@ -198,9 +236,11 @@ export const useStore = create<Store>((set, get) => {
       const game = get().game
       if (bm?.type !== 'draw-trail' || !game) return
       // snap to a lift station / junction when close — that's how skiers
-      // enter and leave a run (custom lift terminals count!)
+      // enter and leave a run (custom lift terminals count!). Failing that,
+      // snap onto a built trail: the endpoints become fork/merge junctions.
       const snapped = nearestNodeId(p, undefined, allNodes(game))
-      const point = snapped ? { ...getNode(game, snapped)!.pos } : p
+      const onTrail = snapped ? null : nearestOnTrail(game, p)
+      const point = snapped ? { ...getNode(game, snapped)!.pos } : onTrail ? { ...onTrail.pos } : p
       set({ buildMode: { type: 'draw-trail', points: [...bm.points, point] } })
     },
     undoDrawPoint: () => {
@@ -220,6 +260,13 @@ export const useStore = create<Store>((set, get) => {
         tickCount: get().tickCount + 1,
         ...(err ? {} : { buildMode: null }),
       })
+    },
+    finishDrawTrail: () => {
+      const bm = get().buildMode
+      if (bm?.type !== 'draw-trail' || bm.points.length < 3) return
+      // the double-click's second click added a duplicate waypoint — drop it
+      set({ buildMode: { type: 'draw-trail', points: bm.points.slice(0, -1) } })
+      get().confirmDrawTrail()
     },
 
     addLiftPoint: (p) => {
@@ -244,7 +291,14 @@ export const useStore = create<Store>((set, get) => {
     },
 
     select: (selection) => set({ selection }),
-    setBuildMode: (buildMode) => set({ buildMode, actionError: null }),
+    setBuildMode: (buildMode) =>
+      set({
+        buildMode,
+        actionError: null,
+        // phones: picking a build tool closes the panel — you need to see
+        // the mountain you're about to build on
+        ...(buildMode && typeof window !== 'undefined' && window.innerWidth < 768 ? { leftTab: null } : {}),
+      }),
     setOverlay: (overlay) => set({ overlay }),
     setLeftTab: (leftTab) => set({ leftTab }),
     setBottomTab: (bottomTab) => set({ bottomTab }),

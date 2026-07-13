@@ -3,7 +3,7 @@
  * uphill stretches, unreachable tops, and dead ends — but never blocks
  * the build. Full control means full responsibility.
  */
-import { getNode, planCustomTrail } from '../game/trails'
+import { getTrailDef, getNode, planCustomTrail } from '../game/trails'
 import { formatMoney, useStore } from '../state/store'
 import { DiffBadge } from './shared'
 
@@ -34,7 +34,9 @@ export function DrawTrailPanel() {
           </p>
         )}
         {points.length === 1 && (
-          <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">Keep clicking downhill — the ghost follows your cursor.</p>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">
+            Keep clicking downhill — the ghost follows your cursor. Double-click or press Enter to finish.
+          </p>
         )}
 
         {plan && a && (
@@ -58,6 +60,15 @@ export function DrawTrailPanel() {
               <span className="stat-number text-[16px] text-wood">{formatMoney(plan.totalCost)}</span>
             </div>
 
+            {plan.conflicts.blockers.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {plan.conflicts.blockers.map((b) => (
+                  <li key={b} className="flex gap-1.5 text-[11px] font-bold leading-snug text-[#c0392b]">
+                    <span className="flex-none">✕</span> {b}
+                  </li>
+                ))}
+              </ul>
+            )}
             {plan.warnings.length > 0 && (
               <ul className="mt-2 space-y-1">
                 {plan.warnings.map((w) => (
@@ -67,7 +78,18 @@ export function DrawTrailPanel() {
                 ))}
               </ul>
             )}
-            {plan.warnings.length === 0 && a.topNodeId && (
+            {(plan.conflicts.topMerge || plan.conflicts.bottomMerge || plan.conflicts.crossings.length > 0) && (
+              <div className="mt-2 space-y-0.5 text-[11px] font-medium text-diff-green">
+                {plan.conflicts.topMerge && <div>↰ forks off {getTrailDef(game, plan.conflicts.topMerge.trailId).name}</div>}
+                {plan.conflicts.bottomMerge && <div>↳ merges into {getTrailDef(game, plan.conflicts.bottomMerge.trailId).name}</div>}
+                {plan.conflicts.crossings.length > 0 && (
+                  <div>
+                    ✕ crosses {plan.conflicts.crossings.length} line{plan.conflicts.crossings.length > 1 ? 's' : ''} — skiers pick their way at each junction
+                  </div>
+                )}
+              </div>
+            )}
+            {plan.warnings.length === 0 && plan.conflicts.blockers.length === 0 && a.topNodeId && (
               <div className="mt-2 text-[11px] font-medium text-diff-green">
                 ✓ Clean line from {getNode(game, a.topNodeId)?.name ?? 'the station'}
                 {a.bottomNodeId ? ` down to ${getNode(game, a.bottomNodeId)?.name ?? 'the station'}` : ''}
@@ -77,7 +99,12 @@ export function DrawTrailPanel() {
         )}
 
         <div className="mt-3 flex gap-1.5">
-          <button className="btn btn-primary flex-1" disabled={!plan} onClick={confirmDrawTrail}>
+          <button
+            className="btn btn-primary flex-1"
+            disabled={!plan || plan.conflicts.blockers.length > 0}
+            onClick={confirmDrawTrail}
+            title="Finish the line (enter or double-click)"
+          >
             Cut this trail{plan ? ` — ${formatMoney(plan.totalCost)}` : ''}
           </button>
           <button className="btn btn-ghost" disabled={points.length === 0} onClick={undoDrawPoint} title="Remove last point (backspace)">

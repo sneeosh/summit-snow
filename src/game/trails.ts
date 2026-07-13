@@ -19,6 +19,7 @@ import {
   TREE_CLEAR_COST,
 } from '../content/balance'
 import {
+  ACTIVE_MOUNTAIN,
   LIFT_LINES,
   LIFT_SITE_MAP,
   measurePath,
@@ -29,6 +30,7 @@ import {
   type MeasuredPath,
 } from '../content/mountain'
 import { CUSTOM_TRAIL_NAMES } from '../content/names'
+import { checkTrailConflicts, type TrailConflicts } from './junctions'
 import { clearingHalfWidthWu, distToPath, elevationAt, skylineYAt, treesInCorridor } from './terrainModel'
 import type { Difficulty, GameState, LiftKind, LiftSiteDef, MountainNode, TrailDef, Vec2 } from './types'
 
@@ -212,10 +214,13 @@ export interface TrailPlan {
   clearingCost: number
   totalCost: number
   warnings: string[]
+  /** merges, junction crossings, and the hard blockers (overlap, grazing crossings) */
+  conflicts: TrailConflicts
 }
 
 export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
   const analysis = analyzePath(points, allNodes(state))
+  const conflicts = checkTrailConflicts(state, points)
 
   // trees in this corridor that aren't already cleared by an existing custom trail
   const inCorridor = points.length >= 2 ? treesInCorridor(state.seed, points, CUSTOM_TRAIL_WIDTH_M) : []
@@ -228,10 +233,10 @@ export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
   const clearingCost = treesToClear * TREE_CLEAR_COST
 
   const warnings: string[] = []
-  if (analysis.topNodeId === null) {
+  if (analysis.topNodeId === null && !conflicts.topMerge) {
     warnings.push('The start isn’t at a lift station or junction — skiers will never reach this run.')
   }
-  if (analysis.bottomNodeId === null) {
+  if (analysis.bottomNodeId === null && !conflicts.bottomMerge) {
     warnings.push('The run dead-ends mid-mountain — skiers will strand and patrol will have to sled them out.')
   } else if (analysis.topNodeId && analysis.bottomNodeId === analysis.topNodeId) {
     warnings.push('The run ends where it starts — nobody is going anywhere.')
@@ -249,6 +254,7 @@ export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
     clearingCost,
     totalCost: groundworkCost + clearingCost,
     warnings,
+    conflicts,
   }
 }
 
@@ -343,7 +349,9 @@ export function planCustomLift(state: GameState, a: Vec2, b: Vec2, kind: LiftKin
 }
 
 /** base-area flats: terminals placed this low become walk-to-able nodes */
-const BASE_ELEVATION_CUTOFF = 1268
+export function baseElevationCutoff(): number {
+  return ACTIVE_MOUNTAIN.baseElev + 18
+}
 
 /** create (or reuse) the network node for a custom lift terminal */
 export function ensureNode(state: GameState, nodeId: string | null, pos: Vec2): string {
@@ -356,7 +364,7 @@ export function ensureNode(state: GameState, nodeId: string | null, pos: Vec2): 
     name: `Station ${n}`,
     pos: { x: Math.round(pos.x), y: Math.round(pos.y) },
     elevation,
-    isBase: elevation <= BASE_ELEVATION_CUTOFF,
+    isBase: elevation <= baseElevationCutoff(),
   }
   return id
 }

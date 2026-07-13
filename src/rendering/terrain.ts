@@ -8,8 +8,8 @@
  * trail corridor, so unbuilt trails read as natural clearings.
  */
 import { hashNoise } from '../game/rng'
-import { WORLD_H, WORLD_W } from '../content/mountain'
-import { distToPath, scatterTrees, SKYLINE, skylineYAt } from '../game/terrainModel'
+import { ACTIVE_MOUNTAIN, WORLD_H, WORLD_W } from '../content/mountain'
+import { distToPath, elevationAt, scatterTrees, skyline, skylineYAt } from '../game/terrainModel'
 import type { Vec2, WeatherDay } from '../game/types'
 
 /** a felled corridor from a built custom trail — no trees painted inside */
@@ -114,6 +114,7 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
   })
 
   // ---- main mountain snowfield
+  const SKYLINE = skyline()
   ctx.beginPath()
   ctx.moveTo(L, SKYLINE[0][1])
   for (const [x, y] of SKYLINE) ctx.lineTo(x, y)
@@ -172,6 +173,43 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
     ctx.stroke()
   }
 
+  // ---- alpine zone: scree, exposed rock, and wind-scoured patches between
+  // the ridgeline and the regional treeline (elevation is linear in y, so
+  // the treeline is a horizontal band)
+  {
+    const m = ACTIVE_MOUNTAIN
+    const mPerY = (m.topElev - m.baseElev) / (1040 - m.ySummit)
+    const treelineY = Math.min(1030, m.ySummit + (m.topElev - m.treelineElev) / mPerY)
+    if (treelineY > m.ySummit + 30) {
+      for (let i = 0; i < 170; i++) {
+        const x = hashNoise(seed, i, 95) * WORLD_W
+        const skyY = skylineYAt(x)
+        const bandTop = skyY + 14
+        if (treelineY <= bandTop) continue
+        const y = bandTop + hashNoise(seed, i, 96) * (treelineY - bandTop)
+        const n = hashNoise(seed, i, 97)
+        if (n < 0.25) continue
+        const w = 5 + n * 16
+        ctx.strokeStyle = `rgba(126, 139, 150, ${0.08 + n * 0.16})`
+        ctx.lineWidth = 1.2 + n * 2
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(x - w, y + n * 4)
+        ctx.quadraticCurveTo(x, y - 2 - n * 3, x + w, y + n * 5)
+        ctx.stroke()
+        // a few darker talus specks around the bigger outcrops
+        if (n > 0.75) {
+          ctx.fillStyle = 'rgba(110, 124, 136, 0.18)'
+          for (let k = 0; k < 4; k++) {
+            const px = x + (hashNoise(seed, i * 7 + k, 98) - 0.5) * w * 2.4
+            const py = y + 3 + hashNoise(seed, i * 7 + k, 99) * 7
+            ctx.fillRect(px, py, 1.6 + n, 1.2 + n * 0.8)
+          }
+        }
+      }
+    }
+  }
+
   // ---- forests (avoid all trail corridors + village)
   paintForests(ctx, seed, dim, clearings)
 
@@ -188,6 +226,16 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
   // ---- untouched backcountry forest in the out-of-bounds margin
   paintBackcountry(ctx, seed, dim)
 
+  // ---- climate mood: cold ranges read blue-white, warm ones cream
+  const tempOffset = ACTIVE_MOUNTAIN.climate.tempOffset
+  if (tempOffset <= -3) {
+    ctx.fillStyle = 'rgba(186, 206, 238, 0.10)'
+    ctx.fillRect(-WORLD_PAD, -WORLD_PAD, WORLD_W + WORLD_PAD * 2, WORLD_H + WORLD_PAD * 2)
+  } else if (tempOffset >= 1) {
+    ctx.fillStyle = 'rgba(255, 240, 208, 0.09)'
+    ctx.fillRect(-WORLD_PAD, -WORLD_PAD, WORLD_W + WORLD_PAD * 2, WORLD_H + WORLD_PAD * 2)
+  }
+
   // ---- fog wash when visibility is poor
   if (mood.visibility < 0.6) {
     ctx.fillStyle = `rgba(222, 229, 233, ${(0.6 - mood.visibility) * 0.9})`
@@ -199,16 +247,22 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
 
 /** dense, unmanaged trees beyond the boundary — the hill clearly continues */
 function paintBackcountry(ctx: CanvasRenderingContext2D, seed: number, dim: number): void {
-  for (let i = 0; i < 900; i++) {
+  const m = ACTIVE_MOUNTAIN
+  const pts: { x: number; y: number; size: number; tone: number }[] = []
+  for (let i = 0; i < 2600; i++) {
     const x = -WORLD_PAD + hashNoise(seed, i, 41) * (WORLD_W + WORLD_PAD * 2)
     const y = -WORLD_PAD + hashNoise(seed, i, 42) * (WORLD_H + WORLD_PAD * 2)
     // margin only — the in-bounds forest is the shared sim scatter
     if (x > 6 && x < WORLD_W - 6 && y > 6 && y < WORLD_H - 6) continue
     const skyY = skylineYAt(Math.max(0, Math.min(WORLD_W, x)))
-    if (y < skyY + 26) continue
-    if (hashNoise(seed, i, 43) > 0.75) continue
-    drawSpruce(ctx, x, y, 6 + hashNoise(seed, i, 44) * 9, hashNoise(seed, i, 45), dim)
+    if (y < skyY + 24) continue
+    // the regional treeline holds beyond the rope too
+    if (elevationAt({ x: Math.max(0, Math.min(WORLD_W, x)), y }) > m.treelineElev) continue
+    if (hashNoise(seed, i, 43) > 0.55 * m.treeDensity + 0.2) continue
+    pts.push({ x, y, size: 6 + hashNoise(seed, i, 44) * 9, tone: hashNoise(seed, i, 45) })
   }
+  pts.sort((a, b) => a.y - b.y)
+  for (const t of pts) drawSpruce(ctx, t.x, t.y, t.size, t.tone, dim)
 }
 
 function paintForests(ctx: CanvasRenderingContext2D, seed: number, dim: number, clearings: Clearing[]): void {

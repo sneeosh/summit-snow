@@ -1,6 +1,6 @@
 /** End-of-day operating report modal. */
-import { SEASON_DAYS } from '../content/balance'
 import { SKILL_LABEL } from '../content/names'
+import { dayEndDisposition } from '../game/simulation'
 import { formatMoney, useStore } from '../state/store'
 
 export function DailyReportModal() {
@@ -16,10 +16,13 @@ export function DailyReportModal() {
   const revTotal = rev.tickets + rev.rentals + rev.food + rev.lessons + rev.parking
   const exp = report.expenses
   const expTotal = exp.payroll + exp.maintenance + exp.energy + exp.facilities + exp.interest + exp.other
-  const seasonOver = game.day >= SEASON_DAYS || game.gameOver
+  // sandbox seasons roll over — only a true game-over ends the road
+  const disposition = dayEndDisposition(game)
+  const seasonOver = disposition === 'game-over'
+  const seasonRolls = disposition === 'season-rolls'
 
   return (
-    <div className="fade-in absolute inset-0 z-40 flex items-center justify-center bg-ink/30 p-6 backdrop-blur-[2px]">
+    <div className="fade-in pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-ink/30 p-6 backdrop-blur-[2px]">
       <div className="glass max-h-full w-[min(680px,100%)] overflow-y-auto scroll-thin rounded-3xl p-6 rise-in">
         <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-faint">Operating report</div>
         <h2 className="font-display text-[26px] font-semibold leading-tight">
@@ -112,7 +115,7 @@ export function DailyReportModal() {
                 advanceToNextDay()
               }}
             >
-              On to Day {game.day + 1} →
+              {seasonRolls ? `Open Season ${game.season + 1} →` : `On to Day ${game.day + 1} →`}
             </button>
           )}
         </div>
@@ -129,9 +132,9 @@ function SeasonEndActions() {
     <div className="flex w-full items-center justify-between gap-3">
       <div className="text-[13px] font-medium text-ink-soft">
         {bankrupt
-          ? 'The bank has foreclosed on Mount Alder.'
+          ? 'The bank has foreclosed on the resort.'
           : game.scenarioComplete
-            ? '🏆 Every objective met — Mount Alder is the valley’s success story.'
+            ? '🏆 Every objective met — the mountain is the valley’s success story.'
             : 'The season is over. The mountain sleeps.'}
       </div>
       <button className="btn btn-primary" onClick={toMenu}>

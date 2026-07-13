@@ -7,8 +7,9 @@
  * key changes; guests and chairs update every animation frame.
  */
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
-import { FACILITY_SLOTS, measurePath, pointAt, TRAIL_MAP, WORLD_H, WORLD_W } from '../content/mountain'
+import { ensureMountain, FACILITY_SLOTS, measurePath, NODE_MAP, pointAt, TRAIL_MAP, WORLD_H, WORLD_W } from '../content/mountain'
 import { FACILITIES } from '../content/balance'
+import { nearestOnTrail } from '../game/junctions'
 import { hashNoise } from '../game/rng'
 import { isLiftRunning } from '../game/resort'
 import {
@@ -114,6 +115,7 @@ export interface SceneCallbacks {
   onSlotClick: (slotId: string) => void
   onTrailClick: (trailId: string) => void
   onDrawPoint: (p: Vec2) => void
+  onDrawFinish: () => void
   onLiftPoint: (p: Vec2) => void
 }
 
@@ -166,6 +168,9 @@ export class MountainScene {
   private worldStart = { x: 0, y: 0 }
   private dragMoved = false
   private panKeys = new Set<string>()
+  // touch: active pointers on the canvas; two at once is a pinch
+  private touchPoints = new Map<number, { x: number; y: number }>()
+  private pinchDist = 0
   private destroyed = false
   private onKeyDown = (e: KeyboardEvent) => this.handlePanKey(e, true)
   private onKeyUp = (e: KeyboardEvent) => this.handlePanKey(e, false)
@@ -173,6 +178,25 @@ export class MountainScene {
   private onPointerMove = (e: PointerEvent) => {
     if (this.destroyed) return
     this.mouseWorld = this.toWorld(e)
+
+    // two fingers down: pinch zoom toward the midpoint
+    if (this.touchPoints.has(e.pointerId)) {
+      this.touchPoints.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (this.touchPoints.size === 2) {
+        const [a, b] = [...this.touchPoints.values()]
+        const d = Math.hypot(a.x - b.x, a.y - b.y)
+        if (this.pinchDist > 0 && d > 0) {
+          const rect = (this.app.canvas as HTMLCanvasElement).getBoundingClientRect()
+          this.zoomToward(d / this.pinchDist, {
+            x: (a.x + b.x) / 2 - rect.left,
+            y: (a.y + b.y) / 2 - rect.top,
+          })
+        }
+        this.pinchDist = d
+        return
+      }
+    }
+
     if (!this.dragging) return
     const dx = e.clientX - this.dragStart.x
     const dy = e.clientY - this.dragStart.y
@@ -182,7 +206,9 @@ export class MountainScene {
     this.clampCamera()
   }
   private onPointerUp = (e: PointerEvent) => {
-    if (this.destroyed || !this.dragging) return
+    if (this.destroyed) return
+    if (this.touchPoints.delete(e.pointerId)) this.pinchDist = 0
+    if (!this.dragging) return
     this.dragging = false
     if (!this.dragMoved) this.handleClick(e)
   }
@@ -233,7 +259,7 @@ export class MountainScene {
     // to pan across from the first moment
     this.zoom = fit * 1.35
     this.world.scale.set(this.zoom)
-    const village = { x: 950, y: 1000 }
+    const village = NODE_MAP.base ? { x: NODE_MAP.base.pos.x, y: NODE_MAP.base.pos.y - 40 } : { x: 950, y: 1000 }
     this.world.position.set(w / 2 - village.x * this.zoom, h - WORLD_H * this.zoom)
     this.clampCamera()
   }
@@ -258,10 +284,27 @@ export class MountainScene {
     }, { passive: false })
 
     canvas.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') {
+        this.touchPoints.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        if (this.touchPoints.size >= 2) {
+          // second finger: this became a pinch, not a pan or a tap
+          if (this.touchPoints.size === 2) {
+            const [a, b] = [...this.touchPoints.values()]
+            this.pinchDist = Math.hypot(a.x - b.x, a.y - b.y)
+          }
+          this.dragging = false
+          this.dragMoved = true
+          return
+        }
+      }
       this.dragging = true
       this.dragMoved = false
       this.dragStart = { x: e.clientX, y: e.clientY }
       this.worldStart = { x: this.world.x, y: this.world.y }
+    })
+    // double-click ends the line being drawn
+    canvas.addEventListener('dblclick', () => {
+      if (this.getState().buildMode?.type === 'draw-trail') this.callbacks.onDrawFinish()
     })
     window.addEventListener('pointermove', this.onPointerMove)
     window.addEventListener('pointerup', this.onPointerUp)
@@ -472,10 +515,11 @@ export class MountainScene {
 
     const { game, selection, buildMode, overlay } = this.getState()
     if (!game) return
+    ensureMountain(game.mountainId)
 
     // terrain mood repaint (rare)
     const weather = game.weatherSeason[game.day - 1]
-    const tKey = `${game.day}|${weather.cloud.toFixed(2)}|${weather.visibility.toFixed(2)}|${Object.keys(game.customTrailDefs).length}|${Object.keys(game.customLiftSites).length}`
+    const tKey = `${game.mountainId}|${game.day}|${weather.cloud.toFixed(2)}|${weather.visibility.toFixed(2)}|${Object.keys(game.customTrailDefs).length}|${Object.keys(game.customLiftSites).length}`
     if (tKey !== this.terrainKey) {
       this.terrainKey = tKey
       const canvas = paintTerrain(moodFromWeather(weather), game.seed, builtClearings(game))
@@ -519,12 +563,18 @@ export class MountainScene {
       g.circle(node.pos.x, node.pos.y, 10).stroke({ width: 2, color: 0xa97949, alpha: 0.55 })
       g.circle(node.pos.x, node.pos.y, 3).fill({ color: 0xa97949, alpha: 0.7 })
     }
-    // cursor snapping hint
+    // cursor snapping hint: nodes first, else onto a built trail (fork/merge)
     if (this.mouseWorld) {
       const snap = nearestNodeId(this.mouseWorld, undefined, nodes)
       if (snap) {
         const node = nodes.find((n) => n.id === snap)!
         g.circle(node.pos.x, node.pos.y, 14).stroke({ width: 2.5, color: 0x2e7d4f, alpha: 0.9 })
+      } else if (buildMode.type === 'draw-trail') {
+        const onTrail = nearestOnTrail(game, this.mouseWorld)
+        if (onTrail) {
+          g.circle(onTrail.pos.x, onTrail.pos.y, 9).stroke({ width: 2.5, color: 0x2e7d4f, alpha: 0.9 })
+          g.circle(onTrail.pos.x, onTrail.pos.y, 2.5).fill({ color: 0x2e7d4f, alpha: 0.9 })
+        }
       }
     }
 
@@ -533,11 +583,11 @@ export class MountainScene {
       const preview = this.mouseWorld && !this.dragging ? [...committed, this.mouseWorld] : committed
 
       if (preview.length >= 2) {
-        // ribbon ghost
-        strokePath(g, preview, 15, 0xffffff, 0.55)
-        strokePath(g, preview, 2.5, 0x2f6fb2, 0.85)
-        // paint uphill stretches in alarm orange
         const analysis = analyzePath(preview, nodes)
+        // ribbon ghost, centerline tinted by the grade this line would earn
+        const ghost = roundedPoints(preview)
+        strokePath(g, ghost, 15, 0xffffff, 0.55)
+        strokePath(g, ghost, 3, DIFF_COLOR[analysis.difficulty] ?? 0x2f6fb2, 0.9)
         if (analysis.uphillSegments.length > 0) {
           const mp = measurePath(preview)
           for (const seg of analysis.uphillSegments) {
@@ -614,13 +664,14 @@ export class MountainScene {
 
       if (st.built) {
         const ribbonColor = overlayTrailColor(overlay, st, def)
+        const ribbon = roundedPoints(mp.points, Math.max(12, width * 0.6))
         // carved-edge shadow so the piste reads against open snowfield
-        strokePath(g, mp.points, width + 5, 0x9db4c4, st.open ? 0.5 : 0.3)
+        strokePath(g, ribbon, width + 5, 0x9db4c4, st.open ? 0.5 : 0.3)
         // ribbon
-        strokePath(g, mp.points, width, st.open ? ribbonColor.color : 0xdde3e8, st.open ? ribbonColor.alpha : 0.75)
+        strokePath(g, ribbon, width, st.open ? ribbonColor.color : 0xdde3e8, st.open ? ribbonColor.alpha : 0.75)
         // difficulty edges, both sides
-        strokePath(g, mp.points, 2.2, DIFF_COLOR[def.difficulty], st.open ? 0.9 : 0.35, width / 2 + 2)
-        strokePath(g, mp.points, 2.2, DIFF_COLOR[def.difficulty], st.open ? 0.9 : 0.35, -(width / 2 + 2))
+        strokePath(g, ribbon, 2.2, DIFF_COLOR[def.difficulty], st.open ? 0.9 : 0.35, width / 2 + 2)
+        strokePath(g, ribbon, 2.2, DIFF_COLOR[def.difficulty], st.open ? 0.9 : 0.35, -(width / 2 + 2))
         if (!st.open) {
           // closed: crosshatch ropes
           const mid = pointAt(mp, 0.08)
@@ -643,7 +694,7 @@ export class MountainScene {
 
       // selection halo
       if (selection?.type === 'trail' && selection.id === def.id) {
-        strokePath(g, mp.points, width + 8, 0xe8b26a, 0.35)
+        strokePath(g, roundedPoints(mp.points, Math.max(12, width * 0.6)), width + 8, 0xe8b26a, 0.35)
       }
       // snowmaking badge
       if (st.hasSnowmaking && st.built) {
@@ -671,6 +722,17 @@ export class MountainScene {
         this.labelLayer.addChild(label)
       }
     }
+
+    // junction markers: where lines cross or fork, skiers pick their way
+    const jg = new Graphics()
+    for (const junction of Object.values(game.junctions)) {
+      const node = game.customNodes[junction.nodeId]
+      if (!node) continue
+      jg.circle(node.pos.x, node.pos.y, 6).fill({ color: 0xfbfdfe, alpha: 0.95 })
+      jg.circle(node.pos.x, node.pos.y, 6).stroke({ width: 2, color: 0x5a4632, alpha: 0.85 })
+      jg.circle(node.pos.x, node.pos.y, 2).fill({ color: 0x5a4632, alpha: 0.9 })
+    }
+    this.trailLayer.addChild(jg)
   }
 
   private drawLifts(game: GameState, selection: Selection, _buildMode: BuildMode): void {
@@ -933,6 +995,38 @@ function distToMeasured(p: Vec2, mp: { points: Vec2[] }): number {
   return best
 }
 
+/**
+ * Rendering-only corner rounding: replace each interior vertex with a short
+ * sampled quadratic so drawn runs read as carved turns, not sawteeth. The
+ * sim, hit-testing, and junction geometry all stay on the true polyline —
+ * deviation is bounded by `radius` world units at the corners.
+ */
+function roundedPoints(pts: Vec2[], radius = 14): Vec2[] {
+  if (pts.length <= 2) return pts
+  const out: Vec2[] = [pts[0]]
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i]
+    const a = pts[i - 1]
+    const b = pts[i + 1]
+    const la = Math.hypot(p.x - a.x, p.y - a.y) || 1
+    const lb = Math.hypot(b.x - p.x, b.y - p.y) || 1
+    const ra = Math.min(radius, la * 0.45)
+    const rb = Math.min(radius, lb * 0.45)
+    const pin = { x: p.x - ((p.x - a.x) / la) * ra, y: p.y - ((p.y - a.y) / la) * ra }
+    const pout = { x: p.x + ((b.x - p.x) / lb) * rb, y: p.y + ((b.y - p.y) / lb) * rb }
+    for (let s = 0; s <= 4; s++) {
+      const t = s / 4
+      const u = 1 - t
+      out.push({
+        x: u * u * pin.x + 2 * u * t * p.x + t * t * pout.x,
+        y: u * u * pin.y + 2 * u * t * p.y + t * t * pout.y,
+      })
+    }
+  }
+  out.push(pts[pts.length - 1])
+  return out
+}
+
 /** stroke a polyline, optionally offset perpendicular by `offset` */
 function strokePath(g: Graphics, pts: Vec2[], width: number, color: number, alpha: number, offset = 0): void {
   const off = (i: number): Vec2 => {
@@ -1068,5 +1162,6 @@ function structureKeyOf(game: GameState, selection: Selection, buildMode: BuildM
   const bm = buildMode ? `${buildMode.type}:${'kind' in buildMode ? buildMode.kind : ''}` : ''
   // staffing affects which lifts run (status dots)
   const ops = game.staff.find((d) => d.role === 'lift-ops')?.headcount ?? 0
-  return [lifts, trails, fac, sel, bm, overlay, ops, game.phase].join('|')
+  const junctions = Object.keys(game.junctions).join(',')
+  return [lifts, trails, fac, sel, bm, overlay, ops, junctions, game.phase].join('|')
 }

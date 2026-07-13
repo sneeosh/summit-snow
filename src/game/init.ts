@@ -11,16 +11,30 @@ import {
   STAFF_WAGES,
   TRAIL_MIN_DEPTH_CM,
 } from '../content/balance'
-import { FACILITY_SLOTS, LIFT_SITES, liftLengthM, PREBUILT_TRAILS, TRAIL_MAP as TRAIL_MAP_LOOKUP, TRAILS } from '../content/mountain'
+import {
+  ensureMountain,
+  FACILITY_SLOTS,
+  LIFT_SITES,
+  liftLengthM,
+  PREBUILT_TRAILS,
+  TRAIL_MAP as TRAIL_MAP_LOOKUP,
+  TRAILS,
+} from '../content/mountain'
+import { DEFAULT_MOUNTAIN_ID, MOUNTAIN_MAP } from '../content/mountains'
 import { Rng } from './rng'
 import { computeSurface, generateSeasonWeather } from './weather'
 import type { GameMode, GameState, LiftState, StaffRole, TrailState } from './types'
 
-export const SAVE_VERSION = 3
+export const SAVE_VERSION = 6
 
-export function newGame(mode: GameMode, seed: number): GameState {
+export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAULT_MOUNTAIN_ID): GameState {
+  // scenario is Mount Alder's story; sandbox roams the world
+  const mountain = mode === 'scenario' ? MOUNTAIN_MAP[DEFAULT_MOUNTAIN_ID] : (MOUNTAIN_MAP[mountainId] ?? MOUNTAIN_MAP[DEFAULT_MOUNTAIN_ID])
+  ensureMountain(mountain.id)
   const rng = new Rng(seed)
-  const weatherSeason = generateSeasonWeather(seed)
+  const weatherSeason = generateSeasonWeather(seed, mountain.climate)
+  // snow-starved hills open leaner, powder factories open deeper
+  const depthScale = 0.7 + 0.3 * mountain.climate.snowfallMult
 
   // Both modes start with just the prebuilt lift — in sandbox, money is the
   // lever, not a pre-developed mountain.
@@ -38,7 +52,7 @@ export function newGame(mode: GameMode, seed: number): GameState {
       trailId: t.id,
       built,
       open: false,
-      snowDepthCm: Math.round(rng.range(STARTING_DEPTH_RANGE[0], STARTING_DEPTH_RANGE[1])),
+      snowDepthCm: Math.round(rng.range(STARTING_DEPTH_RANGE[0], STARTING_DEPTH_RANGE[1]) * depthScale),
       surface: 'packed-powder',
       groomedOvernight: built,
       hasSnowmaking: false,
@@ -60,15 +74,25 @@ export function newGame(mode: GameMode, seed: number): GameState {
     dailyWage: STAFF_WAGES[role],
   }))
 
+  // sandbox pays the purchase price out of starting capital; the scenario's
+  // family hill comes with the story
+  const purchasePrice = mode === 'sandbox' ? mountain.price : 0
+
   return {
     version: SAVE_VERSION,
     mode,
     seed,
+    mountainId: mountain.id,
+    company: {
+      holdings: [{ mountainId: mountain.id, pricePaid: purchasePrice, dayAcquired: 1 }],
+      resortStates: {},
+    },
     rngState: rng.state,
     day: 1,
+    season: 1,
     minute: DAY_START_MIN,
     phase: 'planning',
-    cash: mode === 'sandbox' ? STARTING_CASH_SANDBOX : STARTING_CASH_SCENARIO,
+    cash: mode === 'sandbox' ? STARTING_CASH_SANDBOX - purchasePrice : STARTING_CASH_SCENARIO,
     loans: [],
     reputation: STARTING_REPUTATION,
     staffMorale: 0.75,
@@ -79,6 +103,7 @@ export function newGame(mode: GameMode, seed: number): GameState {
     customTrailDefs: {},
     customLiftSites: {},
     customNodes: {},
+    junctions: {},
     facilities,
     weatherSeason,
     guests: {},
@@ -100,7 +125,8 @@ export function newGame(mode: GameMode, seed: number): GameState {
     scenarioComplete: false,
     gameOver: false,
     tutorialDone: [],
-    tutorialActive: mode === 'scenario',
+    // first-timers need the nudges in sandbox too; it's skippable either way
+    tutorialActive: true,
     totalGuestsSeason: 0,
     bestDayGuests: 0,
     seasonIncidents: 0,

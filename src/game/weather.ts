@@ -15,22 +15,26 @@ import {
   SNOWMAKING_MAX_TEMP,
   TRAIL_MIN_DEPTH_CM,
 } from '../content/balance'
+import { ACTIVE_MOUNTAIN } from '../content/mountain'
 import { hashNoise, Rng } from './rng'
 import { elevationAt } from './terrainModel'
-import type { TrailDef, TrailState, WeatherDay } from './types'
+import type { ClimateSpec, TrailDef, TrailState, WeatherDay } from './types'
 
 /** resolves a trail id to its def (static content or player-drawn) */
 export type TrailDefLookup = (id: string) => TrailDef
 
 function isUpper(def: TrailDef): boolean {
-  return elevationAt(def.path[0]) >= 2000
+  const m = ACTIVE_MOUNTAIN
+  return elevationAt(def.path[0]) >= m.baseElev + (m.topElev - m.baseElev) * 0.6
 }
 
 function isExposed(def: TrailDef): boolean {
   return def.treeCoverage < 0.3
 }
 
-export function generateSeasonWeather(seed: number): WeatherDay[] {
+const NEUTRAL_CLIMATE: ClimateSpec = { snowfallMult: 1, tempOffset: 0, windMult: 1 }
+
+export function generateSeasonWeather(seed: number, climate: ClimateSpec = NEUTRAL_CLIMATE): WeatherDay[] {
   const rng = new Rng(seed ^ 0x5eed)
   const days: WeatherDay[] = []
   // slow-moving pressure system the season meanders through
@@ -41,12 +45,19 @@ export function generateSeasonWeather(seed: number): WeatherDay[] {
 
     // mid-season is coldest; system < 0 = stormy/cold, > 0 = clear/mild
     const seasonCurve = Math.sin((day / SEASON_DAYS) * Math.PI) * 3
-    const tempHigh = round1(-1 - seasonCurve + system * 4 + rng.range(-2, 2))
+    const tempHigh = round1(-1 - seasonCurve + system * 4 + rng.range(-2, 2) + climate.tempOffset)
     const tempLow = round1(tempHigh - rng.range(5, 9))
 
     const stormy = system < -0.3
-    const snowfallCm = stormy && rng.chance(0.75) ? Math.round(rng.range(4, 34) * (1 + -system * 0.4)) : rng.chance(0.12) ? rng.int(2, 6) : 0
-    const windKph = Math.round(Math.max(4, (stormy ? rng.range(25, 62) : rng.range(4, 30)) + rng.range(-4, 4)))
+    const snowfallCm =
+      stormy && rng.chance(0.75)
+        ? Math.round(rng.range(4, 34) * (1 + -system * 0.4) * climate.snowfallMult)
+        : rng.chance(0.12)
+          ? Math.round(rng.int(2, 6) * climate.snowfallMult)
+          : 0
+    const windKph = Math.round(
+      Math.max(4, ((stormy ? rng.range(25, 62) : rng.range(4, 30)) + rng.range(-4, 4)) * climate.windMult),
+    )
     const cloud = clamp01(stormy ? rng.range(0.6, 1) : rng.range(0, 0.55))
     const visibility = clamp01(1 - cloud * 0.5 - (snowfallCm > 12 ? 0.3 : 0) - (windKph > 45 ? 0.15 : 0))
 

@@ -1,8 +1,8 @@
 /**
  * Demand modelling, day-end settlement, reputation, and the daily report.
  */
+import { ACTIVE_MOUNTAIN } from '../content/mountain'
 import {
-  BASE_DEMAND,
   DAY_END_MIN,
   DAY_START_MIN,
   ENERGY_COST_LIGHTS_DAILY,
@@ -35,7 +35,8 @@ export function computeDailyDemand(state: GameState): number {
 
   if (trailsOpen === 0) return 0
 
-  let demand = BASE_DEMAND
+  // the local market: an interstate hill draws differently than a fjord
+  let demand = ACTIVE_MOUNTAIN.baseDemand
   demand *= isWeekend(state.day) ? WEEKEND_MULT : 1
 
   // reputation: 2.5 stars ≈ neutral
@@ -143,6 +144,27 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
   state.reputation = Math.max(0, Math.min(5, state.reputation - state.incidentsToday * SERIOUS_INCIDENT_REP_HIT))
 
   const report = buildReport(state, rng, avgSat, operatingProfit, expenses)
+
+  // caretakers run the resorts you're not standing on, at half the margin
+  // you managed on your last day there — an unbuilt purchase earns nothing
+  let caretaker = 0
+  let earning = 0
+  for (const holding of state.company.holdings) {
+    if (holding.mountainId === state.mountainId) continue
+    const frozen = state.company.resortStates[holding.mountainId]
+    const last = frozen?.reports[frozen.reports.length - 1]
+    if (last && last.netProfit > 0) {
+      caretaker += Math.round(last.netProfit * 0.5)
+      earning++
+    }
+  }
+  if (caretaker > 0) {
+    state.cash += caretaker
+    report.highlights.push(
+      `Caretakers wired $${caretaker.toLocaleString()} from ${earning} other resort${earning > 1 ? 's' : ''}`,
+    )
+  }
+
   return { report, operatingProfit }
 }
 

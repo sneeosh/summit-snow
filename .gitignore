@@ -28,3 +28,6 @@ dist-ssr
 
 # dev diagnostics
 diag.log
+
+# wrangler local state
+.wrangler/

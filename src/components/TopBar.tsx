@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { SEASON_DAYS } from '../content/balance'
 import { isWeekend } from '../game/economy'
+import { MOUNTAIN_MAP } from '../content/mountains'
 import { forecastFor } from '../game/weather'
 import { formatClock, formatMoney, useStore } from '../state/store'
 
@@ -23,17 +24,17 @@ export function TopBar() {
 
   return (
     <div className="pointer-events-auto absolute left-1/2 top-3 z-30 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
-      <div className="glass flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-2xl px-4 py-2">
-        {/* brand */}
-        <div className="pr-3 border-r border-ink/10">
-          <div className="font-display text-[15px] font-semibold leading-tight tracking-tight">Summit &amp; Snow</div>
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-faint">Mount Alder</div>
+      <div className="glass flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl px-2.5 py-1.5 sm:gap-x-4 sm:px-4 sm:py-2">
+        {/* brand (phones show just the mountain) */}
+        <div className="pr-2 border-r border-ink/10 sm:pr-3">
+          <div className="hidden font-display text-[15px] font-semibold leading-tight tracking-tight sm:block">Summit &amp; Snow</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-faint">{MOUNTAIN_MAP[game.mountainId]?.name ?? 'Mount Alder'}</div>
         </div>
 
         {/* date + clock */}
         <div className="text-center">
           <div className="stat-number text-[15px] leading-tight">
-            Day {game.day}
+            {game.season > 1 ? `S${game.season} · ` : ''}Day {game.day}
             <span className="text-ink-faint text-[11px]"> / {SEASON_DAYS}</span>
           </div>
           <div className="text-[11px] text-ink-soft leading-tight">
@@ -48,9 +49,10 @@ export function TopBar() {
           title="7-day forecast"
         >
           <div className="text-[13px] font-semibold leading-tight">
-            {weatherIcon(weather.summary)} {weather.summary}
+            {weatherIcon(weather.summary)} <span className="hidden sm:inline">{weather.summary}</span>
+            <span className="sm:hidden">{weather.tempHigh}°</span>
           </div>
-          <div className="text-[11px] text-ink-soft leading-tight">
+          <div className="hidden text-[11px] text-ink-soft leading-tight sm:block">
             {weather.tempLow}° / {weather.tempHigh}°C · wind {weather.windKph}
             {weather.snowfallCm > 0 ? ` · ❄ ${weather.snowfallCm} cm` : ''}
           </div>
@@ -65,19 +67,19 @@ export function TopBar() {
         </div>
 
         {/* reputation */}
-        <div className="text-center px-1" title={`Reputation ${game.reputation.toFixed(2)} / 5`}>
+        <div className="hidden text-center px-1 sm:block" title={`Reputation ${game.reputation.toFixed(2)} / 5`}>
           <Stars value={game.reputation} />
           <div className="text-[10px] uppercase tracking-wider text-ink-faint leading-tight">reputation</div>
         </div>
 
         {/* guests today */}
-        <div className="text-center px-1">
+        <div className="hidden text-center px-1 md:block">
           <div className="stat-number text-[15px] leading-tight">{Object.keys(game.guests).length}</div>
           <div className="text-[10px] uppercase tracking-wider text-ink-faint leading-tight">on the hill</div>
         </div>
 
         {/* time controls */}
-        <div className="flex items-center gap-1 border-l border-ink/10 pl-3">
+        <div className="flex items-center gap-1 border-l border-ink/10 pl-2 sm:pl-3">
           {game.phase === 'planning' && (
             <button className="btn btn-wood" onClick={openResortNow}>
               ⛷ Open the resort

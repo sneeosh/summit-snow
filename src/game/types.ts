@@ -65,6 +65,19 @@ export interface TrailDef {
   totalClimbM?: number
 }
 
+/**
+ * A point where trails meet mid-mountain: crossings register a leg on each
+ * trail (with progress t along its path); trails that start or end here
+ * reference the junction through their top/bottomNodeId instead. Skiers
+ * passing a junction may switch lines.
+ */
+export interface TrailJunction {
+  /** the customNodes entry backing this junction on the network graph */
+  nodeId: string
+  /** trails passing through here, with world-length progress along each */
+  legs: { trailId: string; t: number }[]
+}
+
 export type LiftKind = 'surface' | 'chair' | 'high-speed-chair' | 'gondola'
 
 export interface LiftTypeSpec {
@@ -132,6 +145,71 @@ export interface FacilitySlotDef {
   /** slot flavour: village slots take any building; mountain slots are limited */
   allowed: FacilityKind[] | 'any-village'
   prebuilt?: FacilityKind
+}
+
+// -------------------------------------------------------------- mountains
+
+export interface ClimateSpec {
+  /** multiplies every storm's snowfall */
+  snowfallMult: number
+  /** °C added to daily highs/lows */
+  tempOffset: number
+  /** multiplies wind speeds */
+  windMult: number
+}
+
+/**
+ * A purchasable mountain. All geometry shares the 1920×1200 world; character
+ * comes from the skyline, the vertical (which drives how steep a drawn line
+ * grades), climate, forest density, and the market it draws from.
+ */
+export interface MountainDef {
+  id: string
+  name: string
+  /** where in the world it sits (and what real range inspired it) */
+  region: string
+  blurb: string
+  /** purchase price — also the sandbox buy-in */
+  price: number
+  /** metres at the base village (y=1040) */
+  baseElev: number
+  /** metres at the summit (y=ySummit) */
+  topElev: number
+  /** y of the highest skyline point; elevation is linear between the anchors */
+  ySummit: number
+  /** the ridgeline silhouette, ascending x across the full world width */
+  skyline: [number, number][]
+  climate: ClimateSpec
+  /** 0..1 forest thickness below the treeline — rainforest isn't cheap to clear */
+  treeDensity: number
+  /** metres — no trees grow above this; set below baseElev for treeless ranges */
+  treelineElev: number
+  /** per-skill multipliers on the visitor mix — powder meccas skew expert */
+  clientele?: Partial<Record<SkillLevel, number>>
+  /** baseline daily visitors (local market size) */
+  baseDemand: number
+  /** where guests walk in from */
+  entrance: Vec2
+  nodes: MountainNode[]
+  walkEdges: [string, string][]
+  liftSites: LiftSiteDef[]
+  trails: TrailDef[]
+  prebuiltTrails: string[]
+  facilitySlots: FacilitySlotDef[]
+}
+
+/** a resort the company owns */
+export interface Holding {
+  mountainId: string
+  pricePaid: number
+  dayAcquired: number
+}
+
+export interface CompanyState {
+  /** every owned resort, including the one being managed */
+  holdings: Holding[]
+  /** frozen sim states of owned, non-active resorts (their company is empty) */
+  resortStates: Record<string, GameState>
 }
 
 // ---------------------------------------------------------------- weather
@@ -400,10 +478,16 @@ export interface GameState {
   version: number
   mode: GameMode
   seed: number
+  /** which MountainDef this state simulates */
+  mountainId: string
+  /** the resort portfolio (only meaningful on the active state) */
+  company: CompanyState
   /** monotonically increasing RNG draw counter — the whole sim shares one stream */
   rngState: number
 
   day: number // 1-based season day
+  /** sandbox seasons roll over; scenario is a single-season story */
+  season: number
   minute: number // minutes since 00:00, sim runs 8:30–16:30
   phase: GamePhase
 
@@ -421,8 +505,10 @@ export interface GameState {
   customTrailDefs: Record<string, TrailDef>
   /** player-placed lift alignments, keyed by site id */
   customLiftSites: Record<string, LiftSiteDef>
-  /** network points created by custom lift terminals, keyed by node id */
+  /** network points created by custom lift terminals and trail junctions, keyed by node id */
   customNodes: Record<string, MountainNode>
+  /** where built trails cross or merge, keyed by the backing node id */
+  junctions: Record<string, TrailJunction>
   facilities: Record<string, FacilityKind | null> // slotId -> built facility
 
   weatherSeason: WeatherDay[] // true weather for full season (forecast adds noise)

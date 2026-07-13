@@ -4,6 +4,7 @@
  * changes never strand a player.
  */
 import { SAVE_VERSION } from '../game/init'
+import { rebuildJunctions } from '../game/junctions'
 import type { GameState } from '../game/types'
 
 const PREFIX = 'summit-snow:save:'
@@ -35,6 +36,40 @@ const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
     ...p,
     version: 3,
     state: { ...p.state, customLiftSites: {}, customNodes: {} },
+  }),
+  // v4: trail junctions — recompute crossings from the built network
+  3: (p) => {
+    const state = { ...p.state, junctions: {} }
+    rebuildJunctions(state)
+    return { ...p, version: 4, state }
+  },
+  // v5: the resort company — old saves become a one-mountain portfolio
+  4: (p) => ({
+    ...p,
+    version: 5,
+    state: {
+      ...p.state,
+      mountainId: 'alder',
+      company: {
+        holdings: [{ mountainId: 'alder', pricePaid: 0, dayAcquired: 1 }],
+        resortStates: {},
+      },
+    },
+  }),
+  // v6: rolling sandbox seasons
+  5: (p) => ({
+    ...p,
+    version: 6,
+    state: {
+      ...p.state,
+      season: 1,
+      company: {
+        ...p.state.company,
+        resortStates: Object.fromEntries(
+          Object.entries(p.state.company.resortStates).map(([id, s]) => [id, { ...s, season: 1 }]),
+        ),
+      },
+    },
   }),
 }
 

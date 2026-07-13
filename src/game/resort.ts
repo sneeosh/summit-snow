@@ -9,7 +9,7 @@ import {
   TRAILS_PER_PATROLLER,
   TRAILS_PER_SNOW_TECH,
 } from '../content/balance'
-import { getLiftSite, getTrailDef } from './trails'
+import { allNodes, getLiftSite, getTrailDef } from './trails'
 import type { FacilityKind, GameState, LiftState, StaffRole, TrailState } from './types'
 
 export function countFacility(state: GameState, kind: FacilityKind): number {
@@ -120,7 +120,8 @@ export function trailReachable(state: GameState, trailId: string): boolean {
 /** nodes reachable uphill from base areas via running lifts */
 export function reachableNodes(state: GameState): Set<string> {
   const running = runningLifts(state)
-  const reach = new Set<string>(['base', 'beginner-base'])
+  // every base-area station is walk-to-able, including custom lift terminals
+  const reach = new Set<string>(allNodes(state).filter((n) => n.isBase).map((n) => n.id))
   let grew = true
   while (grew) {
     grew = false

@@ -38,6 +38,8 @@ export function MountainCanvas() {
         app.canvas.style.display = 'block'
         app.canvas.style.width = '100%'
         app.canvas.style.height = '100%'
+        // the game owns all touch gestures: no browser scroll/zoom on the map
+        app.canvas.style.touchAction = 'none'
         host.appendChild(app.canvas)
         scene = new MountainScene(
           app,
@@ -58,6 +60,7 @@ export function MountainCanvas() {
               if (s.buildMode?.type === 'snowmaking') s.installSnowmaking(trailId)
             },
             onDrawPoint: (p) => useStore.getState().addDrawPoint(p),
+            onDrawFinish: () => useStore.getState().finishDrawTrail(),
           },
         )
         sceneRef.current = scene

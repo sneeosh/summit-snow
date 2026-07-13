@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "summit-snow",
+  "compatibility_date": "2026-07-01",
+  // static Vite build served as Worker assets — no server code
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  // workers.dev stays on as a fallback URL alongside the custom domain
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "ski.kennyatx.com", "custom_domain": true }
+  ]
+}

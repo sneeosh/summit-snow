@@ -18,6 +18,7 @@ import { LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
 import { CUSTOM_LIFT_NAMES } from '../content/names'
 import { pushAlert } from './guests'
 import { makeLiftState } from './init'
+import { ensureJunction, registerTrailJunctions } from './junctions'
 import {
   ensureNode,
   getLiftSite,
@@ -137,6 +138,7 @@ export function buildTrail(state: GameState, trailId: string): string | null {
   if (err) return err
   trail.built = true
   trail.open = trail.snowDepthCm >= TRAIL_MIN_DEPTH_CM
+  registerTrailJunctions(state, trailId)
   pushAlert(state, 'info', `${def.name} cut and ${trail.open ? 'open' : 'awaiting snow'}`)
   return null
 }
@@ -153,11 +155,23 @@ export function buildCustomTrail(state: GameState, points: Vec2[]): string | nul
   }
   const plan = planCustomTrail(state, points)
   if (plan.analysis.lengthM < 120) return 'That’s barely a slide — draw a longer line'
+  if (plan.conflicts.blockers.length > 0) return plan.conflicts.blockers[0]
   const err = spend(state, plan.totalCost)
   if (err) return err
 
   const def = makeCustomTrailDef(state, points, plan)
   state.customTrailDefs[def.id] = def
+
+  // endpoints landing on an existing run become fork/merge junctions
+  const { topMerge, bottomMerge } = plan.conflicts
+  if (topMerge && !def.topNodeId) {
+    const host = getTrailDef(state, topMerge.trailId)
+    def.topNodeId = ensureJunction(state, topMerge.pos, [{ trailId: topMerge.trailId, t: topMerge.t }], `${host.name} fork`)
+  }
+  if (bottomMerge && !def.bottomNodeId) {
+    const host = getTrailDef(state, bottomMerge.trailId)
+    def.bottomNodeId = ensureJunction(state, bottomMerge.pos, [{ trailId: bottomMerge.trailId, t: bottomMerge.t }], `${host.name} junction`)
+  }
 
   // starts with the same snowpack its neighbours have
   const built = Object.values(state.trails).filter((t) => t.built)
@@ -179,8 +193,12 @@ export function buildCustomTrail(state: GameState, points: Vec2[]): string | nul
   trailState.open = trailState.snowDepthCm >= TRAIL_MIN_DEPTH_CM
   state.trails[def.id] = trailState
 
+  const crossings = registerTrailJunctions(state, def.id)
+
   const treeNote = plan.treesToClear > 0 ? ` — ${plan.treesToClear} trees cleared` : ''
-  pushAlert(state, 'info', `${def.name} cut${treeNote}, ${trailState.open ? 'open' : 'awaiting snow'}`)
+  const mergeNote = bottomMerge ? ` — merges into ${getTrailDef(state, bottomMerge.trailId).name}` : ''
+  const crossNote = crossings > 0 ? ` — ${crossings} junction${crossings > 1 ? 's' : ''}` : ''
+  pushAlert(state, 'info', `${def.name} cut${treeNote}${mergeNote}${crossNote}, ${trailState.open ? 'open' : 'awaiting snow'}`)
   return null
 }
 

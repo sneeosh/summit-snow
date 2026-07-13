@@ -1,5 +1,7 @@
-/** Main menu: new season, sandbox, continue, saved games. */
+/** Main menu: new season, sandbox mountain pick, continue, saved games. */
 import { useState } from 'react'
+import { STARTING_CASH_SANDBOX } from '../content/balance'
+import { MOUNTAINS, snowfallLabel } from '../content/mountains'
 import { listSaves, AUTOSAVE_SLOT, deleteSave } from '../state/save'
 import { useStore } from '../state/store'
 
@@ -8,6 +10,7 @@ export function MainMenu() {
   const loadSlot = useStore((s) => s.loadSlot)
   const [showLoad, setShowLoad] = useState(false)
   const [showHow, setShowHow] = useState(false)
+  const [showPick, setShowPick] = useState(false)
   const saves = listSaves()
   const hasAutosave = saves.some((s) => s.slot === AUTOSAVE_SLOT)
 
@@ -19,7 +22,7 @@ export function MainMenu() {
 
       <div className="relative z-10 w-[420px] px-6">
         <div className="mb-1 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-ink-soft">
-          Mount Alder · Elevation 2,350 m
+          Eight mountains · One company
         </div>
         <h1 className="font-display text-center text-[56px] font-semibold leading-none tracking-tight text-ink">
           Summit <span className="text-wood">&amp;</span> Snow
@@ -40,9 +43,47 @@ export function MainMenu() {
           >
             New season — Scenario
           </button>
-          <button className="btn btn-ghost w-full !py-3 text-[14px]" onClick={() => startNew('sandbox')}>
-            Sandbox — deep pockets, no pressure
+          <button
+            className="btn btn-ghost w-full !py-3 text-[14px]"
+            onClick={() => setShowPick((v) => !v)}
+          >
+            Sandbox — pick your mountain {showPick ? '▾' : '▸'}
           </button>
+          {showPick && (
+            <div className="glass max-h-[46vh] space-y-1.5 overflow-y-auto scroll-thin rounded-xl p-2 rise-in">
+              <div className="px-1 text-[10.5px] text-ink-soft">
+                You start with ${STARTING_CASH_SANDBOX.toLocaleString()} — the purchase price comes out of it. Earn your
+                way to the famous ones.
+              </div>
+              {MOUNTAINS.map((m) => {
+                const affordable = m.price <= STARTING_CASH_SANDBOX
+                return (
+                  <button
+                    key={m.id}
+                    disabled={!affordable}
+                    onClick={() => startNew('sandbox', undefined, m.id)}
+                    className={`block w-full rounded-lg border px-2.5 py-2 text-left transition-colors ${
+                      affordable ? 'border-ink/10 hover:border-pine hover:bg-pine/5' : 'border-ink/5 opacity-55'
+                    }`}
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[13px] font-bold">{m.name}</span>
+                      <span className="stat-number text-[12px] text-wood">${m.price.toLocaleString()}</span>
+                    </div>
+                    <div className="text-[10px] text-ink-faint">{m.region}</div>
+                    <SkylineMini skyline={m.skyline} />
+                    <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-[10px] text-ink-soft">
+                      <span>↕ {(m.topElev - m.baseElev).toLocaleString()} m</span>
+                      <span>❄ {snowfallLabel(m.climate.snowfallMult)}</span>
+                      <span>👥 ~{m.baseDemand}/day</span>
+                      {!affordable && <span className="font-semibold text-safety">out of reach — for now</span>}
+                    </div>
+                    <div className="mt-0.5 text-[10.5px] leading-snug text-ink-soft">{m.blurb}</div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
           {saves.length > 0 && (
             <button className="btn btn-ghost w-full" onClick={() => setShowLoad((v) => !v)}>
               Load game {showLoad ? '▾' : '▸'}
@@ -95,6 +136,17 @@ export function MainMenu() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** tiny true-to-scale silhouette so the cards read as different mountains */
+function SkylineMini({ skyline }: { skyline: [number, number][] }) {
+  const pts = ['0,1100', ...skyline.map(([x, y]) => `${x},${y}`), '1920,1100']
+  return (
+    <svg className="mt-1 h-7 w-full" viewBox="0 80 1920 1020" preserveAspectRatio="none" aria-hidden>
+      <polygon points={pts.join(' ')} fill="#b7c9d6" />
+      <polygon points={pts.join(' ')} fill="none" stroke="#8fa5b5" strokeWidth="14" />
+    </svg>
   )
 }
 

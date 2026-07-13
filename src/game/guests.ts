@@ -27,10 +27,11 @@ import {
   WALK_SPEED,
   WARMTH_DRAIN_BASE,
 } from '../content/balance'
-import { FACILITY_SLOTS, NODE_MAP, pointAt } from '../content/mountain'
+import { ACTIVE_MOUNTAIN, FACILITY_SLOTS, NODE_MAP, pointAt } from '../content/mountain'
 import { FIRST_NAMES, LAST_NAMES } from '../content/names'
+import { junctionLegsOnTrail, LEG_END_T, lineOptionsAt } from './junctions'
 import { allNodes, getLiftLine, getLiftSite, getNode, getTrailDef, getTrailPath } from './trails'
-import type { Rng } from './rng'
+import { hashNoise, type Rng } from './rng'
 import {
   foodCapacity,
   hasFacility,
@@ -52,7 +53,6 @@ const GROUP_TYPES: { item: GroupType; weight: number }[] = [
   { item: 'school-group', weight: 0.08 },
 ]
 
-const ENTRANCE: Vec2 = { x: 1430, y: 1125 }
 
 /** arrival envelope over the day — peaks mid-morning, zero after gate close */
 function arrivalWeight(minute: number): number {
@@ -83,7 +83,12 @@ export function spawnArrivals(state: GameState, rng: Rng): void {
 }
 
 function makeGuest(state: GameState, rng: Rng): Guest {
-  const skill = rng.pickWeighted(SKILL_DISTRIBUTION)
+  // the mountain shapes its crowd: learners' hills vs powder pilgrimages
+  const mix = SKILL_DISTRIBUTION.map((e) => ({
+    item: e.item,
+    weight: e.weight * (ACTIVE_MOUNTAIN.clientele?.[e.item] ?? 1),
+  }))
+  const skill = rng.pickWeighted(mix)
   const groupType = rng.pickWeighted(GROUP_TYPES)
   const isChild = rng.chance(groupType === 'family' || groupType === 'school-group' ? 0.45 : CHILD_FRACTION * 0.5)
   const budgetBase: Record<GroupType, [number, number]> = {
@@ -121,7 +126,7 @@ function makeGuest(state: GameState, rng: Rng): Guest {
     bladder: rng.range(5, 35),
     warmth: rng.range(85, 100),
     objective: 'arriving',
-    pos: { x: ENTRANCE.x + rng.range(-14, 14), y: ENTRANCE.y + rng.range(-8, 8) },
+    pos: { x: ACTIVE_MOUNTAIN.entrance.x + rng.range(-14, 14), y: ACTIVE_MOUNTAIN.entrance.y + rng.range(-8, 8) },
     atNodeId: null,
     routeLiftId: null,
     routeTrailId: null,
@@ -147,9 +152,19 @@ function makeGuest(state: GameState, rng: Rng): Guest {
 
 // --------------------------------------------------------------- memories
 
+/**
+ * Joy has diminishing returns: an already-delighted guest gains less from
+ * one more good thing, so satisfaction settles in the high 80s instead of
+ * pegging at 100. Grievances always land at full weight.
+ */
+function easedDelta(current: number, delta: number): number {
+  if (delta <= 0) return delta
+  return delta * Math.max(0.3, (105 - current) / 60)
+}
+
 export function remember(guest: Guest, kind: string, text: string, delta: number, minute: number): void {
   guest.memories.push({ kind, text, delta, minute })
-  guest.satisfaction = clamp(guest.satisfaction + delta, 0, 100)
+  guest.satisfaction = clamp(guest.satisfaction + easedDelta(guest.satisfaction, delta), 0, 100)
 }
 
 // ------------------------------------------------------------------- tick
@@ -489,6 +504,7 @@ function tickSkiing(state: GameState, guest: Guest, rng: Rng): void {
     guest.stuckSegIdx = -1
   }
 
+  const prevProgress = guest.progress
   guest.progress += (speed * TICK_MINUTES) / def.lengthM
   guest.pos = pointAt(getTrailPath(state, trailId), guest.progress)
 
@@ -505,6 +521,14 @@ function tickSkiing(state: GameState, guest: Guest, rng: Rng): void {
   if (rng.chance(risk)) {
     handleIncident(state, guest, rng)
     return
+  }
+
+  // a junction passed this tick is a chance to pick a different line
+  for (const leg of junctionLegsOnTrail(state, trailId)) {
+    if (prevProgress < leg.t && guest.progress >= leg.t && leg.t < LEG_END_T) {
+      if (maybeSwitchLine(state, guest, leg.nodeId, trailId)) return
+      break
+    }
   }
 
   if (guest.progress >= 1) {
@@ -592,14 +616,14 @@ function finishRun(state: GameState, guest: Guest, rng: Rng): void {
   if (fit < 0.2) {
     remember(guest, 'wrong-terrain', 'was in over their head', -8, state.minute)
   }
-  guest.satisfaction = clamp(guest.satisfaction + delta, 0, 100)
+  guest.satisfaction = clamp(guest.satisfaction + easedDelta(guest.satisfaction, delta), 0, 100)
 
   decideNext(state, guest)
 }
 
 function tickLeaving(state: GameState, guest: Guest): void {
   // guests on the hill first return to base via decideNext; here they walk out
-  if (moveToward(guest, ENTRANCE, WALK_SPEED * 1.2)) {
+  if (moveToward(guest, ACTIVE_MOUNTAIN.entrance, WALK_SPEED * 1.2)) {
     depart(state, guest)
   }
 }
@@ -716,6 +740,14 @@ export function decideNext(state: GameState, guest: Guest): void {
   // ---- otherwise: go ski something
   const choice = chooseTrail(state, guest)
   if (!choice) {
+    // standing at a mid-run fork: pick a line onward rather than griping
+    if (guest.atNodeId && state.junctions[guest.atNodeId]) {
+      const line = pickLine(state, guest, lineOptionsAt(state, guest.atNodeId, null))
+      if (line) {
+        startSkiing(state, guest, line.trailId, line.entryT)
+        return
+      }
+    }
     if (!guest.memories.some((m) => m.kind === 'nothing-to-ski' || m.kind === 'wrong-terrain')) {
       const anyOpen = Object.values(state.trails).some((t) => t.open)
       remember(
@@ -816,7 +848,7 @@ function jitterAround(pos: Vec2, radius: number, salt: number): Vec2 {
 function routeToBaseThenContinue(state: GameState, guest: Guest): void {
   const down = easiestTrailDown(state, guest.atNodeId!)
   if (down) {
-    startSkiing(state, guest, down)
+    startSkiing(state, guest, down.trailId, down.entryT)
   } else {
     // stranded — download on a lift if one runs here, else patrol assist
     const lift = runningLifts(state).find((l) => getLiftSite(state, l.siteId).topNodeId === guest.atNodeId)
@@ -835,7 +867,7 @@ function routeTowardExit(state: GameState, guest: Guest): void {
   }
   const down = easiestTrailDown(state, guest.atNodeId!)
   if (down) {
-    startSkiing(state, guest, down)
+    startSkiing(state, guest, down.trailId, down.entryT)
   } else {
     guest.atNodeId = 'base'
     guest.pos = { ...NODE_MAP.base.pos }
@@ -845,20 +877,78 @@ function routeTowardExit(state: GameState, guest: Guest): void {
 
 const DIFF_ORDER = { green: 0, blue: 1, black: 2, 'double-black': 3 } as const
 
-/** easiest open trail leading downhill from a node (recursive-safe: one hop) */
-function easiestTrailDown(state: GameState, nodeId: string): string | null {
-  const candidates = Object.values(state.trails)
-    .filter((t) => {
-      if (!t.built || !t.open) return false
-      const def = getTrailDef(state, t.trailId)
-      // never route someone home via a dead-end line
-      return def.topNodeId === nodeId && Boolean(getNode(state, def.bottomNodeId))
-    })
-    .sort(
-      (a, b) =>
-        DIFF_ORDER[getTrailDef(state, a.trailId).difficulty] - DIFF_ORDER[getTrailDef(state, b.trailId).difficulty],
-    )
-  return candidates[0]?.trailId ?? null
+/**
+ * Easiest open way downhill from a node: trails starting here, plus lines
+ * entered mid-way where a junction sits on this node. Never a dead end.
+ */
+function easiestTrailDown(state: GameState, nodeId: string): { trailId: string; entryT: number } | null {
+  const options = lineOptionsAt(state, nodeId, null).filter((o) =>
+    Boolean(getNode(state, getTrailDef(state, o.trailId).bottomNodeId)),
+  )
+  options.sort(
+    (a, b) =>
+      DIFF_ORDER[getTrailDef(state, a.trailId).difficulty] - DIFF_ORDER[getTrailDef(state, b.trailId).difficulty],
+  )
+  return options[0] ?? null
+}
+
+// ---- junction line choice ---------------------------------------------
+
+/** desirability of skiing (the rest of) a trail from entryT — chooseTrail's core, minus lift logistics */
+function scoreLine(state: GameState, guest: Guest, trailId: string, entryT: number): number {
+  const trail = state.trails[trailId]
+  const def = getTrailDef(state, trailId)
+  if (!trail?.built || !trail.open) return 0
+  const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
+  if (fit <= 0.02) return 0
+  let score = fit * SURFACE_ENJOYMENT[trail.surface]
+  const crowd = trail.skierIds.length / def.capacity
+  if (crowd > 0.8) score *= 0.55
+  if (guest.lastTrailId === trailId) score *= 0.85
+  // uphill stretches still ahead of the entry point
+  const uphillLeft = (def.uphillSegments ?? []).reduce((s, u) => s + Math.max(0, u.t1 - Math.max(u.t0, entryT)), 0)
+  score *= Math.max(0.12, 1 - uphillLeft * 2.2)
+  return score
+}
+
+/** pick a line from a standing start at a junction — someone must get down somehow */
+function pickLine(
+  state: GameState,
+  guest: Guest,
+  options: { trailId: string; entryT: number }[],
+): { trailId: string; entryT: number } | null {
+  if (options.length === 0) return null
+  const scored = options
+    .map((o) => ({ ...o, score: scoreLine(state, guest, o.trailId, o.entryT) }))
+    .sort((a, b) => b.score - a.score)
+  if (scored[0].score > 0.05) {
+    const second = scored.length > 1 && scored[1].score > 0.05 && (guest.id * 7919) % 10 < 3
+    return scored[second ? 1 : 0]
+  }
+  // nothing suits their level; swallow hard and take the easiest way down
+  return [...options].sort(
+    (a, b) =>
+      DIFF_ORDER[getTrailDef(state, a.trailId).difficulty] - DIFF_ORDER[getTrailDef(state, b.trailId).difficulty],
+  )[0]
+}
+
+/** mid-run: passing a junction, stay the course or cut over to a crossing line */
+function maybeSwitchLine(state: GameState, guest: Guest, nodeId: string, currentTrailId: string): boolean {
+  const options = lineOptionsAt(state, nodeId, currentTrailId)
+  if (options.length === 0) return false
+  const scored = options
+    .map((o) => ({ ...o, score: scoreLine(state, guest, o.trailId, o.entryT) }))
+    .sort((a, b) => b.score - a.score)
+  // momentum: the line under their skis wins ties
+  const continueScore = scoreLine(state, guest, currentTrailId, guest.progress) * 1.25
+  const pickIdx = scored.length > 1 && scored[1].score > continueScore && (guest.id * 7919 + nodeId.length) % 10 < 3 ? 1 : 0
+  const best = scored[pickIdx]
+  if (!best || best.score <= continueScore || best.score <= 0.05) return false
+
+  const cur = state.trails[currentTrailId]
+  cur.skierIds = cur.skierIds.filter((id) => id !== guest.id)
+  startSkiing(state, guest, best.trailId, best.entryT)
+  return true
 }
 
 /** called by the lift system when a rider reaches the top station */
@@ -883,15 +973,16 @@ export function onLiftArrival(state: GameState, guest: Guest, liftId: string): v
   }
 }
 
-function startSkiing(state: GameState, guest: Guest, trailId: string): void {
+function startSkiing(state: GameState, guest: Guest, trailId: string, entryT = 0): void {
   guest.objective = 'skiing'
   guest.routeTrailId = trailId
-  guest.progress = 0
+  guest.progress = entryT
+  guest.stuckSegIdx = -1
   guest.atNodeId = null
   guest.plan = []
   guest.plannedTrailId = null
   state.trails[trailId].skierIds.push(guest.id)
-  guest.pos = pointAt(getTrailPath(state, trailId), 0)
+  guest.pos = pointAt(getTrailPath(state, trailId), entryT)
 }
 
 // ---- trail choice ----------------------------------------------------
@@ -944,16 +1035,37 @@ export function chooseTrail(state: GameState, guest: Guest): TrailChoice | null 
     score *= 1 - plan.length * 0.06
     // word gets around about lines that climb back uphill
     score *= Math.max(0.12, 1 - (def.uphillFraction ?? 0) * 2.2)
+    // look one hop ahead: a green road that strands you above black-only
+    // terrain is a trap, and novices know to ask
+    const bottom = getNode(state, def.bottomNodeId)
+    if (bottom && !bottom.isBase) {
+      const onward = lineOptionsAt(state, def.bottomNodeId, trail.trailId)
+      if (onward.length > 0) {
+        const bestOnwardFit = Math.max(
+          ...onward.map((o) => difficultyFit(guest.skill, getTrailDef(state, o.trailId).difficulty, guest.riskTolerance)),
+        )
+        if (bestOnwardFit <= 0.05) score *= 0.12
+      }
+    }
 
     options.push({ trailId: trail.trailId, liftPlan: plan, score })
   }
 
   if (options.length === 0) return null
   options.sort((a, b) => b.score - a.score)
-  // soft-greedy: usually the best, sometimes second choice (spread crowds)
-  const pickIdx = options.length > 1 && (guest.id * 7919) % 10 < 3 ? 1 : 0
-  const chosen = options[Math.min(pickIdx, options.length - 1)]
-  return chosen.score > 0.08 ? chosen : null
+  if (options[0].score <= 0.08) return null
+  // Weighted pick across every option in reach of the best (score² sharpens
+  // toward quality) — the whole mountain gets skied, not just the one
+  // top-scoring run. Stateless hash keeps it deterministic without touching
+  // the sim's RNG stream.
+  const pool = options.filter((o) => o.score > Math.max(0.08, options[0].score * 0.35))
+  const total = pool.reduce((s, o) => s + o.score * o.score, 0)
+  let r = hashNoise(state.seed, guest.id * 131 + Math.floor(state.minute * 4), 97) * total
+  for (const o of pool) {
+    r -= o.score * o.score
+    if (r <= 0) return o
+  }
+  return pool[pool.length - 1]
 }
 
 export function estimatedWait(state: GameState, liftId: string): number {
