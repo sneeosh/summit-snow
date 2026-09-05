@@ -44,7 +44,7 @@ export function TownView() {
     <Metric label="Staff cost relief" value={`${Math.round(benefits.payrollDiscount*1000)/10}%`}/><Metric label="Daily commitments" value={formatMoney(benefits.dailyCost)}/>
    </div>
    {construction&&<div className="rounded-xl border border-[#d6bc79] bg-[#fff3d4] p-3">
-    <div className="flex justify-between text-xs font-semibold text-[#756039]"><span>{TOWN_PROJECTS[construction.project].name}</span><span>{construction.remainingDays} days left</span></div>
+    <div className="flex justify-between text-xs font-semibold text-[#756039]"><span>{TOWN_PROJECTS[construction.project].name}</span><span>{construction.remainingDays} {construction.remainingDays===1?'day':'days'} left</span></div>
     <div className="my-2 h-2 overflow-hidden rounded bg-[#e4d7b4]"><div className="h-full rounded bg-[#b2904c] transition-all" style={{width:`${(1-construction.remainingDays/construction.totalDays)*100}%`}}/></div>
     <p className="text-[11px] text-[#7b7054]">Construction advances after each operating day. Your approved building will appear here when it opens.</p>
    </div>}

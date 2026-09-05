@@ -16,7 +16,7 @@ export function TownPedestrians({ count }: { count: number }) {
       const points = Array.from({ length: 6 }, (_, step) => streetPoint(start + step * .012, -33 - (i % 2) * 3))
       const path = points.map(([x,y], step) => `${step ? 'L' : 'M'}${x} ${y}`).join(' ')
       const color = ['#b65d4b', '#4d788b', '#bd9148', '#65816b', '#8f6886'][i % 5]
-      return <g key={i} className="town-walker" style={{ offsetPath: `path("${path}")`, offsetDistance: `${(i * 37) % 100}%`, animationDuration: `${28 + i % 5 * 5}s`, animationDelay: `${-i * 7}s` }}>
+      return <g key={i} className="town-walker" style={{ offsetAnchor: '0px 6px', offsetPath: `path("${path}")`, offsetDistance: `${(i * 37) % 100}%`, animationDuration: `${28 + i % 5 * 5}s`, animationDelay: `${-i * 7}s` }}>
         <ellipse cy="5" rx="4" ry="2" fill="#748b8b" opacity=".3"/>
         <g className="town-walking-body" style={{ animationDelay: `${-i * .17}s` }}>
           <path d="M-2 1L-3 6M2 1L3 6" stroke="#485651" strokeWidth="2"/>

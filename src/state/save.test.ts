@@ -7,7 +7,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { newGame, SAVE_VERSION } from '../game/init'
 import type { GameState } from '../game/types'
-import { loadGame, saveGame } from './save'
+import { loadGame, saveGame, listSaves } from './save'
 import { ensureMountain, NODE_MAP } from '../content/mountain'
 import { proposeTownProject } from '../game/actions'
 import { buyResort, switchResort } from '../game/company'
@@ -196,3 +196,14 @@ it('in-flight rescues round-trip with the original dispatch charge and timeline'
   expect(saveGame('rescue', s, 'Rescue underway')).toBe(true)
   expect(loadGame('rescue')).toEqual(s)
 })
+
+ it('orders Continue candidates by saved time, including manual-only games', () => {
+  const state = newGame('sandbox', 12, 'prairie')
+  const put = (slot: string, day: number, savedAt: string) => backing.set(`summit-snow:save:${slot}`, JSON.stringify({version: SAVE_VERSION, savedAt, label: slot, state: {...state, day}}))
+  put('manual', 5, '2026-09-05T21:09:20.000Z')
+  expect(listSaves()[0].slot).toBe('manual')
+  put('autosave', 4, '2026-09-05T21:08:43.000Z')
+  expect(loadGame(listSaves()[0].slot)!.day).toBe(5)
+  put('autosave', 6, '2026-09-05T21:20:00.000Z')
+  expect(loadGame(listSaves()[0].slot)!.day).toBe(6)
+ })

@@ -62,7 +62,7 @@ export const REVIEW_TEMPLATES: ReviewTemplate[] = [
     minSat: 65,
     maxSat: 85,
     texts: [
-      'Really solid day on the hill. {highlight}, though {lowlight} needs attention.',
+      'Really solid day on the hill. {highlight}, though we noticed {lowlight}.',
       'Good vibes at {mountain}. {highlight}. Minor gripe: {lowlight}.',
       'Would come back. {highlight}.',
     ],
@@ -72,7 +72,7 @@ export const REVIEW_TEMPLATES: ReviewTemplate[] = [
     maxSat: 65,
     texts: [
       'Mixed feelings. {highlight}, but {lowlight} let the day down.',
-      'Some good moments, but {lowlight} needs work.',
+      'Some good moments, but {lowlight} could be better.',
       'An okay day — {lowlight} took the shine off it.',
     ],
   },
@@ -127,7 +127,7 @@ export function renderReview(
   const hl = bestMemory ? (HIGHLIGHT_TEXT[bestMemory.kind] ?? 'the mountain itself delivers') : 'the mountain itself delivers'
   const ll = worstMemory ? (LOWLIGHT_TEXT[worstMemory.kind] ?? 'a few rough edges') : 'a few rough edges'
   let out = template.replace('{mountain}', mountainName).replace('{highlight}', hl).replace('{lowlight}', ll)
-  out = out.charAt(0).toUpperCase() + out.slice(1)
+  out = out.replace(/(^|[.!?]\s+)([a-z])/g, (_, prefix: string, letter: string) => prefix + letter.toUpperCase())
   return out
 }
 

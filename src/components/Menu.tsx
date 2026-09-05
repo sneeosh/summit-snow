@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { STARTING_CASH_SANDBOX } from '../content/balance'
 import { MOUNTAINS, snowfallLabel } from '../content/mountains'
-import { listSaves, AUTOSAVE_SLOT, deleteSave } from '../state/save'
+import { listSaves, deleteSave } from '../state/save'
 import { useStore } from '../state/store'
 import type { MountainDef } from '../game/types'
 
@@ -13,7 +13,7 @@ export function MainMenu() {
   const [showHow, setShowHow] = useState(false)
   const [showPick, setShowPick] = useState(false)
   const saves = listSaves()
-  const hasAutosave = saves.some((s) => s.slot === AUTOSAVE_SLOT)
+  const latestSave = saves[0]
 
   return (
     <div className="relative flex h-full items-center justify-center overflow-hidden">
@@ -33,13 +33,13 @@ export function MainMenu() {
         </p>
 
         <div className="mt-8 space-y-2">
-          {hasAutosave && (
-            <button className="btn btn-primary w-full !py-3 text-[14px]" onClick={() => loadSlot(AUTOSAVE_SLOT)}>
+          {latestSave && (
+            <button className="btn btn-primary w-full !py-3 text-[14px]" onClick={() => loadSlot(latestSave.slot)}>
               Continue season
             </button>
           )}
           <button
-            className={`btn w-full !py-3 text-[14px] ${hasAutosave ? 'btn-ghost' : 'btn-primary'}`}
+            className={`btn w-full !py-3 text-[14px] ${latestSave ? 'btn-ghost' : 'btn-primary'}`}
             onClick={() => startNew('scenario')}
           >
             New season — Scenario

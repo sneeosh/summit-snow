@@ -8,7 +8,7 @@ import { MOUNTAIN_MAP } from '../content/mountains'
 
 export type TownCamera = 'panorama' | 'mainstreet' | 'riverside' | 'station'
 const CAMERAS: Record<TownCamera, string> = { panorama: '0 0 1200 680', mainstreet: '290 210 640 410', riverside: '0 230 640 410', station: '560 270 640 410' }
-const LOTS: Record<TownProject, [number, number]> = { housing: [240, 350], mainstreet: [490, 355], inn: [850, 350], shuttle: [945, 570] }
+const LOTS: Record<TownProject, [number, number]> = { housing: [240, 335], mainstreet: [490, 355], inn: [850, 350], shuttle: [945, 570] }
 const COLORS: Record<string, string> = { prairie: '#a95746', granite: '#925443', alder: '#507066', yuki: '#906f59', kea: '#7b8471', elk: '#b7844e', wasatch: '#858b98', blanche: '#758da0' }
 
 const Architecture = createContext('timber')
@@ -52,17 +52,17 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   <g transform="translate(129 451) rotate(-17)"><rect x="-42" y="-25" width="84" height="48" fill="#b6a48c"/>{[-25,23].map(y=><path key={y} d={`M-46 ${y}H46`} stroke="#6d6a58" strokeWidth="5"/>)}{[-36,-12,12,36].map(x=><path key={x} d={`M${x} -28V-12M${x} 25V9`} stroke="#686653" strokeWidth="3"/>)}</g>
   <TownTraffic busy={attendance > 0} dusk={dusk}/>
   <TownLandmark mountainId={game.mountainId} active={people>5}/>
-  <Chalet x={370} y={365} width={70} floors={1} color="#b2a58d" sign="TOWN HALL"/>
+  <Chalet x={385} y={365} width={60} floors={1} color="#b2a58d" sign="TOWN HALL"/>
   <Chalet x={605} y={340} width={76} floors={1} color={accent} sign="PROVISIONS"/>
   <Chalet x={1055} y={368} width={75} floors={1} color="#b69a75" sign="SKI & REPAIR"/>
   <Chalet x={280} y={560} width={85} floors={1} color="#9b7966" sign="THE OLD BAKERY"/>
   {levels.housing>0 && <g className={fresh==='housing'?'town-new-landmark':undefined}>
-   <Chalet x={205} y={355} width={63} floors={levels.housing>1?2:1} color="#b6a07d"/>
-   <Chalet x={294} y={385} width={66} floors={levels.housing>2?2:1} color={accent}/>
-   <path d="M171 405H330M180 395V412M213 395V412M246 395V412M279 395V412M312 395V412" stroke="#978972" strokeWidth="3"/>
+   <Chalet x={185} y={350} width={60} floors={levels.housing>1?2:1} color="#b6a07d"/>
+   <Chalet x={285} y={370} width={50} floors={levels.housing>2?2:1} color={accent}/>
+   <path d="M151 380H320M160 370V387M193 370V387M226 370V387M259 370V387M292 370V387" stroke="#978972" strokeWidth="3"/>
   </g>}
   {levels.mainstreet>0 && <g className={fresh==='mainstreet'?'town-new-landmark':undefined}>
-   <path d="M375 367L556 376 584 420 365 405Z" fill={`url(#${uid}-paving)`} stroke="#e9e5d4" strokeWidth="6"/>
+   <path d="M375 367L556 376 584 408 365 388Z" fill={`url(#${uid}-paving)`} stroke="#e9e5d4" strokeWidth="6"/>
    <Chalet x={493} y={361} width={80} floors={levels.mainstreet>2?2:1} color="#ad725e" sign={levels.mainstreet>1?'MARKET HALL':'COFFEE & COCOA'}/>
    {levels.mainstreet>1&&<><MarketStall x={389} y={390} color="#a65849"/><MarketStall x={554} y={406} color="#52756b"/></>}
    {levels.mainstreet>2&&<g><path d="M348 340Q465 399 584 358" fill="none" stroke="#786c53"/>{Array.from({length:12},(_,i)=><path key={i} d={`M${350+i*20} ${346+Math.sin(i/11*Math.PI)*27}l8 14 7-10Z`} fill={i%2?'#c99b51':'#9f5447'}/>)}</g>}
@@ -82,10 +82,10 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   </g>}
   {game.town.construction&&<Construction project={game.town.construction.project} progress={1-game.town.construction.remainingDays/game.town.construction.totalDays}/>}
   {Object.entries(LOTS).filter(([project])=>levels[project as TownProject]===0&&game.town.construction?.project!==project).map(([project,[x,y]])=><g key={project} opacity=".65"><ellipse cx={x} cy={y+15} rx="44" ry="12" fill="#dce3dc"/><path d={`M${x} ${y+25}v-20`} stroke="#938774" strokeWidth="3"/><rect x={x-25} y={y-4} width="50" height="15" rx="2" fill="#e5d9bd"/><text x={x} y={y+7} textAnchor="middle" fontSize="6" fill="#675e4f">FUTURE {project==='inn'?'INN':project==='housing'?'HOMES':project==='shuttle'?'STATION':'SQUARE'}</text></g>)}
-  {[ [50,565,1.7],[1135,660,1.3],[1160,550,1.1],[1130,405,.8],[340,265,.8],[53,338,.8],[560,655,.9],[755,665,.8] ].map(([x,y,size],i)=><Pine key={i} x={x} y={y} size={size}/>)}
+  {[ [50,565,1.7],[1135,660,1.3],[1160,550,1.1],[1140,365,.8],[340,265,.8],[53,338,.8],[560,655,.9],[755,665,.8] ].map(([x,y,size],i)=><Pine key={i} x={x} y={y} size={size}/>)}
   {game.town.policies.winterMarket&&<g aria-label="Chartered winter market"><MarketStall x={620} y={388} color="#ac5f52"/><MarketStall x={679} y={399} color="#657d65"/><path d="M595 350Q652 380 709 363" fill="none" stroke="#887457"/>{[600,620,640,660,680,700].map(x=><circle key={x} cx={x} cy={354+Math.sin((x-600)/100*Math.PI)*15} r="3" fill="#f7ce7c"/>)}</g>}
   <TownPedestrians count={people}/>
-  {celebrating&&fresh&&<g className="town-celebration" aria-label="Opening ribbon ceremony" transform={`translate(${LOTS[fresh][0]} ${LOTS[fresh][1]+42})`}><path d="M-42 0H42" stroke="#bf534a" strokeWidth="5"/><path d="M-42-8V12M42-8V12" stroke="#827658" strokeWidth="3"/>{[-30,-12,12,30].map((x,i)=><Person key={x} x={x} y={16} color={i%2?'#536f83':'#ae724f'}/>)}{Array.from({length:16},(_,i)=><rect key={i} x={-55+i*7} y={-48-(i%4)*7} width="3" height="5" fill={i%2?'#d3ab55':'#b96a5b'}/>)}</g>}
+  {celebrating&&fresh&&<g className="town-celebration" aria-label="Opening ribbon ceremony" transform={`translate(${LOTS[fresh][0]} ${LOTS[fresh][1]+(fresh==='mainstreet'?20:42)})`}><path d="M-42 0H42" stroke="#bf534a" strokeWidth="5"/><path d="M-42-8V12M42-8V12" stroke="#827658" strokeWidth="3"/>{[-30,-12,12,30].map((x,i)=><Person key={x} x={x} y={16} color={i%2?'#536f83':'#ae724f'}/>)}{Array.from({length:16},(_,i)=><rect key={i} x={-55+i*7} y={-48-(i%4)*7} width="3" height="5" fill={i%2?'#d3ab55':'#b96a5b'}/>)}</g>}
   {dusk&&<rect width="1200" height="680" fill="#253751" opacity={darkSky?'.30':'.19'} pointerEvents="none"/>}
   {total>0&&[300,570,718,1030].map(x=><Lamp key={x} x={x} y={x===300?399:x===570?423:x===718?429:405}/>)}
   <g transform="translate(35 651)"><path d="M0 45V-13M3 -5H205" stroke="#7a7160" strokeWidth="5"/><rect x="-4" y="-37" width="217" height="30" rx="3" fill="#38574f"/><text x="104" y="-17" textAnchor="middle" fontSize="13" fontFamily="Georgia,serif" fill="#f4e8cd">{MOUNTAIN_MAP[game.mountainId].name}</text></g>
