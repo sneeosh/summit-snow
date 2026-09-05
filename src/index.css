@@ -203,3 +203,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
  .town-art *, .town-art .town-smoke { animation: none !important; }
 }
+
+/* SVG motion paths keep village activity attached to its roads at every camera zoom. */
+.town-car, .town-walker { offset-anchor: 0px 0px; offset-position: 0px 0px; }
+.town-car { animation: town-drive 48s linear infinite; }
+.town-walker { offset-rotate: 0deg; animation: town-stroll 36s ease-in-out infinite; }
+.town-walking-body { animation: town-step .65s ease-in-out infinite alternate; }
+.town-snowflake { animation: town-snowfall 18s linear infinite; }
+@keyframes town-drive { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+@keyframes town-stroll { 0%, 12% { offset-distance: 0%; } 45%, 62% { offset-distance: 100%; } 95%, 100% { offset-distance: 0%; } }
+@keyframes town-step { from { translate: 0 0; } to { translate: 0 -0.6px; } }
+@keyframes town-snowfall { from { transform: translate(0, 0); } to { transform: translate(var(--snow-drift), 760px); } }
