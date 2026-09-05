@@ -1,5 +1,6 @@
 /** Main menu: new season, sandbox mountain pick, continue, saved games. */
 import { useState } from 'react'
+import { GAME_VERSION, RELEASES } from '../content/releases'
 import { STARTING_CASH_SANDBOX } from '../content/balance'
 import { MOUNTAINS, snowfallLabel } from '../content/mountains'
 import { listSaves, deleteSave } from '../state/save'
@@ -32,7 +33,11 @@ export function MainMenu() {
           One creaky carpet lift, two green runs, and a mountain of potential.
         </p>
 
-        <div className="mt-8 space-y-2">
+        <p className="mt-3 text-center text-[11px] font-semibold tracking-wide text-ink-soft">
+          Version {GAME_VERSION} · Release candidate
+        </p>
+
+        <div className="mt-6 space-y-2">
           {latestSave && (
             <button className="btn btn-primary w-full !py-3 text-[14px]" onClick={() => loadSlot(latestSave.slot)}>
               Continue season
@@ -136,6 +141,26 @@ export function MainMenu() {
             </div>
           )}
         </div>
+        <section aria-label="Release notes" className="mt-5 border-t border-ink/15 pt-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Latest update · {RELEASES[0].dateLabel}</p>
+          <h2 className="mt-1 font-display text-[21px] font-semibold text-ink">{RELEASES[0].title}</h2>
+          <p className="mt-1 mb-3 text-[12px] leading-relaxed text-ink-soft">{RELEASES[0].summary}</p>
+          <details className="glass rounded-xl p-3.5 text-[12px] leading-relaxed text-ink-soft">
+            <summary className="cursor-pointer rounded font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pine">
+              Read release notes & update history
+            </summary>
+            {RELEASES.map(release => (
+              <article key={release.version} className="mt-3">
+                <h2 className="font-display text-[18px] font-semibold text-ink">{release.title}</h2>
+                <p className="mt-1 text-[10px] text-ink-soft">Version {release.version} · <time dateTime={release.date}>{release.dateLabel}</time></p>
+                <p className="mt-2">{release.summary}</p>
+                <ul className="mt-3 list-disc space-y-2 pl-4">
+                  {release.changes.map(change => <li key={change}>{change}</li>)}
+                </ul>
+              </article>
+            ))}
+          </details>
+        </section>
       </div>
     </div>
   )
