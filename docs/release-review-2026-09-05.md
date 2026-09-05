@@ -37,4 +37,17 @@ PRs remain open. This review did not push commits, merge PRs, close issues, or c
 
 No blocking defect was found in the checked flows. Browser coverage is Chromium through the Codex browser; native Safari/Firefox and physical touch devices were not tested. This pass is not a frame-rate benchmark. Expansion balance remains strategy-dependent, especially snow recovery at Alder and Mont Blanche; see the existing expansion/snow-recovery reports.
 
-Current production remains version `dbdf6473-02ac-4107-a21f-dd6a76eb8548`, verified with `wrangler deployments list`. Keep that version as the rollback target. Promote the exact candidate only after launch authorization, then verify production assets and a saved-game smoke test. If rollback is needed, restore that recorded production version; saves written by the newer schema should be retained for a forward fix rather than overwritten by older code.
+At the time of the initial review, production was version `dbdf6473-02ac-4107-a21f-dd6a76eb8548`, verified with `wrangler deployments list`. Keep that version as the rollback target. If rollback is needed, restore that recorded production version; saves written by the newer schema should be retained for a forward fix rather than overwritten by older code.
+
+## Production launch — September 5, 2026
+
+The user authorized production deployment after reviewing the release notes and controlled helicopter rescue demonstration.
+
+- Release: **0.1.0**, source commit `288b143`.
+- Production: https://ski.kennyatx.com/
+- Cloudflare version: `4cbaa59c-e43b-49ec-afc4-e77b585351c8`, deployed to 100% of production traffic. The preproduction alias points to the same version.
+- Rollback version: `dbdf6473-02ac-4107-a21f-dd6a76eb8548`.
+- Final checks: 135 tests passed, TypeScript/Vite build passed, lint retained only the two existing Fast Refresh warnings. The existing bundle-size warning remains.
+- Live browser verification: version 0.1.0 and release notes displayed; started Mount Alder, opened Town, saved, reloaded, and continued the saved Day 1 season with $80,000. No browser console errors observed.
+- A controlled development fixture exercised the real rescue simulation and renderer through dispatch, treatment, helicopter evacuation, and completion; the $4,500 dispatch charge was applied once. The review fixture is not a production entry point.
+- GitHub PRs remain open; this launch did not push or merge commits or close issues.
