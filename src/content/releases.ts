@@ -1,6 +1,17 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
+    version: '0.3.0-preview.1', date: '2026-09-05', dateLabel: 'September 5, 2026',
+    title: '🎨 Make It Yours', summary: 'Your colors. Your celebrations. Your winter memories.',
+    changes: [
+      '🎨 Name your resort, lifts, and trails. Choose village colors and lanterns or bunting in Resort journal → Customize.',
+      '🎉 Host First Tracks Day, Local Race Day, or a Winter Festival. Plan around their requirements, pay a booking fee, and earn reputation by meeting the goal.',
+      '📷 Download a village postcard with your resort name and season achievements. Season-end postcards are preserved automatically.',
+      '🎿 Includes all Guests & Village features from the 0.2 preview.',
+      '🧪 Preview build for playtesting; event balance is ready for your feedback.',
+    ],
+  },
+  {
     version: '0.2.0-preview.1', date: '2026-09-05', dateLabel: 'September 5, 2026',
     title: '🎿 Guests & Village', summary: 'Every visit has a story. Follow it from arrival to the last run.',
     changes: [

@@ -1,3 +1,4 @@
+import { HOSTED_EVENTS, todayHostedEvent } from './creativity'
 /**
  * Demand modelling, day-end settlement, reputation, and the daily report.
  */
@@ -68,6 +69,9 @@ export function computeDailyDemand(state: GameState): number {
   const capacity = runningLiftCapacityEstimate(state)
   demand *= Math.min(1.25, 0.6 + capacity / 2600)
 
+  const hosted=todayHostedEvent(state)
+  if(hosted?.status==='booked') demand *= HOSTED_EVENTS[hosted.kind].demand
+
   // parking ceiling
   demand = Math.min(demand, Math.max(80, parkingCapacity(state)))
 
@@ -125,7 +129,8 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
     energy: Math.round(energy),
     facilities,
     interest: Math.round(interest),
-    other: state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
+    hostedEvent: todayHostedEvent(state)?.cost ?? 0,
+    other: (todayHostedEvent(state)?.cost ?? 0) + state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
     medevac: state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
   }
   state.cash -= payroll + maintenance + expenses.energy + facilities

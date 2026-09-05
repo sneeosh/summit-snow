@@ -358,3 +358,5 @@ export function adoptTownPolicy(state: GameState, policy: TownPolicy): string | 
  pushAlert(state, 'info', `${TOWN_POLICIES[policy].name} adopted — visit the village to see the change`)
  return null
 }
+
+export { updateStyle, renameRoute, bookHostedEvent } from './creativity'

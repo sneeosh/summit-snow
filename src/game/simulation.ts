@@ -1,3 +1,4 @@
+import { finishHostedEvent, keepSeasonPostcard } from './creativity'
 import { archiveVisit } from './visits'
 /**
  * Simulation orchestrator: the tick pipeline and the day lifecycle
@@ -126,6 +127,8 @@ function endDay(state: GameState, rng: Rng): void {
   state.phase = 'day-end'
 
   const { report } = settleDay(state, rng)
+  finishHostedEvent(state, report)
+  if (state.day >= SEASON_DAYS) keepSeasonPostcard(state)
   state.reports.push(report)
   if (state.reports.length > SEASON_DAYS) state.reports.splice(0, state.reports.length - SEASON_DAYS)
 

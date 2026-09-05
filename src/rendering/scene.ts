@@ -550,7 +550,7 @@ export class MountainScene {
     }
 
     // structural rebuild (rare)
-    const sKey = structureKeyOf(game, selection, buildMode, overlay)
+    const sKey = structureKeyOf(game, selection, buildMode, overlay) + JSON.stringify(game.style)
     if (sKey !== this.structureKey) {
       this.structureKey = sKey
       this.rebuildStatic(game, selection, buildMode, overlay)

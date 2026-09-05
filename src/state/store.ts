@@ -40,6 +40,9 @@ export type Overlay = 'none' | 'difficulty' | 'snow' | 'crowding' | 'coverage'
 export type LeftTab = 'build' | 'staff' | 'pricing' | 'finance' | 'overlays' | 'resorts' | null
 
 interface Store {
+  updateStyle: (patch: Partial<import('../game/types').ResortStyle>) => void
+  renameRoute: (kind: 'trail'|'lift', id: string, name: string) => void
+  bookHostedEvent: (kind: import('../game/types').HostedEventKind) => void
   adoptTownPolicy: (policy: import('../game/types').TownPolicy) => void
   worldView: 'mountain' | 'town'
   setWorldView: (view: 'mountain' | 'town') => void
@@ -131,6 +134,9 @@ export const useStore = create<Store>((set, get) => {
   }
 
   return {
+    updateStyle: patch => mutate(g=>actions.updateStyle(g,patch)),
+    renameRoute: (kind,id,name) => mutate(g=>actions.renameRoute(g,kind,id,name)),
+    bookHostedEvent: kind => mutate(g=>actions.bookHostedEvent(g,kind)),
     screen: 'menu',
     game: null,
     adoptTownPolicy: (policy) => mutate(g => actions.adoptTownPolicy(g, policy)),

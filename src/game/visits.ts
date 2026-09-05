@@ -29,6 +29,7 @@ export function activityLabel(state: GameState, g: Guest): string {
 
 export function recordVisit(state: GameState, g: Guest): void {
   const visit = ensureVisit(state, g)
+  visit.notes = g.memories.filter(m=>m.delta!==0).slice(-4).map(m=>({text:m.text,delta:m.delta}))
   const label = activityLabel(state, g)
   if (visit.lastActivity !== label) {
     visit.steps.push({ minute: state.minute, label })

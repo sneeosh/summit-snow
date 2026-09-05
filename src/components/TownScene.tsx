@@ -1,3 +1,5 @@
+import { streetPoint } from '../rendering/townPaths'
+import { resortName } from '../game/creativity'
 import { createContext, useContext, useId } from 'react'
 import { TownPedestrians, TownSnow, TownTraffic, TownJourneys } from './TownLife'
 import { TownLandmark } from './TownLandmark'
@@ -22,7 +24,7 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
  const people = Math.min(28, 12 + totalLevels(game) + attendance)
  const darkSky = game.town.policies.darkSky
  const levels = game.town.levels, total = Object.values(levels).reduce((a,b)=>a+b,0)
- const accent = COLORS[game.mountainId] ?? '#826856'
+ const accent = game.style?.color || COLORS[game.mountainId] || '#826856'
  const fresh = game.town.lastOpening?.day === game.day && game.town.lastOpening?.season === game.season ? game.town.lastOpening.project : null
  const weather = game.weatherSeason[game.day - 1]
  const winter = game.mountainId !== 'prairie'
@@ -84,12 +86,18 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   {Object.entries(LOTS).filter(([project])=>levels[project as TownProject]===0&&game.town.construction?.project!==project).map(([project,[x,y]])=><g key={project} opacity=".65"><ellipse cx={x} cy={y+15} rx="44" ry="12" fill="#dce3dc"/><path d={`M${x} ${y+25}v-20`} stroke="#938774" strokeWidth="3"/><rect x={x-25} y={y-4} width="50" height="15" rx="2" fill="#e5d9bd"/><text x={x} y={y+7} textAnchor="middle" fontSize="6" fill="#675e4f">FUTURE {project==='inn'?'INN':project==='housing'?'HOMES':project==='shuttle'?'STATION':'SQUARE'}</text></g>)}
   {[ [50,565,1.7],[1135,660,1.3],[1160,550,1.1],[1140,365,.8],[340,265,.8],[53,338,.8],[560,655,.9],[755,665,.8] ].map(([x,y,size],i)=><Pine key={i} x={x} y={y} size={size}/>)}
   {game.town.policies.winterMarket&&<g aria-label="Chartered winter market"><MarketStall x={620} y={388} color="#ac5f52"/><MarketStall x={679} y={399} color="#657d65"/><path d="M595 350Q652 380 709 363" fill="none" stroke="#887457"/>{[600,620,640,660,680,700].map(x=><circle key={x} cx={x} cy={354+Math.sin((x-600)/100*Math.PI)*15} r="3" fill="#f7ce7c"/>)}</g>}
+  {game.style?.decor !== 'natural' && game.style?.decor && <g aria-label="Village decorations">
+   {[.12,.34,.63,.86].map(t=>{const [x,y]=streetPoint(t,-43);return <g key={t} transform={`translate(${x},${y})`}>
+    <path d="M0 0V-34" stroke="#78694f" strokeWidth="3"/>
+    {game.style.decor==='lanterns'?<><circle cy="-35" r="7" fill="#efca71"/>{dusk&&<circle cy="-35" r="20" fill="#ffdb85" opacity=".2"/>}</>:<path d="M0-34H24L18-18 0-24Z" fill={accent}/>}
+   </g>})}
+  </g>}
   <TownPedestrians count={people}/>
   {!still && <TownJourneys game={game}/>}
   {celebrating&&fresh&&<g className="town-celebration" aria-label="Opening ribbon ceremony" transform={`translate(${LOTS[fresh][0]} ${LOTS[fresh][1]+(fresh==='mainstreet'?20:42)})`}><path d="M-42 0H42" stroke="#bf534a" strokeWidth="5"/><path d="M-42-8V12M42-8V12" stroke="#827658" strokeWidth="3"/>{[-30,-12,12,30].map((x,i)=><Person key={x} x={x} y={16} color={i%2?'#536f83':'#ae724f'}/>)}{Array.from({length:16},(_,i)=><rect key={i} x={-55+i*7} y={-48-(i%4)*7} width="3" height="5" fill={i%2?'#d3ab55':'#b96a5b'}/>)}</g>}
   {dusk&&<rect width="1200" height="680" fill="#253751" opacity={darkSky?'.30':'.19'} pointerEvents="none"/>}
   {total>0&&[300,570,718,1030].map(x=><Lamp key={x} x={x} y={x===300?399:x===570?423:x===718?429:405}/>)}
-  <g transform="translate(35 651)"><path d="M0 45V-13M3 -5H205" stroke="#7a7160" strokeWidth="5"/><rect x="-4" y="-37" width="217" height="30" rx="3" fill="#38574f"/><text x="104" y="-17" textAnchor="middle" fontSize="13" fontFamily="Georgia,serif" fill="#f4e8cd">{MOUNTAIN_MAP[game.mountainId].name}</text></g>
+  <g transform="translate(35 651)"><path d="M0 45V-13M3 -5H205" stroke="#7a7160" strokeWidth="5"/><rect x="-4" y="-37" width="217" height="30" rx="3" fill="#38574f"/><text x="104" y="-17" textAnchor="middle" fontSize="13" fontFamily="Georgia,serif" fill="#f4e8cd">{resortName(game)}</text></g>
   <TownSnow snowfall={weather?.snowfallCm ?? 0} wind={weather?.windKph ?? 0}/>
  </svg></Architecture.Provider>
 }

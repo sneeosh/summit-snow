@@ -207,3 +207,18 @@ it('in-flight rescues round-trip with the original dispatch charge and timeline'
   put('autosave', 6, '2026-09-05T21:20:00.000Z')
   expect(loadGame(listSaves()[0].slot)!.day).toBe(6)
  })
+
+it('upgrades a production v12 save and preserves v14 customizations on reload',()=>{
+  const state=newGame('sandbox',42,'prairie')
+  const old={...state} as Partial<GameState>
+  delete old.style;delete old.hostedEvents;delete old.postcards;delete old.recentVisits
+  old.version=12
+  backing.set('summit-snow:save:production',JSON.stringify({version:12,state:old}))
+  const loaded=loadGame('production')!
+  expect(loaded.version).toBe(SAVE_VERSION)
+  expect(loaded.recentVisits).toEqual([])
+  expect(loaded.style.trailNames).toEqual({})
+  loaded.style.name='Snow & Co';loaded.style.decor='lanterns'
+  saveGame('updated',loaded,'My resort')
+  expect(loadGame('updated')!.style).toEqual(loaded.style)
+})

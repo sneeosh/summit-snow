@@ -220,3 +220,4 @@ body {
 .journal-visits { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; }
 .journal-visits > div { max-height: 55dvh; overflow: auto; }
 @media (max-width: 560px) { .resort-dialog { padding: 16px; } .journal-visits { grid-template-columns: 1fr; } .journal-visits > div { max-height: 24dvh; } }
+.workshop-input { border: 1px solid #bdcbc2; border-radius: 9px; padding: 9px 12px; background: white; color: #263c39; font-size: 14px; }

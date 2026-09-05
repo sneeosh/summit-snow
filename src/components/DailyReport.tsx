@@ -1,3 +1,4 @@
+import { PostcardStudio } from './ResortWorkshop'
 /** End-of-day operating report modal. */
 import { SKILL_LABEL } from '../content/names'
 import { dayEndDisposition } from '../game/simulation'
@@ -49,14 +50,16 @@ export function DailyReportModal() {
             <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-faint">Expenses — {formatMoney(expTotal)}</h4>
             <MoneyRow label="Payroll" v={exp.payroll} neg />
             <MoneyRow label="Lift maintenance" v={exp.maintenance} neg />
-            {exp.other - (exp.medevac ?? 0) > 0 && <MoneyRow label="Mountain control" v={exp.other - (exp.medevac ?? 0)} neg />}
+            {exp.other - (exp.medevac ?? 0) - (exp.hostedEvent ?? 0) > 0 && <MoneyRow label="Mountain control" v={exp.other - (exp.medevac ?? 0) - (exp.hostedEvent ?? 0)} neg />}
             {(exp.medevac ?? 0) > 0 && <MoneyRow label="Helicopter evacuations" v={exp.medevac!} neg />}
+            {!!exp.hostedEvent && <MoneyRow label="Hosted event" v={exp.hostedEvent} neg />}
             <MoneyRow label="Energy" v={exp.energy} neg />
             <MoneyRow label="Facilities & town services" v={exp.facilities} neg />
             <MoneyRow label="Loan interest" v={exp.interest} neg />
           </div>
         </div>
 
+        {(seasonOver || seasonRolls) && <details className="mt-4"><summary className="cursor-pointer font-semibold">📷 Your season postcard</summary><PostcardStudio/></details>}
         {(report.compliments.length > 0 || report.complaints.length > 0) && (
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>

@@ -1,9 +1,9 @@
+import { resortName } from '../game/creativity'
 import { ResortJournal } from './ResortJournal'
 /** Compact command bar: brand, date/clock, weather + forecast, cash, stars, speed. */
 import { useLayoutEffect, useRef, useState } from 'react'
 import { SEASON_DAYS } from '../content/balance'
 import { isWeekend } from '../game/economy'
-import { MOUNTAIN_MAP } from '../content/mountains'
 import { forecastFor } from '../game/weather'
 import { formatClock, formatMoney, useStore } from '../state/store'
 
@@ -42,7 +42,7 @@ export function TopBar() {
         {/* brand (phones show just the mountain) */}
         <div className="pr-2 border-r border-ink/10 sm:pr-3">
           <div className="hidden font-display text-[15px] font-semibold leading-tight tracking-tight sm:block">Summit &amp; Snow</div>
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-faint">{MOUNTAIN_MAP[game.mountainId]?.name ?? 'Mount Alder'}</div>
+          <div className="max-w-[180px] truncate text-[10px] uppercase tracking-[0.14em] text-ink-faint">{resortName(game)}</div>
         </div>
 
         {/* date + clock */}

@@ -1,7 +1,7 @@
+import { resortName } from '../game/creativity'
 import { useEffect, useState } from 'react'
 import { TOWN_POLICIES, TOWN_PROJECT_ORDER, TOWN_PROJECTS, TOWN_SEAT_LABELS } from '../content/town'
 import { TOWN_HOMES_COMPACT_COST, TOWN_MAX_LEVEL } from '../content/balance'
-import { MOUNTAIN_MAP } from '../content/mountains'
 import { townPolicyProposal, townBenefits, townProposal, townStage } from '../game/town'
 import type { TownProject, TownPolicy } from '../game/types'
 import { formatMoney, useStore } from '../state/store'
@@ -26,7 +26,7 @@ export function TownView() {
   <section className="town-panorama relative flex min-h-0 flex-col overflow-hidden bg-[#bdced1]">
    <div className="town-heading shrink-0 rounded-xl bg-[#f5f1e6]/95 px-4 py-3 shadow-sm">
     <div className="text-[10px] uppercase tracking-[.2em] text-[#63776e]">{townStage(shown)}</div>
-    <h2 className="font-serif text-[23px] text-[#294a40]">{MOUNTAIN_MAP[game.mountainId].name} Village</h2>
+    <h2 className="font-serif text-[23px] text-[#294a40]">{resortName(game)} Village</h2>
     <p className="text-[11px] text-[#68766b]">Blue coats: arriving guests · Gold coats: staff · Journeys follow the game clock.</p>
    </div>
    <div className="relative min-h-0 flex-1"><div className="absolute inset-0"><TownScene game={shown} camera={camera} celebrating={celebrating&&!snapshot} still={!!snapshot}/></div></div>

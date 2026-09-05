@@ -31,6 +31,13 @@ function migrateMountainIdentity(state: GameState): GameState {
 
 /** version → upgrade fn producing the next version's payload */
 const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
+  13: (p) => {
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 14,
+      style: { name: '', color: '', decor: 'natural', trailNames: {}, liftNames: {} }, hostedEvents: [], postcards: [],
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },
+    })
+    return { ...p, version: 14, state: upgrade(p.state) }
+  },
   12: (p) => {
     const upgrade = (s: GameState): GameState => ({ ...s, version: 13, recentVisits: [],
       company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },

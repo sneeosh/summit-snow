@@ -274,6 +274,7 @@ export interface GuestMemory {
 }
 
 export interface GuestVisit {
+  notes?: { text: string; delta: number }[]
   goal: 'learn' | 'explore' | 'challenge' | 'relax'
   origin: 'day-trip' | 'inn' | 'shuttle'
   steps: { minute: number; label: string }[]
@@ -439,6 +440,7 @@ export interface ExpenseBreakdown {
   interest: number
   other: number
   /** Included in other; optional on historical reports. */
+  hostedEvent?: number
   medevac?: number
 }
 
@@ -540,7 +542,28 @@ export interface TownState {
   lastOpening: { project: TownProject; level: number; day: number; season: number } | null
 }
 
+export type HostedEventKind = 'learners' | 'race' | 'festival'
+export interface ResortStyle {
+  name: string
+  color: string
+  decor: 'natural' | 'lanterns' | 'bunting'
+  trailNames: Record<string, string>
+  liftNames: Record<string, string>
+}
+export interface SeasonPostcard {
+  season: number; day: number; mountainId: string; name: string
+  guests: number; reputation: number; events: number
+  town: TownState; style: ResortStyle
+}
+export interface HostedEvent {
+  kind: HostedEventKind; day: number; season: number; cost: number
+  status: 'booked' | 'success' | 'missed'; result?: string
+}
 export interface GameState {
+  style: ResortStyle
+  hostedEvents: HostedEvent[]
+  postcards: SeasonPostcard[]
+
   recentVisits: { id: number; name: string; satisfaction: number; visit: GuestVisit }[]
   town: TownState
   version: number
