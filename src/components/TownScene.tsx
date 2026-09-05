@@ -7,8 +7,8 @@ import { TOWN_PROJECTS } from '../content/town'
 import { MOUNTAIN_MAP } from '../content/mountains'
 
 export type TownCamera = 'panorama' | 'mainstreet' | 'riverside' | 'station'
-const CAMERAS: Record<TownCamera, string> = { panorama: '0 0 1200 680', mainstreet: '290 210 640 410', riverside: '0 230 640 410', station: '560 220 640 410' }
-const LOTS: Record<TownProject, [number, number]> = { housing: [240, 375], mainstreet: [490, 355], inn: [850, 315], shuttle: [820, 510] }
+const CAMERAS: Record<TownCamera, string> = { panorama: '0 0 1200 680', mainstreet: '290 210 640 410', riverside: '0 230 640 410', station: '560 270 640 410' }
+const LOTS: Record<TownProject, [number, number]> = { housing: [240, 350], mainstreet: [490, 355], inn: [850, 350], shuttle: [945, 570] }
 const COLORS: Record<string, string> = { prairie: '#a95746', granite: '#925443', alder: '#507066', yuki: '#906f59', kea: '#7b8471', elk: '#b7844e', wasatch: '#858b98', blanche: '#758da0' }
 
 const Architecture = createContext('timber')
@@ -39,7 +39,7 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   {winter && <path d="M260 108L320 56 377 112 337 99 318 114 304 95ZM757 118L820 58 891 122 849 108 826 128 806 98Z" fill="#e4e7e0"/>}
   <path d="M-20 280L180 207 335 277 490 168 697 275 894 186 1220 279V430H-20Z" fill="#7d9c9e"/>
   {Array.from({length:42},(_,i)=><Pine key={i} x={i*32-30} y={285+Math.sin(i*.63)*23} size={.75+(i%4)*.11} color="#587c76"/>)}
-  <path d="M0 318Q300 255 570 320T1200 288V680H0Z" fill={`url(#${uid}-snow)`}/>
+  <path d="M0 270Q300 235 570 268T1200 250V680H0Z" fill={`url(#${uid}-snow)`}/>
   <path d="M80 300C30 420 225 471 120 690" fill="none" stroke="#f6f4e9" strokeWidth="73"/>
   <path d="M80 300C30 420 225 471 120 690" fill="none" stroke={`url(#${uid}-river)`} strokeWidth="47"/>
   <path d="M74 324Q63 367 82 383M111 471Q155 499 157 524M150 575L138 608" fill="none" stroke="#e0eeea" strokeWidth="2" opacity=".7"/>
@@ -52,15 +52,13 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   <g transform="translate(129 451) rotate(-17)"><rect x="-42" y="-25" width="84" height="48" fill="#b6a48c"/>{[-25,23].map(y=><path key={y} d={`M-46 ${y}H46`} stroke="#6d6a58" strokeWidth="5"/>)}{[-36,-12,12,36].map(x=><path key={x} d={`M${x} -28V-12M${x} 25V9`} stroke="#686653" strokeWidth="3"/>)}</g>
   <TownTraffic busy={attendance > 0} dusk={dusk}/>
   <TownLandmark mountainId={game.mountainId} active={people>5}/>
-  <Chalet x={440} y={280} width={70} floors={1} color="#b2a58d" sign="TOWN HALL"/>
+  <Chalet x={370} y={365} width={70} floors={1} color="#b2a58d" sign="TOWN HALL"/>
   <Chalet x={605} y={340} width={76} floors={1} color={accent} sign="PROVISIONS"/>
   <Chalet x={1055} y={368} width={75} floors={1} color="#b69a75" sign="SKI & REPAIR"/>
-  <Chalet x={355} y={520} width={85} floors={1} color="#9b7966" sign="THE OLD BAKERY"/>
+  <Chalet x={280} y={560} width={85} floors={1} color="#9b7966" sign="THE OLD BAKERY"/>
   {levels.housing>0 && <g className={fresh==='housing'?'town-new-landmark':undefined}>
    <Chalet x={205} y={355} width={63} floors={levels.housing>1?2:1} color="#b6a07d"/>
-   <Chalet x={294} y={385} width={66} floors={1} color={accent}/>
-   {levels.housing>1&&<Chalet x={210} y={540} width={57} floors={1} color="#8d9a8b"/>}
-   {levels.housing>2&&<Chalet x={262} y={600} width={72} floors={2} color="#ae8068"/>}
+   <Chalet x={294} y={385} width={66} floors={levels.housing>2?2:1} color={accent}/>
    <path d="M171 405H330M180 395V412M213 395V412M246 395V412M279 395V412M312 395V412" stroke="#978972" strokeWidth="3"/>
   </g>}
   {levels.mainstreet>0 && <g className={fresh==='mainstreet'?'town-new-landmark':undefined}>
@@ -74,9 +72,9 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
    <Chalet x={820} y={331} width={120} floors={levels.inn>1?3:2} color={accent} sign={levels.inn>2?'THE GRAND ALPINE':'VILLAGE INN'}/>
    {levels.inn>2&&<Chalet x={737} y={359} width={66} floors={2} color="#c9b38f"/>}
    <path d="M775 351L740 388 901 395 916 360" fill="#d0c5ae" stroke="#f4efdf" strokeWidth="5"/>
-   {game.town.compactHomes>0&&<Chalet x={957} y={285} width={58} floors={1} color="#839185" sign="STAFF HOMES"/>}
+   {game.town.compactHomes>0&&<Chalet x={975} y={385} width={58} floors={1} color="#839185" sign="STAFF HOMES"/>}
   </g>}
-  {levels.shuttle>0&&<g className={fresh==='shuttle'?'town-new-landmark':undefined}>
+  {levels.shuttle>0&&<g transform="translate(40 70)" className={fresh==='shuttle'?'town-new-landmark':undefined}>
    <path d="M839 452L1000 454 986 533 796 530Z" fill={`url(#${uid}-paving)`} stroke="#e4e0ce" strokeWidth="5"/>
    <Chalet x={926} y={504} width={levels.shuttle>1?96:57} floors={1} color="#738f87" sign={levels.shuttle>2?'TRANSIT HALL':'SHUTTLE'}/>
    <g className={game.phase==='operating'&&attendance>0?'town-shuttle-arrival':undefined}><Bus x={829} y={510}/></g>{levels.shuttle>1&&<Bus x={849} y={565}/>}
@@ -84,12 +82,12 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   </g>}
   {game.town.construction&&<Construction project={game.town.construction.project} progress={1-game.town.construction.remainingDays/game.town.construction.totalDays}/>}
   {Object.entries(LOTS).filter(([project])=>levels[project as TownProject]===0&&game.town.construction?.project!==project).map(([project,[x,y]])=><g key={project} opacity=".65"><ellipse cx={x} cy={y+15} rx="44" ry="12" fill="#dce3dc"/><path d={`M${x} ${y+25}v-20`} stroke="#938774" strokeWidth="3"/><rect x={x-25} y={y-4} width="50" height="15" rx="2" fill="#e5d9bd"/><text x={x} y={y+7} textAnchor="middle" fontSize="6" fill="#675e4f">FUTURE {project==='inn'?'INN':project==='housing'?'HOMES':project==='shuttle'?'STATION':'SQUARE'}</text></g>)}
-  {[ [50,565,1.7],[1095,590,1.7],[1160,560,1.4],[1130,405,.8],[324,304,.8],[53,338,.8],[540,611,1.2],[730,583,.8] ].map(([x,y,size],i)=><Pine key={i} x={x} y={y} size={size}/>)}
+  {[ [50,565,1.7],[1135,660,1.3],[1160,550,1.1],[1130,405,.8],[340,265,.8],[53,338,.8],[560,655,.9],[755,665,.8] ].map(([x,y,size],i)=><Pine key={i} x={x} y={y} size={size}/>)}
   {game.town.policies.winterMarket&&<g aria-label="Chartered winter market"><MarketStall x={620} y={388} color="#ac5f52"/><MarketStall x={679} y={399} color="#657d65"/><path d="M595 350Q652 380 709 363" fill="none" stroke="#887457"/>{[600,620,640,660,680,700].map(x=><circle key={x} cx={x} cy={354+Math.sin((x-600)/100*Math.PI)*15} r="3" fill="#f7ce7c"/>)}</g>}
   <TownPedestrians count={people}/>
   {celebrating&&fresh&&<g className="town-celebration" aria-label="Opening ribbon ceremony" transform={`translate(${LOTS[fresh][0]} ${LOTS[fresh][1]+42})`}><path d="M-42 0H42" stroke="#bf534a" strokeWidth="5"/><path d="M-42-8V12M42-8V12" stroke="#827658" strokeWidth="3"/>{[-30,-12,12,30].map((x,i)=><Person key={x} x={x} y={16} color={i%2?'#536f83':'#ae724f'}/>)}{Array.from({length:16},(_,i)=><rect key={i} x={-55+i*7} y={-48-(i%4)*7} width="3" height="5" fill={i%2?'#d3ab55':'#b96a5b'}/>)}</g>}
   {dusk&&<rect width="1200" height="680" fill="#253751" opacity={darkSky?'.30':'.19'} pointerEvents="none"/>}
-  {total>0&&[300,570,718,1030].map(x=><Lamp key={x} x={x} y={440+Math.sin(x)*12}/>)}
+  {total>0&&[300,570,718,1030].map(x=><Lamp key={x} x={x} y={x===300?399:x===570?423:x===718?429:405}/>)}
   <g transform="translate(35 651)"><path d="M0 45V-13M3 -5H205" stroke="#7a7160" strokeWidth="5"/><rect x="-4" y="-37" width="217" height="30" rx="3" fill="#38574f"/><text x="104" y="-17" textAnchor="middle" fontSize="13" fontFamily="Georgia,serif" fill="#f4e8cd">{MOUNTAIN_MAP[game.mountainId].name}</text></g>
   <TownSnow snowfall={weather?.snowfallCm ?? 0} wind={weather?.windKph ?? 0}/>
  </svg></Architecture.Provider>
