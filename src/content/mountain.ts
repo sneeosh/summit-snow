@@ -10,7 +10,7 @@
  * base village at the bottom. 1 world unit ≈ 2 m horizontal.
  */
 import type { FacilitySlotDef, LiftSiteDef, MountainDef, MountainNode, TrailDef, Vec2 } from '../game/types'
-import { DEFAULT_MOUNTAIN_ID, MOUNTAIN_MAP } from './mountains'
+import { DEFAULT_MOUNTAIN_ID, LEGACY_MOUNTAIN_MAP, MOUNTAIN_MAP } from './mountains'
 
 export const WORLD_W = 1920
 export const WORLD_H = 1200
@@ -52,10 +52,11 @@ export function activateMountain(def: MountainDef): void {
   )
 }
 
-/** activate the mountain a state simulates — cheap no-op when unchanged */
-export function ensureMountain(mountainId: string | undefined): void {
+/** Pin each state's content revision; object identity makes this a cheap no-op. */
+export function ensureMountain(mountainId: string | undefined, version: 1 | 2 = 2): void {
   const id = mountainId && MOUNTAIN_MAP[mountainId] ? mountainId : DEFAULT_MOUNTAIN_ID
-  if (ACTIVE_MOUNTAIN.id !== id) activateMountain(MOUNTAIN_MAP[id])
+  const def = (version === 1 ? LEGACY_MOUNTAIN_MAP : MOUNTAIN_MAP)[id]
+  if (ACTIVE_MOUNTAIN !== def) activateMountain(def)
 }
 
 function dist(a: Vec2, b: Vec2): number {

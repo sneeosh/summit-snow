@@ -17,8 +17,20 @@ interface SavePayload {
   state: GameState
 }
 
+/** Preserve geometry for every resort, including inactive portfolio holdings. */
+function migrateMountainIdentity(state: GameState): GameState {
+  return {
+    ...state, version: SAVE_VERSION, mountainVersion: 1,
+    trails: Object.fromEntries(Object.entries(state.trails).map(([id, t]) => [id, { ...t, groomingPolicy: 'auto' }])),
+    company: { ...state.company, resortStates: Object.fromEntries(
+      Object.entries(state.company.resortStates).map(([id, resort]) => [id, migrateMountainIdentity(resort)]),
+    ) },
+  }
+}
+
 /** version → upgrade fn producing the next version's payload */
 const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
+  6: (p) => ({ ...p, version: 7, state: migrateMountainIdentity(p.state) }),
   // v2: freeform trails — custom defs container + per-guest stuck tracking
   1: (p) => ({
     ...p,

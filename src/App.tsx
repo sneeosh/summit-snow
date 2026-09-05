@@ -27,7 +27,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const s = useStore.getState()
       if (s.screen !== 'playing' || !s.game) return
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
       switch (e.key) {
         case ' ':
           e.preventDefault()

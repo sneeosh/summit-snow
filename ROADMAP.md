@@ -30,6 +30,20 @@ Known debt going in: per-segment trail grading is unfair (one steep pitch grades
 
 ---
 
+## Mountain identities — implementation in review (September 2026)
+
+The first slice differentiates Prairie Knob, Yukimura and Kea Basin with
+regional scenery, authored starting layouts, local relief and camera framing.
+Grooming can preserve natural snow; guest surface preferences depend on
+ability; terrain shelter/exposure changes wind holds. Save v7 preserves all
+older resort geometry.
+
+Remaining before release: visual review in-browser and an extended balance
+playtest. Follow-on slices: distinct objectives, richer village activity,
+night skiing for Prairie, avalanche control for advanced alpine terrain, and
+regional art/terrain for the other five mountains. These do not ship in the
+first slice.
+
 ## Release 1.0 — "Opening Day" *(target: late summer 2026)*
 
 **Theme: the game is finishable, fair, and welcoming. Ship the game we already have, polished.**

@@ -31,7 +31,7 @@ import {
 } from '../content/mountain'
 import { CUSTOM_TRAIL_NAMES } from '../content/names'
 import { checkTrailConflicts, type TrailConflicts } from './junctions'
-import { clearingHalfWidthWu, distToPath, elevationAt, skylineYAt, treesInCorridor } from './terrainModel'
+import { clearingHalfWidthWu, distToPath, elevationAt, sampleTerrainPath, skylineYAt, treesInCorridor } from './terrainModel'
 import type { Difficulty, GameState, LiftKind, LiftSiteDef, MountainNode, TrailDef, Vec2 } from './types'
 
 /** snap radius for attaching trail endpoints to network nodes (world units) */
@@ -152,6 +152,11 @@ export function analyzePath(points: Vec2[], nodes: MountainNode[] = NODES): Path
   }
   if (points.length < 2) return empty
 
+  // The original route still owns endpoint snapping. Sample its interior for
+  // local landforms; legacy terrain keeps its historical grading exactly.
+  const originalPoints = points
+  if (ACTIVE_MOUNTAIN.identity) points = sampleTerrainPath(points)
+
   let lengthM = 0
   let steepest = 0
   let totalClimbM = 0
@@ -200,8 +205,8 @@ export function analyzePath(points: Vec2[], nodes: MountainNode[] = NODES): Path
     uphillSegments,
     uphillFraction: Math.round(uphillLen * 1000) / 1000,
     totalClimbM: Math.round(totalClimbM),
-    topNodeId: nearestNodeId(points[0], NODE_SNAP_WU, nodes),
-    bottomNodeId: nearestNodeId(points[points.length - 1], NODE_SNAP_WU, nodes),
+    topNodeId: nearestNodeId(originalPoints[0], NODE_SNAP_WU, nodes),
+    bottomNodeId: nearestNodeId(originalPoints[originalPoints.length - 1], NODE_SNAP_WU, nodes),
   }
 }
 

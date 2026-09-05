@@ -11,6 +11,7 @@
  *  - at least one prebuilt lift + green trail so day 1 has something open
  */
 import type { FacilitySlotDef, MountainDef, MountainNode, TrailDef, Vec2 } from '../game/types'
+import { withHillIdentity } from './hillProfiles'
 
 /** the shared base-village build sites; the mid-mountain hut site must sit
  * below the mountain's ridgeline, so its height is per-mountain */
@@ -534,7 +535,10 @@ const BLANCHE: MountainDef = {
   facilitySlots: villageSlots(),
 }
 
-export const MOUNTAINS: MountainDef[] = [PRAIRIE, GRANITE, ALDER, KEA, YUKI, ELK, WASATCH, BLANCHE]
+export const LEGACY_MOUNTAIN_MAP: Record<string, MountainDef> = Object.fromEntries(
+  [PRAIRIE, GRANITE, ALDER, KEA, YUKI, ELK, WASATCH, BLANCHE].map((m) => [m.id, m]),
+)
+export const MOUNTAINS: MountainDef[] = Object.values(LEGACY_MOUNTAIN_MAP).map(withHillIdentity)
 
 export const MOUNTAIN_MAP: Record<string, MountainDef> = Object.fromEntries(MOUNTAINS.map((m) => [m.id, m]))
 

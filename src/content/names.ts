@@ -16,6 +16,7 @@ export const LAST_NAMES = [
 
 /** Complaint/compliment copy keyed by memory kind, used for reports & reviews. */
 export const MEMORY_COPY: Record<string, { good: boolean; report: string }> = {
+  'deep-snow': { good: false, report: 'Deep snow was difficult for learners' },
   'powder-run': { good: true, report: 'Fresh powder runs' },
   'groomed-run': { good: true, report: 'Perfect corduroy grooming' },
   'scenic-run': { good: true, report: 'Beautiful views on the trails' },

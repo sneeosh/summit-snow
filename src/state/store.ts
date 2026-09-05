@@ -97,6 +97,7 @@ interface Store {
   upgradeLift: (siteId: string, kind: LiftKind) => void
   setLiftOpen: (siteId: string, open: boolean) => void
   buildTrail: (trailId: string) => void
+  setGroomingPolicy: (trailId: string, policy: 'auto' | 'preserve') => void
   setTrailOpen: (trailId: string, open: boolean) => void
   installSnowmaking: (trailId: string) => void
   buildFacility: (slotId: string, kind: FacilityKind) => void
@@ -116,7 +117,7 @@ export const useStore = create<Store>((set, get) => {
   function mutate(fn: (g: GameState) => string | null | void): void {
     const game = get().game
     if (!game) return
-    ensureMountain(game.mountainId)
+    ensureMountain(game.mountainId, game.mountainVersion ?? 1)
     const err = fn(game) ?? null
     set({ game: { ...game }, actionError: err, tickCount: get().tickCount + 1 })
   }
@@ -153,7 +154,7 @@ export const useStore = create<Store>((set, get) => {
     loadSlot: (slot) => {
       const state = loadGame(slot)
       if (!state) return false
-      ensureMountain(state.mountainId)
+      ensureMountain(state.mountainId, state.mountainVersion ?? 1)
       set({
         screen: 'playing',
         game: state,
@@ -179,7 +180,7 @@ export const useStore = create<Store>((set, get) => {
     switchResortTo: (mountainId) => {
       const game = get().game
       if (!game) return
-      ensureMountain(game.mountainId)
+      ensureMountain(game.mountainId, game.mountainVersion ?? 1)
       const result = switchResort(game, mountainId)
       if (typeof result === 'string') {
         set({ actionError: result })
@@ -318,6 +319,7 @@ export const useStore = create<Store>((set, get) => {
     upgradeLift: (siteId, kind) => mutate((g) => actions.upgradeLift(g, siteId, kind)),
     setLiftOpen: (siteId, open) => mutate((g) => actions.setLiftOpen(g, siteId, open)),
     buildTrail: (trailId) => mutate((g) => actions.buildTrail(g, trailId)),
+    setGroomingPolicy: (id, policy) => mutate((g) => actions.setGroomingPolicy(g, id, policy)),
     setTrailOpen: (trailId, open) => mutate((g) => actions.setTrailOpen(g, trailId, open)),
     installSnowmaking: (trailId) => mutate((g) => actions.installSnowmaking(g, trailId)),
     buildFacility: (slotId, kind) => mutate((g) => actions.buildFacility(g, slotId, kind)),

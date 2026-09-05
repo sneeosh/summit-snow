@@ -2,7 +2,19 @@
  * Every tunable number in one place. If a designer might want to change it,
  * it lives here, not inline in a system.
  */
-import type { FacilityKind, FacilitySpec, LiftKind, LiftTypeSpec, Prices, SkillLevel, StaffRole } from '../game/types'
+import type { FacilityKind, FacilitySpec, LiftKind, LiftTypeSpec, Prices, SkillLevel, StaffRole, SurfaceQuality } from '../game/types'
+
+export const TERRAIN_SAMPLE_WU = 12
+export const SURFACE_ENJOYMENT: Record<SurfaceQuality, number> = {
+  'fresh-powder': 1.35, groomed: 1.2, 'packed-powder': 1, firm: 0.85,
+  'wind-affected': 0.7, thin: 0.6, icy: 0.55,
+}
+export const POWDER_PREFERENCE: Record<SkillLevel, number> = {
+  'first-timer': 0.65, beginner: 0.8, intermediate: 1.15, advanced: 1.45, expert: 1.6,
+}
+export const GROOMED_PREFERENCE: Record<SkillLevel, number> = {
+  'first-timer': 1.45, beginner: 1.4, intermediate: 1.3, advanced: 1.15, expert: 1.05,
+}
 
 // ------------------------------------------------------------------- time
 

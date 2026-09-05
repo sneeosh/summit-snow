@@ -3,7 +3,8 @@
  * queues at the type's hourly capacity, and delivering riders to the top.
  */
 import { LIFT_TYPES, TICK_MINUTES } from '../content/balance'
-import { getLiftSite } from './trails'
+import { getLiftSite, getNode } from './trails'
+import { routeWindMultiplier } from './terrainModel'
 import { onLiftArrival, pushAlert, remember } from './guests'
 import type { Rng } from './rng'
 import { runningLifts } from './resort'
@@ -15,16 +16,19 @@ export function tickLifts(state: GameState, rng: Rng): void {
   for (const lift of Object.values(state.lifts)) {
     const spec = LIFT_TYPES[lift.kind]
     const site = getLiftSite(state, lift.siteId)
+    const windKph = weather.windKph * routeWindMultiplier([
+      getNode(state, site.bottomNodeId)!.pos, getNode(state, site.topNodeId)!.pos,
+    ])
 
     // ---- wind holds come and go with the day's wind
     if (lift.forcedClosed === 'wind') {
-      if (weather.windKph <= spec.windTolerance - 5) {
+      if (windKph <= spec.windTolerance - 5) {
         lift.forcedClosed = null
         pushAlert(state, 'info', `${site.name} reopened after wind hold`)
       }
-    } else if (lift.forcedClosed === null && lift.open && weather.windKph > spec.windTolerance) {
+    } else if (lift.forcedClosed === null && lift.open && windKph > spec.windTolerance) {
       lift.forcedClosed = 'wind'
-      pushAlert(state, 'warning', `${site.name} on wind hold (${Math.round(weather.windKph)} km/h)`)
+      pushAlert(state, 'warning', `${site.name} on wind hold (${Math.round(windKph)} km/h on this alignment)`)
       dumpQueue(state, lift.siteId, 'wind hold')
     }
 

@@ -4,6 +4,7 @@ import { SLOT_MAP } from '../content/mountain'
 import { getLiftSite, getNode, getTrailDef } from '../game/trails'
 import { SKILL_LABEL } from '../content/names'
 import { isLiftRunning } from '../game/resort'
+import { routeWindMultiplier } from '../game/terrainModel'
 import { formatMoney, useStore } from '../state/store'
 import { DiffBadge, Meter, satColor } from './shared'
 
@@ -44,6 +45,7 @@ const SURFACE_LABEL: Record<string, string> = {
 function TrailCard({ id }: { id: string }) {
   const game = useStore((s) => s.game)!
   const setTrailOpen = useStore((s) => s.setTrailOpen)
+  const setGroomingPolicy = useStore((s) => s.setGroomingPolicy)
   const installSnowmaking = useStore((s) => s.installSnowmaking)
   const buildTrail = useStore((s) => s.buildTrail)
   const def = getTrailDef(game, id)
@@ -103,6 +105,18 @@ function TrailCard({ id }: { id: string }) {
           >
             {st.open ? 'Close trail' : `Open trail${st.snowDepthCm < TRAIL_MIN_DEPTH_CM ? ' (needs snow)' : ''}`}
           </button>
+          <label className="block text-[14px] font-medium">
+            Overnight grooming
+            <select className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-2 py-2 text-[14px]"
+              value={st.groomingPolicy ?? 'auto'}
+              onChange={(e) => setGroomingPolicy(id, e.target.value as 'auto' | 'preserve')}>
+              <option value="auto">Groom when a crew is available</option>
+              <option value="preserve">Preserve natural snow</option>
+            </select>
+          </label>
+          <p className="text-[12px] leading-relaxed text-ink-soft">
+            {st.groomingPolicy === 'preserve' ? 'Kept out of the grooming queue. Fresh powder appeals to stronger skiers; learners prefer a groomed route.' : 'Joins the overnight queue, with the busiest trails first. Needs groomer operators.'}
+          </p>
           {!st.hasSnowmaking && (
             <button className="btn btn-ghost w-full" onClick={() => installSnowmaking(id)}>
               Install snow guns — {formatMoney(12000)}
@@ -124,6 +138,9 @@ function LiftCard({ id }: { id: string }) {
   if (!lift || !site) return null
   const spec = LIFT_TYPES[lift.kind]
   const running = isLiftRunning(game, id)
+  const wind = game.weatherSeason[game.day - 1].windKph * routeWindMultiplier([
+    getNode(game, site.bottomNodeId)!.pos, getNode(game, site.topNodeId)!.pos,
+  ])
   const priceOf = (k: (typeof site.allowedKinds)[number]) =>
     site.isCustom ? LIFT_BASE_COST[k] + lift.lengthM * LIFT_COST_PER_M[k] : LIFT_TYPES[k].buildCost
   const upgrades = site.allowedKinds.filter((k) => priceOf(k) > priceOf(lift.kind))
@@ -159,6 +176,8 @@ function LiftCard({ id }: { id: string }) {
         <span className="text-right stat-number">{spec.staffRequired}</span>
         <span className="text-ink-faint">Wind limit</span>
         <span className="text-right stat-number">{spec.windTolerance} km/h</span>
+        <span className="text-ink-faint">Wind on this line</span>
+        <span className={`text-right stat-number ${wind > spec.windTolerance ? 'text-safety' : ''}`}>{Math.round(wind)} km/h</span>
       </div>
       <div className="mt-3 space-y-1.5">
         <button className={`btn w-full ${lift.open ? 'btn-ghost' : 'btn-primary'}`} onClick={() => setLiftOpen(id, !lift.open)}>

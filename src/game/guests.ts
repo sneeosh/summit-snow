@@ -40,7 +40,7 @@ import {
   reachableNodes,
   runningLifts,
 } from './resort'
-import { SURFACE_ENJOYMENT } from './weather'
+import { surfaceEnjoyment } from './weather'
 import type { GameState, Guest, GroupType, SkillLevel, Vec2 } from './types'
 
 // ------------------------------------------------------------------ spawn
@@ -593,14 +593,16 @@ function finishRun(state: GameState, guest: Guest, rng: Rng): void {
 
   // ---- experience of the run
   const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
-  const enjoy = SURFACE_ENJOYMENT[trail.surface]
+  const enjoy = surfaceEnjoyment(trail.surface, guest.skill)
   const crowd = trail.skierIds.length / def.capacity
   let delta = 6 * fit * enjoy - 2
   if (crowd > 0.85) {
     delta -= 4
     if (rng.chance(0.4)) remember(guest, 'crowded-trail', 'trail felt mobbed', -3, state.minute)
   }
-  if (trail.surface === 'fresh-powder' && rng.chance(0.6)) {
+  if (trail.surface === 'fresh-powder' && enjoy < 1 && rng.chance(0.4)) {
+    remember(guest, 'deep-snow', 'struggled to turn in deep ungroomed snow', -5, state.minute)
+  } else if (trail.surface === 'fresh-powder' && enjoy >= 1 && rng.chance(0.6)) {
     remember(guest, 'powder-run', 'floated through fresh powder', +9, state.minute)
   } else if (trail.surface === 'groomed' && rng.chance(0.3)) {
     remember(guest, 'groomed-run', 'carved fresh corduroy', +6, state.minute)
@@ -901,7 +903,7 @@ function scoreLine(state: GameState, guest: Guest, trailId: string, entryT: numb
   if (!trail?.built || !trail.open) return 0
   const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
   if (fit <= 0.02) return 0
-  let score = fit * SURFACE_ENJOYMENT[trail.surface]
+  let score = fit * surfaceEnjoyment(trail.surface, guest.skill)
   const crowd = trail.skierIds.length / def.capacity
   if (crowd > 0.8) score *= 0.55
   if (guest.lastTrailId === trailId) score *= 0.85
@@ -1022,7 +1024,7 @@ export function chooseTrail(state: GameState, guest: Guest): TrailChoice | null 
     const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
     if (fit <= 0.02) continue
 
-    let score = fit * SURFACE_ENJOYMENT[trail.surface]
+    let score = fit * surfaceEnjoyment(trail.surface, guest.skill)
     const crowd = trail.skierIds.length / def.capacity
     if (crowd > 0.8) score *= 0.55
     // queue aversion, scaled by patience

@@ -7,7 +7,7 @@
  * key changes; guests and chairs update every animation frame.
  */
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
-import { ensureMountain, FACILITY_SLOTS, measurePath, NODE_MAP, pointAt, TRAIL_MAP, WORLD_H, WORLD_W } from '../content/mountain'
+import { ACTIVE_MOUNTAIN, ensureMountain, FACILITY_SLOTS, measurePath, NODE_MAP, pointAt, TRAIL_MAP, WORLD_H, WORLD_W } from '../content/mountain'
 import { FACILITIES } from '../content/balance'
 import { nearestOnTrail } from '../game/junctions'
 import { hashNoise } from '../game/rng'
@@ -23,7 +23,7 @@ import {
   nearestNodeId,
   planCustomLift,
 } from '../game/trails'
-import { skylineYAt } from '../game/terrainModel'
+import { routeWindMultiplier, skylineYAt } from '../game/terrainModel'
 import { guestLook, guestTexture } from './sprites'
 import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
@@ -255,6 +255,14 @@ export class MountainScene {
     const fit = Math.max(w / WORLD_W, h / WORLD_H)
     // zooming all the way out shows the mountain plus the backcountry margin
     this.minZoom = Math.max(w / (WORLD_W + WORLD_PAD * 2), h / (WORLD_H + WORLD_PAD * 2))
+    const framing = ACTIVE_MOUNTAIN.identity?.camera
+    if (framing) {
+      this.zoom = Math.max(this.minZoom, Math.min(w / framing.width, h / framing.height))
+      this.world.scale.set(this.zoom)
+      this.world.position.set(w / 2 - framing.center.x * this.zoom, h / 2 - framing.center.y * this.zoom)
+      this.clampCamera()
+      return
+    }
     // …but open closer in, centred on the base village, so there's terrain
     // to pan across from the first moment
     this.zoom = fit * 1.35
@@ -329,7 +337,7 @@ export class MountainScene {
   }
 
   private handlePanKey(e: KeyboardEvent, down: boolean): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
     if (e.metaKey || e.ctrlKey || e.altKey) return
     const dir = MountainScene.PAN_KEYS[e.key.toLowerCase()]
     if (!dir) return
@@ -515,7 +523,7 @@ export class MountainScene {
 
     const { game, selection, buildMode, overlay } = this.getState()
     if (!game) return
-    ensureMountain(game.mountainId)
+    ensureMountain(game.mountainId, game.mountainVersion ?? 1)
 
     // terrain mood repaint (rare)
     const weather = game.weatherSeason[game.day - 1]
@@ -633,6 +641,7 @@ export class MountainScene {
       this.previewLabel.text =
         `${plan.lengthM.toLocaleString()} m · ↑${plan.riseM} m\n` +
         `${plan.treesToClear} trees · $${plan.totalCost.toLocaleString()}` +
+        (ACTIVE_MOUNTAIN.identity ? `\nWind on line: ${Math.round(game.weatherSeason[game.day - 1].windKph * routeWindMultiplier([plan.bottom, plan.top]))} km/h today` : '') +
         (plan.warnings.length > 0 ? `\n⚠ ${plan.warnings.length} warning${plan.warnings.length > 1 ? 's' : ''}` : '')
       this.previewLabel.position.set(end.x + 16, end.y - 10)
       this.previewLabel.visible = true
@@ -652,6 +661,14 @@ export class MountainScene {
     this.drawTrails(game, selection, buildMode, overlay)
     this.drawLifts(game, selection, buildMode)
     this.drawBuildings(game, selection, buildMode)
+    for (const form of ACTIVE_MOUNTAIN.identity?.landforms ?? []) {
+      const label = new Text({ text: form.name,
+        style: { fontFamily: 'Fraunces, serif', fontSize: 17, fontStyle: 'italic', fill: 0x496575,
+          stroke: { color: 0xf3f7f9, width: 4 } } })
+      label.anchor.set(0.5)
+      label.position.set(form.center.x, form.center.y - form.radius.y * 0.55)
+      this.labelLayer.addChild(label)
+    }
   }
 
   private drawTrails(game: GameState, selection: Selection, buildMode: BuildMode, overlay: Overlay): void {
@@ -679,11 +696,27 @@ export class MountainScene {
           g.moveTo(mid.x - 4, mid.y - 4).lineTo(mid.x + 4, mid.y + 4).stroke({ width: 2.4, color: 0xffffff })
           g.moveTo(mid.x + 4, mid.y - 4).lineTo(mid.x - 4, mid.y + 4).stroke({ width: 2.4, color: 0xffffff })
         }
-        // groomed corduroy hint
+        // Surfaces stay legible in the natural view. Tracks accumulate in
+        // bounded batches, avoiding a static scene rebuild for every skier.
+        if (overlay === 'none') {
+          const marks = st.surface === 'thin' ? 14 : st.surface === 'icy' ? 12 : Math.min(18, Math.floor(st.traffic / 5))
+          for (let i = 0; i < marks; i++) {
+            const t = (i + 1) / (marks + 1)
+            const a = pointAt(mp, Math.max(0, t - 0.007))
+            const b = pointAt(mp, Math.min(1, t + 0.012))
+            const offset = (hashNoise(game.seed, i, 621) - 0.5) * width * 0.55
+            const color = st.surface === 'thin' ? 0x9d8b70 : st.surface === 'icy' ? 0x8bc4df : 0x9ab6c8
+            g.moveTo(a.x + offset, a.y).lineTo(b.x + offset, b.y).stroke({ width: st.surface === 'thin' ? 3 : 1.4, color, alpha: 0.7 })
+          }
+        }
+        // Corduroy follows the piste, across the full route.
         if (st.surface === 'groomed' && st.open) {
-          for (let i = 1; i <= 5; i++) {
-            const q = pointAt(mp, i / 6)
-            g.moveTo(q.x - width * 0.28, q.y - 1.5).lineTo(q.x + width * 0.28, q.y + 1.5).stroke({ width: 1, color: 0xbfd2de, alpha: 0.8 })
+          const count = Math.min(120, Math.floor(mp.total / 10))
+          for (let i = 1; i < count; i++) {
+            const q = pointAt(mp, i / count), next = pointAt(mp, Math.min(1, i / count + 0.005))
+            const len = Math.hypot(next.x - q.x, next.y - q.y) || 1
+            const nx = -(next.y - q.y) / len * width * 0.35, ny = (next.x - q.x) / len * width * 0.35
+            g.moveTo(q.x - nx, q.y - ny).lineTo(q.x + nx, q.y + ny).stroke({ width: 0.8, color: 0xbfd2de, alpha: 0.6 })
           }
         }
       } else {
@@ -1100,6 +1133,7 @@ function makeBuilding(kind: string, x: number, y: number, selected: boolean): Co
   const c = new Container()
   const g = new Graphics()
   const spec = FACILITIES[kind as keyof typeof FACILITIES]
+  const biome = ACTIVE_MOUNTAIN.identity?.biome
 
   const big = kind === 'base-lodge' || kind === 'restaurant'
   const w = big ? 46 : kind === 'parking' ? 54 : 32
@@ -1115,12 +1149,31 @@ function makeBuilding(kind: string, x: number, y: number, selected: boolean): Co
     // shadow
     g.ellipse(x + 3, y + h / 2 + 2, w * 0.55, 4).fill({ color: 0x788fa0, alpha: 0.3 })
     // walls (wood)
-    g.roundRect(x - w / 2, y - h / 2 + 3, w, h - 3, 2).fill({ color: kind === 'first-aid' || kind === 'patrol-hq' ? 0xf4f6f8 : 0x9c7a52 })
+    const wall = biome === 'hardwood' ? 0xa34e40 : biome === 'birch' ? 0x485962 : biome === 'tussock' ? 0x8d795f : 0x9c7a52
+    g.roundRect(x - w / 2, y - h / 2 + 3, w, h - 3, 2).fill({ color: kind === 'first-aid' || kind === 'patrol-hq' ? 0xf4f6f8 : wall })
     // roof (snowy gable)
     g.poly([x - w / 2 - 4, y - h / 2 + 6, x, y - h / 2 - 8, x + w / 2 + 4, y - h / 2 + 6]).fill({ color: 0xf2f6f9 })
     g.poly([x - w / 2 - 4, y - h / 2 + 6, x, y - h / 2 - 8, x + w / 2 + 4, y - h / 2 + 6]).stroke({ width: 1.4, color: 0x8fa0aa })
     // door
     g.roundRect(x - 3, y + h / 2 - 8, 6, 8, 1).fill({ color: 0x5b4632 })
+    if (biome) {
+      // Windows, distinct eaves and entrance equipment give functional scale.
+      for (const side of [-1, 1]) {
+        g.rect(x + side * w * 0.29 - 3, y - 3, 6, 5).fill({ color: biome === 'birch' ? 0xffd28b : 0xc5e0e5 })
+      }
+      if (biome === 'birch') {
+        g.moveTo(x - w / 2 - 5, y - h / 2 + 6).lineTo(x + w / 2 + 5, y - h / 2 + 6).stroke({ width: 3, color: 0xfafcff })
+        g.circle(x + w / 2 + 3, y + 3, 3).fill({ color: 0xd95b4a })
+      } else if (biome === 'hardwood') {
+        g.rect(x - w / 2 + 4, y - h / 2 - 10, 5, 9).fill({ color: 0x695c54 })
+      } else {
+        g.moveTo(x - w / 2 - 4, y - h / 2 + 6).lineTo(x + w / 2 + 4, y - h / 2 + 6).stroke({ width: 3, color: 0x576f76 })
+      }
+      if (kind === 'base-lodge' || kind === 'rental-shop') {
+        g.moveTo(x - 20, y + h / 2 + 6).lineTo(x - 7, y + h / 2 + 6).stroke({ width: 2, color: 0x766859 })
+        for (let i = 0; i < 4; i++) g.moveTo(x - 20 + i * 3, y + h / 2 + 9).lineTo(x - 18 + i * 3, y + h / 2).stroke({ width: 1.4, color: i % 2 ? 0xc76545 : 0x4f8195 })
+      }
+    }
     // patrol/first-aid cross
     if (kind === 'first-aid' || kind === 'patrol-hq') {
       g.rect(x - 8, y - 3, 16, 4).fill({ color: 0xc0392b })
@@ -1132,7 +1185,7 @@ function makeBuilding(kind: string, x: number, y: number, selected: boolean): Co
   }
   c.addChild(g)
 
-  if (kind !== 'parking' && kind !== 'first-aid' && kind !== 'patrol-hq') {
+  if (!biome && kind !== 'parking' && kind !== 'first-aid' && kind !== 'patrol-hq') {
     const monogram = new Text({
       text: spec.label.charAt(0).toUpperCase(),
       style: { fontFamily: 'Fraunces, serif', fontSize: big ? 13 : 10, fontWeight: '600', fill: 0xfaf6ef },
@@ -1152,7 +1205,7 @@ function structureKeyOf(game: GameState, selection: Selection, buildMode: BuildM
   const trails = Object.values(game.trails)
     .map((t) => {
       const cap = (TRAIL_MAP[t.trailId] ?? game.customTrailDefs[t.trailId])?.capacity ?? 50
-      return `${t.trailId}:${t.built ? 1 : 0}:${t.open ? 1 : 0}:${t.surface}:${t.hasSnowmaking ? 1 : 0}${overlay === 'snow' ? ':' + Math.round(t.snowDepthCm) : ''}${overlay === 'crowding' ? ':' + Math.min(9, Math.floor((t.skierIds.length / cap) * 4)) : ''}`
+      return `${t.trailId}:${t.built ? 1 : 0}:${t.open ? 1 : 0}:${t.surface}:${Math.min(18, Math.floor(t.traffic / 5))}:${t.hasSnowmaking ? 1 : 0}${overlay === 'snow' ? ':' + Math.round(t.snowDepthCm) : ''}${overlay === 'crowding' ? ':' + Math.min(9, Math.floor((t.skierIds.length / cap) * 4)) : ''}`
     })
     .join(',')
   const fac = Object.entries(game.facilities)

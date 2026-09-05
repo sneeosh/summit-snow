@@ -158,6 +158,25 @@ export interface ClimateSpec {
   windMult: number
 }
 
+/** Authored landforms, shared by slope analysis, wind and the map painter. */
+export interface Landform {
+  name: string
+  kind: 'ridge' | 'bowl' | 'meadow'
+  center: Vec2
+  radius: Vec2
+  reliefM: number
+  windMultiplier: number
+}
+
+export interface MountainIdentity {
+  biome: 'hardwood' | 'birch' | 'tussock'
+  accent: string
+  strategy: string
+  development: string
+  camera: { center: Vec2; width: number; height: number }
+  landforms: Landform[]
+}
+
 /**
  * A purchasable mountain. All geometry shares the 1920×1200 world; character
  * comes from the skyline, the vertical (which drives how steep a drawn line
@@ -169,13 +188,14 @@ export interface MountainDef {
   /** where in the world it sits (and what real range inspired it) */
   region: string
   blurb: string
+  identity?: MountainIdentity
   /** purchase price — also the sandbox buy-in */
   price: number
   /** metres at the base village (y=1040) */
   baseElev: number
   /** metres at the summit (y=ySummit) */
   topElev: number
-  /** y of the highest skyline point; elevation is linear between the anchors */
+  /** y of the highest skyline point; anchors the baseline elevation */
   ySummit: number
   /** the ridgeline silhouette, ascending x across the full world width */
   skyline: [number, number][]
@@ -330,6 +350,8 @@ export interface TrailState {
   snowDepthCm: number
   surface: SurfaceQuality
   groomedOvernight: boolean
+  /** Auto joins the nightly queue; preserve leaves natural snow untouched. */
+  groomingPolicy: 'auto' | 'preserve'
   hasSnowmaking: boolean
   skierIds: number[]
   ridesToday: number
@@ -480,6 +502,8 @@ export interface GameState {
   seed: number
   /** which MountainDef this state simulates */
   mountainId: string
+  /** Pins the geometry of existing resorts when authored mountains change. */
+  mountainVersion: 1 | 2
   /** the resort portfolio (only meaningful on the active state) */
   company: CompanyState
   /** monotonically increasing RNG draw counter — the whole sim shares one stream */

@@ -31,7 +31,7 @@ const eventProvider = createEventProvider({ provider: 'local' })
 /** ends planning, computes the day's demand, rolls morning faults & events */
 export function openResort(state: GameState): void {
   if (state.phase !== 'planning') return
-  ensureMountain(state.mountainId)
+  ensureMountain(state.mountainId, state.mountainVersion ?? 1)
   const rng = new Rng(state.rngState)
 
   state.phase = 'operating'
@@ -77,7 +77,7 @@ export function openResort(state: GameState): void {
 /** one fixed-step sim tick while operating */
 export function tick(state: GameState): void {
   if (state.phase !== 'operating') return
-  ensureMountain(state.mountainId)
+  ensureMountain(state.mountainId, state.mountainVersion ?? 1)
   const rng = new Rng(state.rngState)
 
   state.minute += TICK_MINUTES
@@ -151,7 +151,7 @@ export function dayEndDisposition(state: GameState): 'game-over' | 'season-rolls
 /** advance from the day-end report into the next planning morning */
 export function startNextDay(state: GameState): void {
   if (state.phase !== 'day-end') return
-  ensureMountain(state.mountainId)
+  ensureMountain(state.mountainId, state.mountainVersion ?? 1)
 
   state.day += 1
   state.minute = DAY_START_MIN

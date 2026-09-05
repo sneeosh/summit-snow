@@ -14,11 +14,14 @@ import {
   SNOWMAKING_CM_PER_NIGHT,
   SNOWMAKING_MAX_TEMP,
   TRAIL_MIN_DEPTH_CM,
+  SURFACE_ENJOYMENT,
+  POWDER_PREFERENCE,
+  GROOMED_PREFERENCE,
 } from '../content/balance'
 import { ACTIVE_MOUNTAIN } from '../content/mountain'
 import { hashNoise, Rng } from './rng'
-import { elevationAt } from './terrainModel'
-import type { ClimateSpec, TrailDef, TrailState, WeatherDay } from './types'
+import { elevationAt, routeWindMultiplier } from './terrainModel'
+import type { ClimateSpec, SkillLevel, TrailDef, TrailState, WeatherDay } from './types'
 
 /** resolves a trail id to its def (static content or player-drawn) */
 export type TrailDefLookup = (id: string) => TrailDef
@@ -133,7 +136,7 @@ export function processOvernight(
 
   // grooming priority: open trails with most traffic wear first
   const groomQueue = built
-    .filter((t) => t.open && t.snowDepthCm > 10)
+    .filter((t) => t.open && t.snowDepthCm > 10 && t.groomingPolicy !== 'preserve')
     .sort((a, b) => b.traffic - a.traffic)
     .slice(0, opts.groomerCapacity)
 
@@ -160,7 +163,7 @@ export function processOvernight(
     }
 
     // wind strips exposed trails
-    if (tonight.windKph > 45 && isExposed(def)) {
+    if (tonight.windKph * routeWindMultiplier(def.path) > 45 && isExposed(def)) {
       t.snowDepthCm -= WIND_STRIP_CM
     }
 
@@ -190,10 +193,10 @@ export function processOvernight(
 export function computeSurface(t: TrailState, weather: WeatherDay, defOf: TrailDefLookup): TrailState['surface'] {
   const def = defOf(t.trailId)
   if (t.snowDepthCm < 30) return 'thin'
-  if (weather.windKph > 45 && isExposed(def)) return 'wind-affected'
-  if (weather.snowfallCm >= 10) return 'fresh-powder'
+  if (weather.windKph * routeWindMultiplier(def.path) > 45 && isExposed(def)) return 'wind-affected'
   // overnight grooming tills freeze-thaw crust back into corduroy
   if (t.groomedOvernight) return 'groomed'
+  if (weather.snowfallCm >= 10) return 'fresh-powder'
   // freeze-thaw: warm day then hard freeze glazes ungroomed snow
   if (weather.tempLow < -6 && weather.tempHigh > 0) return 'icy'
   if (weather.snowfallCm >= 3) return 'packed-powder'
@@ -202,21 +205,17 @@ export function computeSurface(t: TrailState, weather: WeatherDay, defOf: TrailD
 }
 
 /** how much a surface helps (>1) or hurts (<1) the skiing experience */
-export const SURFACE_ENJOYMENT: Record<TrailState['surface'], number> = {
-  'fresh-powder': 1.35,
-  groomed: 1.2,
-  'packed-powder': 1.0,
-  firm: 0.85,
-  'wind-affected': 0.7,
-  thin: 0.6,
-  icy: 0.55,
+export function surfaceEnjoyment(surface: TrailState['surface'], skill: SkillLevel): number {
+  if (surface === 'fresh-powder') return POWDER_PREFERENCE[skill]
+  if (surface === 'groomed') return GROOMED_PREFERENCE[skill]
+  return SURFACE_ENJOYMENT[surface]
 }
 
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v))
 }
 function round1(v: number): number {
-  return Math.round(v * 10) / 10
+  return Math.round(v * 10) / 10 || 0 // JSON cannot preserve negative zero
 }
 function round2(v: number): number {
   return Math.round(v * 100) / 100

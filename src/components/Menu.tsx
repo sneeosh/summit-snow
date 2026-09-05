@@ -4,6 +4,7 @@ import { STARTING_CASH_SANDBOX } from '../content/balance'
 import { MOUNTAINS, snowfallLabel } from '../content/mountains'
 import { listSaves, AUTOSAVE_SLOT, deleteSave } from '../state/save'
 import { useStore } from '../state/store'
+import type { MountainDef } from '../game/types'
 
 export function MainMenu() {
   const startNew = useStore((s) => s.startNew)
@@ -71,7 +72,7 @@ export function MainMenu() {
                       <span className="stat-number text-[12px] text-wood">${m.price.toLocaleString()}</span>
                     </div>
                     <div className="text-[10px] text-ink-faint">{m.region}</div>
-                    <SkylineMini skyline={m.skyline} />
+                    <SkylineMini mountain={m} />
                     <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-[10px] text-ink-soft">
                       <span>↕ {(m.topElev - m.baseElev).toLocaleString()} m</span>
                       <span>❄ {snowfallLabel(m.climate.snowfallMult)}</span>
@@ -79,6 +80,7 @@ export function MainMenu() {
                       {!affordable && <span className="font-semibold text-safety">out of reach — for now</span>}
                     </div>
                     <div className="mt-0.5 text-[10.5px] leading-snug text-ink-soft">{m.blurb}</div>
+                    {m.identity && <div className="mt-2 border-t border-ink/10 pt-2 text-[12px] leading-relaxed" style={{ color: m.identity.accent }}>{m.identity.strategy}</div>}
                   </button>
                 )
               })}
@@ -140,12 +142,12 @@ export function MainMenu() {
 }
 
 /** tiny true-to-scale silhouette so the cards read as different mountains */
-function SkylineMini({ skyline }: { skyline: [number, number][] }) {
-  const pts = ['0,1100', ...skyline.map(([x, y]) => `${x},${y}`), '1920,1100']
+function SkylineMini({ mountain }: { mountain: MountainDef }) {
+  const pts = ['0,1100', ...mountain.skyline.map(([x, y]) => `${x},${y}`), '1920,1100']
   return (
-    <svg className="mt-1 h-7 w-full" viewBox="0 80 1920 1020" preserveAspectRatio="none" aria-hidden>
-      <polygon points={pts.join(' ')} fill="#b7c9d6" />
-      <polygon points={pts.join(' ')} fill="none" stroke="#8fa5b5" strokeWidth="14" />
+    <svg className="mt-1 h-12 w-full rounded" viewBox="0 80 1920 1020" preserveAspectRatio="none" aria-hidden>
+      <polygon points={pts.join(' ')} fill={mountain.identity?.accent ?? '#b7c9d6'} opacity="0.22" />
+      <polyline points={mountain.skyline.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={mountain.identity?.accent ?? '#8fa5b5'} strokeWidth="14" />
     </svg>
   )
 }

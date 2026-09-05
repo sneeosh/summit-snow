@@ -184,6 +184,7 @@ export function buildCustomTrail(state: GameState, points: Vec2[]): string | nul
     snowDepthCm: Math.round(depth),
     surface: 'packed-powder',
     groomedOvernight: false,
+    groomingPolicy: 'auto',
     hasSnowmaking: false,
     skierIds: [],
     ridesToday: 0,
@@ -209,6 +210,14 @@ export function setTrailOpen(state: GameState, trailId: string, open: boolean): 
     return `Not enough snow to open (${trail.snowDepthCm} cm, needs ${TRAIL_MIN_DEPTH_CM})`
   }
   trail.open = open
+  return null
+}
+
+export function setGroomingPolicy(state: GameState, trailId: string, policy: TrailState['groomingPolicy']): string | null {
+  const trail = state.trails[trailId]
+  if (!trail?.built) return 'Cut the trail before planning grooming'
+  if (policy !== 'auto' && policy !== 'preserve') return 'Unknown grooming plan'
+  trail.groomingPolicy = policy
   return null
 }
 

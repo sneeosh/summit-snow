@@ -50,6 +50,37 @@ your reputation. At 16:30 the day settles into an operating report.
 - **Scenario** mode has objectives and a bankruptcy condition; **Sandbox**
   starts with deep pockets.
 
+## Mountain identities — first release
+
+New Prairie Knob, Yukimura and Kea Basin resorts have authored starter runs,
+village footprints, opening cameras, regional vegetation, horizons and named
+landforms. Bowls and ridges affect the same elevation field used for map
+shading and custom-trail analysis. Long drawn segments are sampled between
+waypoints so they cannot skip a ridge.
+
+- **Prairie:** compact teaching terrain, bare hardwoods, red buildings and a
+  farmland horizon. Prioritize learners, snowmaking and short laps.
+- **Yukimura:** silver birch, sheltered bowls and a village street. In a built
+  trail's inspector, choose automatic grooming or **Preserve natural snow**.
+  Beginners prefer groomers; stronger skiers prefer fresh powder.
+- **Kea:** open bowls, scree and exposed ridges. Wind is sampled along lift
+  alignments; the most exposed section controls wind holds. The drawing
+  preview and lift inspector show local wind, and the forecast includes wind.
+
+Natural-view trails show corduroy, ice/thin-cover marks and accumulated tracks.
+These reuse the procedural renderer; no new asset downloads are required.
+
+Save v7 pins older resorts (including inactive holdings) to their original
+terrain and building layout. Newly purchased resorts use the new layout.
+Content is in `src/content/hillProfiles.ts`; shared elevation mathematics is
+in `src/game/elevation.ts`. Future changes to existing authored geometry must
+retain the previous revision for saved resorts.
+
+This is the first identity slice. Night operations, avalanche control,
+regional scenario objectives, the other five mountain art sets, and the full
+village animation pass remain roadmap work. Browser visual QA and a longer
+balance playtest are still needed before a production release.
+
 ## Architecture
 
 The simulation is plain TypeScript with zero React/Pixi dependencies — it
