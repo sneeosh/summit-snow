@@ -125,7 +125,8 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
     energy: Math.round(energy),
     facilities,
     interest: Math.round(interest),
-    other: state.operations.controlCostToday,
+    other: state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
+    medevac: state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
   }
   state.cash -= payroll + maintenance + expenses.energy + facilities
 

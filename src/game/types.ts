@@ -262,6 +262,7 @@ export type GuestObjective =
   | 'restroom'
   | 'resting'
   | 'first-aid'
+  | 'rescue'
   | 'leaving'
   | 'gone'
 
@@ -407,6 +408,19 @@ export interface RevenueBreakdown {
   parking: number
 }
 
+export interface RescueIncident {
+  guestId: number
+  trailId: string
+  location: Vec2
+  destination: Vec2
+  injury: 'Serious fall' | 'Compound fracture'
+  transport: 'sled' | 'helicopter'
+  startedMinute: number
+  responseMinutes: number
+  completed: boolean
+  cost: number
+}
+
 export interface ExpenseBreakdown {
   payroll: number
   maintenance: number
@@ -414,6 +428,8 @@ export interface ExpenseBreakdown {
   facilities: number
   interest: number
   other: number
+  /** Included in other; optional on historical reports. */
+  medevac?: number
 }
 
 export interface DailyReport {
@@ -566,6 +582,7 @@ export interface GameState {
   /** accumulated during the operating day */
   revenueToday: RevenueBreakdown
   incidentsToday: number
+  rescuesToday: RescueIncident[]
 
   demandMultTomorrow: number
   snowBonusCm: number

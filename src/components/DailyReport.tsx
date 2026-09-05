@@ -49,7 +49,8 @@ export function DailyReportModal() {
             <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-faint">Expenses — {formatMoney(expTotal)}</h4>
             <MoneyRow label="Payroll" v={exp.payroll} neg />
             <MoneyRow label="Lift maintenance" v={exp.maintenance} neg />
-            {exp.other > 0 && <MoneyRow label="Mountain control" v={exp.other} neg />}
+            {exp.other - (exp.medevac ?? 0) > 0 && <MoneyRow label="Mountain control" v={exp.other - (exp.medevac ?? 0)} neg />}
+            {(exp.medevac ?? 0) > 0 && <MoneyRow label="Helicopter evacuations" v={exp.medevac!} neg />}
             <MoneyRow label="Energy" v={exp.energy} neg />
             <MoneyRow label="Facilities & town services" v={exp.facilities} neg />
             <MoneyRow label="Loan interest" v={exp.interest} neg />

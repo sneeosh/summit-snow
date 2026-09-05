@@ -6,6 +6,10 @@
  * speed_wu_per_tick = (m_per_min / 2) * TICK_MINUTES.
  */
 import {
+  MEDEVAC_COST,
+  MEDEVAC_SERIOUS_FRACTION,
+  RESCUE_PATROL_MINUTES,
+  RESCUE_UNDERSTAFFED_MINUTES,
   BLADDER_PER_MIN,
   CHILD_FRACTION,
   DAY_END_MIN,
@@ -43,6 +47,7 @@ import {
   runningLifts,
 } from './resort'
 import { closingMinute, nightOperating } from './operations'
+import { rescueProgress } from './rescue'
 import { surfaceEnjoyment } from './weather'
 import type { GameState, Guest, GroupType, SkillLevel, Vec2 } from './types'
 
@@ -180,6 +185,10 @@ export function tickGuests(state: GameState, rng: Rng): void {
   const coldFactor = Math.max(0, -weather.tempHigh) * 0.045 + (weather.windKph > 35 ? 0.35 : 0)
 
   for (const guest of Object.values(state.guests)) {
+    if (guest.objective === 'rescue') {
+      tickRescue(state, guest)
+      continue
+    }
     // ---- universal need drift
     guest.hunger = clamp(guest.hunger + HUNGER_PER_MIN * TICK_MINUTES, 0, 100)
     guest.bladder = clamp(guest.bladder + BLADDER_PER_MIN * TICK_MINUTES, 0, 100)
@@ -542,7 +551,8 @@ function tickSkiing(state: GameState, guest: Guest, rng: Rng): void {
   }
 }
 
-function handleIncident(state: GameState, guest: Guest, rng: Rng): void {
+export function handleIncident(state: GameState, guest: Guest, rng: Rng): void {
+  if (guest.injured || !guest.routeTrailId) return
   const trailId = guest.routeTrailId!
   const trail = state.trails[trailId]
   trail.skierIds = trail.skierIds.filter((id) => id !== guest.id)
@@ -552,7 +562,27 @@ function handleIncident(state: GameState, guest: Guest, rng: Rng): void {
   remember(guest, 'injury', 'took a bad fall', serious ? -45 : -18, state.minute)
   if (serious) {
     state.incidentsToday++
-    pushAlert(state, 'critical', `Skier down on ${getTrailDef(state, trailId).name} — patrol responding`)
+    const helicopter = rng.chance(MEDEVAC_SERIOUS_FRACTION)
+    const cost = helicopter ? MEDEVAC_COST : 0
+    state.rescuesToday.push({
+      guestId: guest.id, trailId, location: { ...guest.pos },
+      destination: { ...(helicopter ? ACTIVE_MOUNTAIN.entrance : slotPos('first-aid', state) ?? NODE_MAP.base.pos) },
+      injury: helicopter ? 'Compound fracture' : 'Serious fall',
+      transport: helicopter ? 'helicopter' : 'sled',
+      startedMinute: state.minute,
+      responseMinutes: coverage >= 0.8 ? RESCUE_PATROL_MINUTES : RESCUE_UNDERSTAFFED_MINUTES,
+      completed: false, cost,
+    })
+    // Dispatch is automatic even with no cash. Settlement reports this charge, never repeats it.
+    state.cash -= cost
+    guest.objective = 'rescue'
+    guest.routeTrailId = null
+    guest.routeLiftId = null
+    guest.atNodeId = null
+    guest.plan = []
+    guest.plannedTrailId = null
+    pushAlert(state, 'critical', `${helicopter ? 'Compound fracture' : 'Serious fall'} on ${getTrailDef(state, trailId).name} — ${helicopter ? `helicopter dispatched ($${MEDEVAC_COST.toLocaleString()})` : 'patrol responding with a rescue sled'}`)
+    return
   }
   // patrol sleds them to the base
   guest.routeTrailId = null
@@ -567,6 +597,24 @@ function handleIncident(state: GameState, guest: Guest, rng: Rng): void {
     guest.satisfaction = clamp(guest.satisfaction + 8, 0, 100) // handled well
   } else {
     guest.objective = 'leaving'
+  }
+}
+
+function tickRescue(state: GameState, guest: Guest): void {
+  const rescue = state.rescuesToday.find(r => r.guestId === guest.id && !r.completed)
+  if (!rescue) return
+  const motion = rescueProgress(rescue, state.minute)
+  guest.pos = motion.position
+  if (motion.progress < 1) return
+  rescue.completed = true
+  pushAlert(state, 'info', `${rescue.transport === 'helicopter' ? 'Air evacuation' : 'Patrol rescue'} complete on ${getTrailDef(state, rescue.trailId).name}`)
+  if (rescue.transport === 'helicopter') {
+    depart(state, guest)
+  } else {
+    guest.atNodeId = 'base'
+    guest.objective = hasFacility(state, 'first-aid') ? 'first-aid' : 'leaving'
+    guest.busyMinutes = 25
+    if (hasFacility(state, 'first-aid')) guest.satisfaction = clamp(guest.satisfaction + 8, 0, 100)
   }
 }
 

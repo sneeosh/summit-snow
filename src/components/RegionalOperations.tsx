@@ -1,5 +1,6 @@
-import { AVALANCHE_CONTROL_COST_PER_RUN, AVALANCHE_CONTROL_STAFF, AVALANCHE_MOUNTAINS, NIGHT_LIGHTING_COST } from '../content/balance'
+import { MEDEVAC_COST, AVALANCHE_CONTROL_COST_PER_RUN, AVALANCHE_CONTROL_STAFF, AVALANCHE_MOUNTAINS, NIGHT_LIGHTING_COST } from '../content/balance'
 import { avalancheHeld, avalancheRisk, avalancheRuns, closingMinute } from '../game/operations'
+import { rescueProgress } from '../game/rescue'
 import { getTrailDef } from '../game/trails'
 import { formatClock, formatMoney, useStore } from '../state/store'
 
@@ -29,6 +30,15 @@ export function RegionalOperations() {
       {!pending.length && <p className="text-ink-faint">No outstanding avalanche-control work.</p>}
     </>}
     {game.mountainId !== 'prairie' && !AVALANCHE_MOUNTAINS.includes(game.mountainId) && <p>Daytime operations. Keep rentals and food venues staffed to welcome the village crowd; use each trail’s grooming plan to choose corduroy or natural snow.</p>}
+    <section className="space-y-2 border-t border-ink/10 pt-2">
+      <h3 className="font-semibold">Patrol & rescue</h3>
+      <p>Serious falls receive on-slope patrol treatment and sled transport. Compound fractures trigger a helicopter evacuation costing {formatMoney(MEDEVAC_COST)}. Dispatch is automatic; full patrol coverage speeds response.</p>
+      {game.rescuesToday.length === 0 && <p className="text-ink-faint">No serious rescues today.</p>}
+      {game.rescuesToday.map(r => <div key={r.guestId} className="rounded bg-ink/5 p-2">
+        <strong>{r.injury}</strong> · {getTrailDef(game, r.trailId).name}<br />
+        {r.completed ? 'Transport complete' : rescueProgress(r, game.minute).stage} · {r.transport === 'helicopter' ? `Helicopter · ${formatMoney(r.cost)}` : 'Patrol sled · covered by payroll'}
+      </div>)}
+    </section>
     {!planning && <p className="text-ink-faint">Choose shifts and complete control work before opening tomorrow.</p>}
   </div>
 }

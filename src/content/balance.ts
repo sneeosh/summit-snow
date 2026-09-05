@@ -386,3 +386,11 @@ export const TOWN_POLICY_COSTS = { winterMarket: 12_000, darkSky: 8_000 }
 export const TOWN_MARKET_DEMAND = .03
 export const TOWN_MARKET_DAILY_COST = 60
 export const TOWN_DARK_SKY_SAVING = .2
+
+// Rescue tuning: fictional resort-paid emergency transport costs.
+export const MEDEVAC_COST = 4500
+export const MEDEVAC_SERIOUS_FRACTION = 0.35
+export const RESCUE_PATROL_MINUTES = 6
+export const RESCUE_UNDERSTAFFED_MINUTES = 12
+export const RESCUE_TREATMENT_MINUTES = 5
+export const RESCUE_TRANSPORT_MINUTES = 8

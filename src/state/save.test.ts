@@ -169,3 +169,30 @@ describe('save migrations', () => {
     expect(loadGame('junk')).toBeNull()
   })
 })
+
+it('v11 migrates active and inactive holdings without inventing past rescue charges', () => {
+  const s = newGame('sandbox', 91)
+  s.company.resortStates.prairie = newGame('sandbox', 12, 'prairie')
+  const old = JSON.parse(JSON.stringify(s))
+  delete old.rescuesToday
+  delete old.company.resortStates.prairie.rescuesToday
+  old.version = old.company.resortStates.prairie.version = 11
+  backing.set('summit-snow:save:v11', JSON.stringify({ version: 11, state: old }))
+  const loaded = loadGame('v11')!
+  expect(loaded.version).toBe(SAVE_VERSION)
+  expect(loaded.rescuesToday).toEqual([])
+  expect(loaded.company.resortStates.prairie.rescuesToday).toEqual([])
+  expect(loaded.cash).toBe(s.cash)
+  expect(loaded.town).toEqual(s.town)
+})
+
+it('in-flight rescues round-trip with the original dispatch charge and timeline', () => {
+  const s = newGame('sandbox', 91)
+  s.rescuesToday.push({ guestId: 7, trailId: Object.keys(s.trails)[0],
+    location: { x: 50, y: 50 }, destination: { x: 500, y: 900 },
+    injury: 'Compound fracture', transport: 'helicopter', startedMinute: 600,
+    responseMinutes: 12, completed: false, cost: 4500 })
+  s.cash -= 4500
+  expect(saveGame('rescue', s, 'Rescue underway')).toBe(true)
+  expect(loadGame('rescue')).toEqual(s)
+})

@@ -25,6 +25,7 @@ import {
 } from '../game/trails'
 import { routeWindMultiplier, skylineYAt } from '../game/terrainModel'
 import { darkness, paintVillageLife } from './villageLife'
+import { paintRescues } from './rescues'
 import { guestLook, guestTexture } from './sprites'
 import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
@@ -129,6 +130,7 @@ export class MountainScene {
   private buildingLayer = new Container()
   private guestLayer = new Container()
   private villageLife = new Graphics()
+  private rescueLayer = new Graphics()
   private lastVillageFrame = -1
   private weatherLayer = new Container()
   private previewLayer = new Container()
@@ -227,7 +229,7 @@ export class MountainScene {
 
     // drawPreview sits outside previewLayer: rebuilds destroy previewLayer's
     // children, but the draw-mode overlay is redrawn per frame instead
-    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.villageLife, this.guestLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.previewLabel, this.weatherLayer)
+    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.villageLife, this.guestLayer, this.rescueLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.previewLabel, this.weatherLayer)
     this.previewLabel.visible = false
     app.stage.addChild(this.world)
 
@@ -564,6 +566,7 @@ export class MountainScene {
       this.lastVillageFrame = villageTime
       paintVillageLife(this.villageLife, game, villageTime / 10)
     }
+    paintRescues(this.rescueLayer, game, window.matchMedia('(prefers-reduced-motion: reduce)').matches)
     this.updateGuests(game)
     this.updateChairs(game)
     this.updateWeather(game)
@@ -935,6 +938,7 @@ export class MountainScene {
 
       // hide guests inside buildings; riders are represented by their chair
       const hidden =
+        guest.objective === 'rescue' ||
         guest.objective === 'riding' ||
         guest.objective === 'eating' ||
         guest.objective === 'resting' ||

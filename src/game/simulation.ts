@@ -94,7 +94,7 @@ export function tick(state: GameState): void {
   // day winds down: everyone still on the hill heads out; hard cutoff later
   if (state.minute >= closingMinute(state)) {
     const remaining = Object.values(state.guests)
-    if (remaining.length === 0 || state.minute >= closingMinute(state) + 75) {
+    if (remaining.length === 0 || (state.minute >= closingMinute(state) + 75 && !remaining.some(g => g.objective === 'rescue'))) {
       for (const g of remaining) {
         state.departedToday.push({
           satisfaction: g.satisfaction,
@@ -205,6 +205,7 @@ export function startNextDay(state: GameState): void {
   state.peakGuestsToday = 0
   state.revenueToday = { tickets: 0, rentals: 0, food: 0, lessons: 0, parking: 0 }
   state.incidentsToday = 0
+  state.rescuesToday = []
   state.arrivalCarry = 0
   for (const lift of Object.values(state.lifts)) {
     lift.queue = []
