@@ -5,7 +5,7 @@
  * you're standing on. You manage one resort at a time — the others hold
  * their breath until you come back.
  */
-import { FACILITIES, LIFT_TYPES, SNOWMAKING_INSTALL_COST } from '../content/balance'
+import { NIGHT_LIGHTING_COST, FACILITIES, LIFT_TYPES, SNOWMAKING_INSTALL_COST } from '../content/balance'
 import { ensureMountain, LIFT_SITE_MAP, TRAIL_MAP } from '../content/mountain'
 import { MOUNTAIN_MAP, RESALE_BASE_RATIO, RESALE_DEVELOPMENT_RATIO } from '../content/mountains'
 import { pushAlert } from './guests'
@@ -47,6 +47,7 @@ export function developmentValue(resort: GameState): number {
   for (const [slotId, kind] of Object.entries(resort.facilities)) {
     if (kind && !prebuiltSlots.has(slotId)) value += FACILITIES[kind].buildCost
   }
+  if (resort.operations?.nightLighting) value += NIGHT_LIGHTING_COST
   return Math.round(value)
 }
 

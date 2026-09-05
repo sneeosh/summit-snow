@@ -24,6 +24,7 @@ import {
   planCustomLift,
 } from '../game/trails'
 import { routeWindMultiplier, skylineYAt } from '../game/terrainModel'
+import { darkness, paintVillageLife } from './villageLife'
 import { guestLook, guestTexture } from './sprites'
 import type { GameState, TrailDef, TrailState, Vec2 } from '../game/types'
 import type { BuildMode, Overlay, Selection } from '../state/store'
@@ -127,6 +128,8 @@ export class MountainScene {
   private liftLayer = new Container()
   private buildingLayer = new Container()
   private guestLayer = new Container()
+  private villageLife = new Graphics()
+  private lastVillageFrame = -1
   private weatherLayer = new Container()
   private previewLayer = new Container()
   private labelLayer = new Container()
@@ -224,7 +227,7 @@ export class MountainScene {
 
     // drawPreview sits outside previewLayer: rebuilds destroy previewLayer's
     // children, but the draw-mode overlay is redrawn per frame instead
-    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.guestLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.previewLabel, this.weatherLayer)
+    this.world.addChild(this.trailLayer, this.liftLayer, this.buildingLayer, this.villageLife, this.guestLayer, this.labelLayer, this.previewLayer, this.drawPreview, this.previewLabel, this.weatherLayer)
     this.previewLabel.visible = false
     app.stage.addChild(this.world)
 
@@ -551,6 +554,16 @@ export class MountainScene {
       this.rebuildStatic(game, selection, buildMode, overlay)
     }
 
+    const dark = darkness(game)
+    if (this.terrainSprite) {
+      const mix = (day: number, night: number) => Math.round(day + (night - day) * dark)
+      this.terrainSprite.tint = (mix(255, 84) << 16) | (mix(255, 108) << 8) | mix(255, 151)
+    }
+    const villageTime = Math.floor(performance.now() / 100)
+    if (villageTime !== this.lastVillageFrame) {
+      this.lastVillageFrame = villageTime
+      paintVillageLife(this.villageLife, game, villageTime / 10)
+    }
     this.updateGuests(game)
     this.updateChairs(game)
     this.updateWeather(game)

@@ -47,7 +47,7 @@ interface Store {
   buildMode: BuildMode
   overlay: Overlay
   leftTab: LeftTab
-  bottomTab: 'alerts' | 'guests' | 'finance' | null
+  bottomTab: 'alerts' | 'guests' | 'finance' | 'operations' | null
   actionError: string | null
   showReport: boolean
   /** bumps every sim tick — cheap subscription point for imperatively-read data */
@@ -86,11 +86,15 @@ interface Store {
   setBuildMode: (b: BuildMode) => void
   setOverlay: (o: Overlay) => void
   setLeftTab: (t: LeftTab) => void
-  setBottomTab: (t: 'alerts' | 'guests' | 'finance' | null) => void
+  setBottomTab: (t: 'alerts' | 'guests' | 'finance' | 'operations' | null) => void
   clearError: () => void
   dismissReport: () => void
   completeTutorialStep: (id: string) => void
   skipTutorial: () => void
+
+  installNightLighting: () => void
+  setNightSkiing: (enabled: boolean) => void
+  controlAvalanches: () => void
 
   // player actions
   buildLift: (siteId: string, kind: LiftKind) => void
@@ -315,6 +319,9 @@ export const useStore = create<Store>((set, get) => {
         g.tutorialActive = false
       }),
 
+    installNightLighting: () => mutate(actions.installNightLighting),
+    setNightSkiing: (enabled) => mutate((g) => actions.setNightSkiing(g, enabled)),
+    controlAvalanches: () => mutate(actions.controlAvalanches),
     buildLift: (siteId, kind) => mutate((g) => actions.buildLift(g, siteId, kind)),
     upgradeLift: (siteId, kind) => mutate((g) => actions.upgradeLift(g, siteId, kind)),
     setLiftOpen: (siteId, open) => mutate((g) => actions.setLiftOpen(g, siteId, open)),

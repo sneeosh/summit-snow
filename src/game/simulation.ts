@@ -3,13 +3,14 @@
  * (planning → operating → day-end → next morning). Pure state-in/state-out;
  * the Zustand store owns scheduling and immutability boundaries.
  */
-import { DAY_END_MIN, DAY_START_MIN, SEASON_DAYS, TICK_MINUTES } from '../content/balance'
+import { DAY_START_MIN, SEASON_DAYS, TICK_MINUTES } from '../content/balance'
 import { ensureMountain } from '../content/mountain'
 import { MOUNTAIN_MAP } from '../content/mountains'
 import { computeDailyDemand, settleDay } from './economy'
 import { createEventProvider, expireOldEvents, type EventContext } from './events'
 import { pushAlert, spawnArrivals, tickGuests } from './guests'
 import { rollBreakdowns, tickLifts } from './lifts'
+import { avalancheHeld, avalancheRuns, closingMinute } from './operations'
 import { updateObjectives } from './objectives'
 import {
   groomerCapacity,
@@ -34,6 +35,9 @@ export function openResort(state: GameState): void {
   ensureMountain(state.mountainId, state.mountainVersion ?? 1)
   const rng = new Rng(state.rngState)
 
+  const held = Object.values(state.trails).filter(t => t.built && t.open && avalancheHeld(state, t.trailId))
+  for (const trail of held) trail.open = false
+  if (held.length) pushAlert(state, 'warning', `Avalanche hold: ${held.length} runs closed until morning control is completed`)
   state.phase = 'operating'
   state.minute = DAY_START_MIN
   state.targetDemandToday = computeDailyDemand(state)
@@ -87,9 +91,9 @@ export function tick(state: GameState): void {
   tickGuests(state, rng)
 
   // day winds down: everyone still on the hill heads out; hard cutoff later
-  if (state.minute >= DAY_END_MIN) {
+  if (state.minute >= closingMinute(state)) {
     const remaining = Object.values(state.guests)
-    if (remaining.length === 0 || state.minute >= DAY_END_MIN + 75) {
+    if (remaining.length === 0 || state.minute >= closingMinute(state) + 75) {
       for (const g of remaining) {
         state.departedToday.push({
           satisfaction: g.satisfaction,
@@ -153,6 +157,9 @@ export function startNextDay(state: GameState): void {
   if (state.phase !== 'day-end') return
   ensureMountain(state.mountainId, state.mountainVersion ?? 1)
 
+  state.operations.controlCostToday = 0
+  state.operations.avalancheClearedTrails = []
+  state.operations.avalancheClearedDay = 0
   state.day += 1
   state.minute = DAY_START_MIN
   state.phase = 'planning'
@@ -184,6 +191,9 @@ export function startNextDay(state: GameState): void {
     (id) => getTrailDef(state, id),
   )
   state.snowBonusCm = 0
+  const avalancheClosures = avalancheRuns(state)
+  for (const id of avalancheClosures) state.trails[id].open = false
+  if (avalancheClosures.length) pushAlert(state, 'warning', `Avalanche holds on ${avalancheClosures.length} expert runs — review Mountain operations before opening`)
 
   // ---- reset daily accumulators
   state.departedToday = []

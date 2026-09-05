@@ -85,8 +85,8 @@ Wasatch has limestone bowls; Blanche has a glacial skyline. Sandbox mountain
 goals encourage different development patterns and reflect current operations,
 including connected routes back to base. They do not award cash or latch permanently.
 
-Night operations, avalanche control and richer village activity remain roadmap
-work. A terrain contact sheet has been visually reviewed; browser interaction
+Night operations, avalanche control and village activity are implemented in a
+separate follow-up PR; see `docs/regional-operations.md` for controls and limits. A terrain contact sheet has been visually reviewed; browser interaction
 QA remains blocked by the preview environment. Full-season headless checks
 cover all eight hills with additional capital to isolate simulation stability;
 these are not a profitability balance certification.

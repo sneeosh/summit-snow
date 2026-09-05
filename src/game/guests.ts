@@ -9,6 +9,8 @@ import {
   BLADDER_PER_MIN,
   CHILD_FRACTION,
   DAY_END_MIN,
+  NIGHT_LAST_ARRIVAL_MIN,
+  NIGHT_VISITOR_RATIO,
   ENERGY_DRAIN_IDLE_PER_MIN,
   ENERGY_DRAIN_SKI_PER_MIN,
   GUEST_START_SATISFACTION,
@@ -40,6 +42,7 @@ import {
   reachableNodes,
   runningLifts,
 } from './resort'
+import { closingMinute, nightOperating } from './operations'
 import { surfaceEnjoyment } from './weather'
 import type { GameState, Guest, GroupType, SkillLevel, Vec2 } from './types'
 
@@ -67,11 +70,14 @@ let ENVELOPE_TOTAL = 0
 for (let m = 8 * 60 + 30; m < LAST_ARRIVAL_MIN; m++) ENVELOPE_TOTAL += arrivalWeight(m)
 
 export function spawnArrivals(state: GameState, rng: Rng): void {
-  if (state.minute >= LAST_ARRIVAL_MIN) return
+  const evening = nightOperating(state) && state.minute >= DAY_END_MIN
+  if (evening ? state.minute >= NIGHT_LAST_ARRIVAL_MIN : state.minute >= LAST_ARRIVAL_MIN) return
   const alive = Object.keys(state.guests).length
   if (alive >= MAX_LIVE_GUESTS) return
 
-  const perMinute = (state.targetDemandToday * arrivalWeight(state.minute)) / ENVELOPE_TOTAL
+  const perMinute = evening
+    ? state.targetDemandToday * NIGHT_VISITOR_RATIO / (NIGHT_LAST_ARRIVAL_MIN - DAY_END_MIN)
+    : (state.targetDemandToday * arrivalWeight(state.minute)) / ENVELOPE_TOTAL
   state.arrivalCarry += perMinute * TICK_MINUTES
   while (state.arrivalCarry >= 1) {
     state.arrivalCarry -= 1
@@ -647,7 +653,7 @@ export function decideNext(state: GameState, guest: Guest): void {
   const minute = state.minute
 
   // day is ending or guest is spent
-  if (guest.injured || guest.energy < 12 || minute > DAY_END_MIN - 25) {
+  if (guest.injured || guest.energy < 12 || minute > closingMinute(state) - 25) {
     routeTowardExit(state, guest)
     return
   }

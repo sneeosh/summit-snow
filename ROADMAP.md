@@ -43,8 +43,8 @@ checks cover all eight hills. A 336-day first-week comparison is recorded in
 `docs/balance-playtest.md`. Full-season expansion and snow-recovery probes are
 in `docs/expansion-playtest.md` and `docs/snow-recovery-playtest.md`. Merged
 return routes now count correctly toward mountain goals. Interactive browser
-review, broader weather-seed balance and acquisition pacing remain before release. Follow-ons: richer village activity, night
-skiing for Prairie, and avalanche control for advanced alpine terrain.
+review, broader weather-seed balance and acquisition pacing remain before release. A separate follow-up PR adds village activity, Prairie night skiing and
+avalanche-control operations (see `docs/regional-operations.md`).
 
 ## Release 1.0 — "Opening Day" *(target: late summer 2026)*
 

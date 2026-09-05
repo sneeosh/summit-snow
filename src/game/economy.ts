@@ -4,6 +4,7 @@
 import { ACTIVE_MOUNTAIN } from '../content/mountain'
 import {
   DAY_END_MIN,
+  NIGHT_LIGHTS_ENERGY,
   DAY_START_MIN,
   ENERGY_COST_LIGHTS_DAILY,
   LIFT_TYPES,
@@ -14,6 +15,7 @@ import {
   WEEKEND_MULT,
 } from '../content/balance'
 import { MEMORY_COPY, renderReview, REVIEW_TEMPLATES } from '../content/names'
+import { closingMinute, nightOperating } from './operations'
 import { Rng } from './rng'
 import { facilityOperatingDaily, liftMaintenanceDaily, openTrailsByDifficulty, parkingCapacity } from './resort'
 import type { DailyReport, ExpenseBreakdown, GameState, GuestMemory } from './types'
@@ -88,14 +90,14 @@ export interface Settlement {
 }
 
 export function settleDay(state: GameState, rng: Rng): Settlement {
-  const operatedMinutes = DAY_END_MIN - DAY_START_MIN
+  const operatedMinutes = closingMinute(state) - DAY_START_MIN
 
   // ---- expenses
-  const payroll = state.staff.reduce((sum, d) => sum + d.headcount * d.dailyWage, 0)
+  const payroll = state.staff.reduce((sum, d) => sum + d.headcount * d.dailyWage, 0) * (operatedMinutes / (DAY_END_MIN - DAY_START_MIN))
   const maintenance = liftMaintenanceDaily(state)
   const facilities = facilityOperatingDaily(state)
 
-  let energy = ENERGY_COST_LIGHTS_DAILY
+  let energy = ENERGY_COST_LIGHTS_DAILY + (nightOperating(state) ? NIGHT_LIGHTS_ENERGY : 0)
   for (const lift of Object.values(state.lifts)) {
     if (lift.open) energy += LIFT_TYPES[lift.kind].energyPerHour * (operatedMinutes / 60)
   }
@@ -121,13 +123,13 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
     energy: Math.round(energy),
     facilities,
     interest: Math.round(interest),
-    other: 0,
+    other: state.operations.controlCostToday,
   }
   state.cash -= payroll + maintenance + expenses.energy + facilities
 
   const revenue = state.revenueToday
   const revTotal = revenue.tickets + revenue.rentals + revenue.food + revenue.lessons + revenue.parking
-  const expTotal = expenses.payroll + expenses.maintenance + expenses.energy + expenses.facilities + expenses.interest
+  const expTotal = expenses.payroll + expenses.maintenance + expenses.energy + expenses.facilities + expenses.interest + expenses.other
   const operatingProfit = revTotal - expTotal
 
   // ---- guest verdicts

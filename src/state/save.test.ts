@@ -105,6 +105,20 @@ describe('save migrations', () => {
     expect(NODE_MAP.base.pos.x).toBe(950)
   })
 
+  it('v8 portfolios receive disabled operations without moving their terrain', () => {
+    const state = newGame('sandbox', 71, 'prairie')
+    state.cash = 2_000_000
+    buyResort(state, 'kea')
+    const strip = (s: GameState) => { delete (s as unknown as Record<string, unknown>).operations; s.version = 8 }
+    strip(state); strip(state.company.resortStates.kea)
+    backing.set('summit-snow:save:v8', JSON.stringify({ version: 8, state }))
+    const loaded = loadGame('v8')!
+    expect(loaded.operations).toEqual({ nightLighting: false, nightSkiing: false, avalancheClearedDay: 0, avalancheClearedTrails: [], controlCostToday: 0 })
+    expect(loaded.company.resortStates.kea.operations).toEqual(loaded.operations)
+    expect(loaded.mountainVersion).toBe(3)
+    expect(loaded.version).toBe(SAVE_VERSION)
+  })
+
   it('an unreadable save fails soft, not loud', () => {
     backing.set('summit-snow:save:junk', '{not json')
     expect(loadGame('junk')).toBeNull()
