@@ -3,6 +3,7 @@
  * version; migrations upgrade old saves step by step so future schema
  * changes never strand a player.
  */
+import { newTown, townMemory } from '../game/town'
 import { SAVE_VERSION } from '../game/init'
 import { rebuildJunctions } from '../game/junctions'
 import type { GameState } from '../game/types'
@@ -30,6 +31,20 @@ function migrateMountainIdentity(state: GameState): GameState {
 
 /** version → upgrade fn producing the next version's payload */
 const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
+  10: (p) => {
+    const upgrade = (s: GameState): GameState => {
+      const town = { ...s.town, policies: { winterMarket: false, darkSky: false }, scrapbook: [] as GameState['town']['scrapbook'] }
+      town.scrapbook.push(townMemory(town, s.day, s.season, 'The village when we arrived'))
+      return { ...s, version: 11, town, company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) } }
+    }
+    return { ...p, version: 11, state: upgrade(p.state) }
+  },
+  9: (p) => {
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 10, town: newTown(),
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },
+    })
+    return { ...p, version: 10, state: upgrade(p.state) }
+  },
   8: (p) => {
     const upgrade = (s: GameState): GameState => ({ ...s, version: 9,
       operations: { nightLighting: false, nightSkiing: false, avalancheClearedDay: 0, avalancheClearedTrails: [], controlCostToday: 0 },

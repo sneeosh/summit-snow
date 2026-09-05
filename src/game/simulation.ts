@@ -22,6 +22,7 @@ import {
   snowmakingCapacity,
   staffCount,
 } from './resort'
+import { advanceTown } from './town'
 import { Rng } from './rng'
 import { getTrailDef } from './trails'
 import { generateSeasonWeather, processOvernight } from './weather'
@@ -176,6 +177,9 @@ export function startNextDay(state: GameState): void {
     state.seasonIncidents = 0
     pushAlert(state, 'info', `Season ${state.season} opens — fresh snowpack, fresh books`)
   }
+
+  const townOpening = advanceTown(state)
+  if (townOpening) pushAlert(state, 'info', townOpening)
 
   // ---- overnight mountain work (uses the dawning day's weather)
   const weather = state.weatherSeason[state.day - 1]

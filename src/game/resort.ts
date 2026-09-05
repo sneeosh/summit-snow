@@ -9,6 +9,7 @@ import {
   TRAILS_PER_PATROLLER,
   TRAILS_PER_SNOW_TECH,
 } from '../content/balance'
+import { townBenefits } from './town'
 import { allNodes, getLiftSite, getTrailDef } from './trails'
 import type { FacilityKind, GameState, LiftState, StaffRole, TrailState } from './types'
 
@@ -83,7 +84,7 @@ export function snowmakingBoost(state: GameState): number {
 }
 
 export function parkingCapacity(state: GameState): number {
-  return countFacility(state, 'parking') * GUESTS_PER_PARKING
+  return countFacility(state, 'parking') * GUESTS_PER_PARKING + townBenefits(state).transport
 }
 
 /** seats across food venues, gated by food-service staffing */

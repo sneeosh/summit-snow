@@ -34,6 +34,9 @@ import {
 import { avalancheHeld, avalancheRuns } from './operations'
 import { staffCount } from './resort'
 import { computeSurface } from './weather'
+import { TOWN_PROJECTS, TOWN_POLICIES } from '../content/town'
+import { townProposal, townPolicyProposal, townMemory } from './town'
+import type { TownProject, TownPolicy } from './types'
 import type { FacilityKind, GameState, LiftKind, LiftSiteDef, Prices, StaffRole, TrailState, Vec2 } from './types'
 
 function spend(state: GameState, amount: number): string | null {
@@ -323,4 +326,35 @@ export function controlAvalanches(state: GameState): string | null {
   state.operations.avalancheClearedDay = state.day
   pushAlert(state, 'info', `Avalanche control complete on ${runs.length} runs — closed trails can now be reopened`)
   return null
+}
+
+/** Council votes are previewable and deterministic; a failed proposal spends nothing. */
+export function proposeTownProject(state: GameState, project: TownProject, homes = false): string | null {
+  if (!Object.prototype.hasOwnProperty.call(TOWN_PROJECTS, project)) return 'Unknown town project'
+  if (state.phase !== 'planning') return 'Meet the council before opening the resort'
+  if (state.town.construction) return 'Let the current town project finish first'
+  if (homes && project !== 'inn') return 'The employee-home compact belongs to inn proposals'
+  const proposal = townProposal(state, project, homes)
+  if (proposal.maxed) return 'This district is fully developed'
+  if (!proposal.approved) return 'Council declined — two of three representatives must support the plan'
+  const error = spend(state, proposal.cost)
+  if (error) return error
+  state.town.construction = { project, homes, remainingDays: proposal.days, totalDays: proposal.days }
+  pushAlert(state, 'info', `Council approves ${TOWN_PROJECTS[project].name} — opening in ${proposal.days} operating days`)
+  return null
+}
+
+export function adoptTownPolicy(state: GameState, policy: TownPolicy): string | null {
+ if (!Object.prototype.hasOwnProperty.call(TOWN_POLICIES, policy)) return 'Unknown town policy'
+ if (state.phase !== 'planning') return 'Council meets during morning planning'
+ if (state.town.policies[policy]) return 'This charter is already adopted'
+ if (policy === 'winterMarket' && state.town.levels.mainstreet === 0) return 'Renew Main Street first'
+ const proposal = townPolicyProposal(state, policy)
+ if (!proposal.approved) return 'Two council votes are required'
+ if (state.cash < proposal.cost) return 'Not enough cash for this charter'
+ state.cash -= proposal.cost
+ state.town.policies[policy] = true
+ state.town.scrapbook.push(townMemory(state.town, state.day, state.season, TOWN_POLICIES[policy].name))
+ pushAlert(state, 'info', `${TOWN_POLICIES[policy].name} adopted — visit the village to see the change`)
+ return null
 }

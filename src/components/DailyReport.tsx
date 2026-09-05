@@ -51,7 +51,7 @@ export function DailyReportModal() {
             <MoneyRow label="Lift maintenance" v={exp.maintenance} neg />
             {exp.other > 0 && <MoneyRow label="Mountain control" v={exp.other} neg />}
             <MoneyRow label="Energy" v={exp.energy} neg />
-            <MoneyRow label="Facilities" v={exp.facilities} neg />
+            <MoneyRow label="Facilities & town services" v={exp.facilities} neg />
             <MoneyRow label="Loan interest" v={exp.interest} neg />
           </div>
         </div>
