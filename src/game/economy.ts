@@ -214,7 +214,7 @@ function buildReport(
       name: d.name,
       skill: d.skill,
       stars: Math.max(1, Math.min(5, Math.round(sat / 20))),
-      text: renderReview(rng.pick(template.texts), best, worst),
+      text: renderReview(rng.pick(template.texts), best, worst, ACTIVE_MOUNTAIN.name),
     })
   }
 

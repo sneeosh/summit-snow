@@ -177,12 +177,13 @@ body {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 
+.town-heading { margin: 12px; }
 .town-shell { display: grid; grid-template-columns: minmax(0, 1fr) 355px; }
 .town-new-landmark { animation: town-unveil 1.5s ease-out; }
 .town-opening { animation: town-unveil .7s ease-out; }
 @keyframes town-unveil { from { opacity: .2; } to { opacity: 1; } }
 @media (max-width: 760px) {
-  .town-shell { grid-template-columns: 1fr; grid-template-rows: minmax(240px, 42%) minmax(0, 1fr); }
+  .town-shell { grid-template-columns: 1fr; grid-template-rows: minmax(300px, 50%) minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .town-new-landmark, .town-opening { animation: none; }

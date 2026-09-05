@@ -1,5 +1,5 @@
 /** Compact command bar: brand, date/clock, weather + forecast, cash, stars, speed. */
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { SEASON_DAYS } from '../content/balance'
 import { isWeekend } from '../game/economy'
 import { MOUNTAIN_MAP } from '../content/mountains'
@@ -18,12 +18,25 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
 
+  const hasGame = !!game
+  const barRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    const hud = bar?.parentElement
+    if (!bar || !hud) return
+    const update = () => hud.style.setProperty('--hud-content-top', `${bar.offsetTop + bar.offsetHeight + 12}px`)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(bar)
+    return () => { observer.disconnect(); hud.style.removeProperty('--hud-content-top') }
+  }, [hasGame])
+
   if (!game) return null
   const weather = game.weatherSeason[game.day - 1]
   const operating = game.phase === 'operating'
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-3 z-30 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
+    <div ref={barRef} className="pointer-events-auto absolute left-1/2 top-3 z-30 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
       <div className="glass flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl px-2.5 py-1.5 sm:gap-x-4 sm:px-4 sm:py-2">
         {/* brand (phones show just the mountain) */}
         <div className="pr-2 border-r border-ink/10 sm:pr-3">

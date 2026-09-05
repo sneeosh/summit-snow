@@ -54,7 +54,7 @@ export const REVIEW_TEMPLATES: ReviewTemplate[] = [
     maxSat: 101,
     texts: [
       'Unforgettable day. {highlight} — we’re already planning the next trip.',
-      'Five stars isn’t enough. {highlight}. Mount Alder is a gem.',
+      'Five stars isn’t enough. {highlight}. {mountain} is a gem.',
       '{highlight}. Staff were lovely, snow was lovelier.',
     ],
   },
@@ -63,7 +63,7 @@ export const REVIEW_TEMPLATES: ReviewTemplate[] = [
     maxSat: 85,
     texts: [
       'Really solid day on the hill. {highlight}, though {lowlight} needs attention.',
-      'Good vibes at Mount Alder. {highlight}. Minor gripe: {lowlight}.',
+      'Good vibes at {mountain}. {highlight}. Minor gripe: {lowlight}.',
       'Would come back. {highlight}.',
     ],
   },
@@ -122,10 +122,11 @@ export function renderReview(
   template: string,
   bestMemory: GuestMemory | null,
   worstMemory: GuestMemory | null,
+  mountainName: string,
 ): string {
   const hl = bestMemory ? (HIGHLIGHT_TEXT[bestMemory.kind] ?? 'the mountain itself delivers') : 'the mountain itself delivers'
   const ll = worstMemory ? (LOWLIGHT_TEXT[worstMemory.kind] ?? 'a few rough edges') : 'a few rough edges'
-  let out = template.replace('{highlight}', hl).replace('{lowlight}', ll)
+  let out = template.replace('{mountain}', mountainName).replace('{highlight}', hl).replace('{lowlight}', ll)
   out = out.charAt(0).toUpperCase() + out.slice(1)
   return out
 }

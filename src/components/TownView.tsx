@@ -22,17 +22,17 @@ export function TownView() {
  const opening=game.town.lastOpening?.day===game.day&&game.town.lastOpening?.season===game.season?game.town.lastOpening:null
  const snapshot = memory === null ? null : game.town.scrapbook[memory]
  const shown = snapshot ? { ...game, day: snapshot.day, season: snapshot.season, minute: 10*60, phase: 'planning' as const, town: { ...game.town, levels: snapshot.levels, policies: snapshot.policies, compactHomes: snapshot.compactHomes, construction: null, lastOpening: null } } : game
- return <div className="town-shell pointer-events-auto absolute inset-x-3 top-20 bottom-24 z-10 overflow-hidden rounded-2xl border border-white/50 bg-[#e9ece2] shadow-xl">
-  <section className="town-panorama relative min-h-0 overflow-hidden bg-[#bdced1]">
-   <TownScene game={shown} camera={camera} celebrating={celebrating&&!snapshot} still={!!snapshot}/>
-   <div className="absolute left-4 top-4 rounded-xl bg-[#f5f1e6]/95 px-4 py-3 shadow-sm">
+ return <div className="town-shell pointer-events-auto absolute inset-x-3 top-[var(--hud-content-top,80px)] bottom-24 z-10 overflow-hidden rounded-2xl border border-white/50 bg-[#e9ece2] shadow-xl">
+  <section className="town-panorama relative flex min-h-0 flex-col overflow-hidden bg-[#bdced1]">
+   <div className="town-heading shrink-0 rounded-xl bg-[#f5f1e6]/95 px-4 py-3 shadow-sm">
     <div className="text-[10px] uppercase tracking-[.2em] text-[#63776e]">{townStage(shown)}</div>
     <h2 className="font-serif text-[23px] text-[#294a40]">{MOUNTAIN_MAP[game.mountainId].name} Village</h2>
     <p className="text-[11px] text-[#68766b]">A town shaped together. A mountain to come home to.</p>
    </div>
-   {opening&&!snapshot&&<div className="town-opening absolute bottom-16 left-4 rounded-xl border border-[#e4c776] bg-[#fff6d9] px-4 py-2 text-[#68542d] shadow-lg"><span className="text-[10px] font-bold uppercase tracking-widest">Now open</span><div className="font-serif text-lg">{TOWN_PROJECTS[opening.project].name} · Level {opening.level}</div><button className="mt-1 text-xs underline" onClick={()=>{setCelebrating(true);setCamera(opening.project==='housing'?'riverside':opening.project==='mainstreet'?'mainstreet':'station')}}>Visit the opening</button></div>}
-   {snapshot&&<div className="absolute bottom-16 left-4 rounded-lg bg-[#fff6db] p-3 text-xs text-[#55674f]">{snapshot.label} · Winter {snapshot.season}, day {snapshot.day}<button onClick={()=>setMemory(null)} className="ml-3 underline">Back to today</button></div>}
-   <nav aria-label="Town viewpoints" className="absolute bottom-3 left-1/2 flex max-w-[95%] -translate-x-1/2 gap-1 overflow-x-auto rounded-xl bg-[#f7f3e7]/95 p-1 shadow-md">
+   <div className="relative min-h-0 flex-1"><div className="absolute inset-0"><TownScene game={shown} camera={camera} celebrating={celebrating&&!snapshot} still={!!snapshot}/></div></div>
+   {opening&&!snapshot&&<div className="town-opening mx-3 mt-2 shrink-0 rounded-xl border border-[#e4c776] bg-[#fff6d9] px-4 py-2 text-[#68542d] shadow-lg"><span className="text-[10px] font-bold uppercase tracking-widest">Now open</span><div className="font-serif text-lg">{TOWN_PROJECTS[opening.project].name} · Level {opening.level}</div><button className="mt-1 text-xs underline" onClick={()=>{setCelebrating(true);setCamera(opening.project==='housing'?'riverside':opening.project==='mainstreet'?'mainstreet':'station')}}>Visit the opening</button></div>}
+   {snapshot&&<div className="mx-3 mt-2 shrink-0 rounded-lg bg-[#fff6db] p-3 text-xs text-[#55674f]">{snapshot.label} · Winter {snapshot.season}, day {snapshot.day}<button onClick={()=>setMemory(null)} className="ml-3 underline">Back to today</button></div>}
+   <nav aria-label="Town viewpoints" className="mx-3 my-2 flex shrink-0 gap-1 overflow-x-auto rounded-xl bg-[#f7f3e7]/95 p-1 shadow-md">
     {([['panorama','Panorama'],['mainstreet','Main Street'],['riverside','Riverside'],['station','Station Square']] as const).map(([id,label])=><button key={id} aria-pressed={camera===id} className={`whitespace-nowrap rounded-lg px-3 py-2 text-[11px] ${camera===id?'bg-[#355b4d] text-[#faf0d4]':'text-[#4c675a] hover:bg-[#e1e5d6]'}`} onClick={()=>setCamera(id)}>{label}</button>)}
    </nav>
   </section>

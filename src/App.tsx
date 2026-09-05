@@ -103,7 +103,7 @@ function BuildModeHint() {
           ? 'Click a built trail to install snow guns'
           : 'Click a highlighted site in the village'
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-[74px] z-20 -translate-x-1/2">
+    <div className="pointer-events-auto absolute left-1/2 top-[var(--hud-content-top,80px)] z-20 -translate-x-1/2">
       <div className="glass flex items-center gap-3 rounded-xl px-3.5 py-1.5 text-[12px] font-semibold text-ink-soft rise-in">
         <span className="pulse-dot inline-block h-2 w-2 rounded-full bg-wood" />
         {label}

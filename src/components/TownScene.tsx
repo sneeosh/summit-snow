@@ -39,13 +39,14 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   {Array.from({length:42},(_,i)=><Pine key={i} x={i*32-30} y={285+Math.sin(i*.63)*23} size={.75+(i%4)*.11} color="#587c76"/>)}
   <path d="M0 318Q300 255 570 320T1200 288V680H0Z" fill={`url(#${uid}-snow)`}/>
   <path d="M80 300C30 420 225 471 120 690" fill="none" stroke="#f6f4e9" strokeWidth="73"/>
-  <path d="M80 300C30 420 225 471 120 690" fill="none" stroke="url(#town-river)" strokeWidth="47"/>
+  <path d="M80 300C30 420 225 471 120 690" fill="none" stroke={`url(#${uid}-river)`} strokeWidth="47"/>
   <path d="M74 324Q63 367 82 383M111 471Q155 499 157 524M150 575L138 608" fill="none" stroke="#e0eeea" strokeWidth="2" opacity=".7"/>
   <path d="M-40 490Q275 385 505 442T1240 401" fill="none" stroke="#f7f6ec" strokeWidth="76"/>
+  {/* Paint both pavements before asphalt so the junction has no curb across it. */}
+  <path d="M870 458Q785 469 650 680" fill="none" stroke="#eeeede" strokeWidth="55"/>
+  <path d="M870 458Q785 469 650 680" fill="none" stroke="#a4aaa6" strokeWidth="32"/>
   <path d="M-40 490Q275 385 505 442T1240 401" fill="none" stroke="#a4aaa6" strokeWidth="49"/>
   <path d="M-40 490Q275 385 505 442T1240 401" fill="none" stroke="#d6d7ca" strokeWidth="2" strokeDasharray="15 22"/>
-  <path d="M870 425Q785 469 650 680" fill="none" stroke="#eeeede" strokeWidth="55"/>
-  <path d="M870 425Q785 469 650 680" fill="none" stroke="#a4aaa6" strokeWidth="32"/>
   <g transform="translate(129 451) rotate(-17)"><rect x="-42" y="-25" width="84" height="48" fill="#b6a48c"/>{[-25,23].map(y=><path key={y} d={`M-46 ${y}H46`} stroke="#6d6a58" strokeWidth="5"/>)}{[-36,-12,12,36].map(x=><path key={x} d={`M${x} -28V-12M${x} 25V9`} stroke="#686653" strokeWidth="3"/>)}</g>
   <TownLandmark mountainId={game.mountainId} active={people>5}/>
   <Chalet x={440} y={280} width={70} floors={1} color="#b2a58d" sign="TOWN HALL"/>

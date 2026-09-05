@@ -22,7 +22,7 @@ export function DrawTrailPanel() {
   const a = plan?.analysis
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-[74px] z-30 w-[min(390px,calc(100vw-24px))] -translate-x-1/2">
+    <div className="pointer-events-auto absolute left-1/2 top-[var(--hud-content-top,80px)] z-30 w-[min(390px,calc(100vw-24px))] -translate-x-1/2">
       <div className="glass rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-pine">Drawing a trail</span>
