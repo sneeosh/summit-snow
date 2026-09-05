@@ -29,7 +29,7 @@ function purchaseSeed(state: GameState, mountainId: string): number {
  * context, so activate it before reading content maps.
  */
 export function developmentValue(resort: GameState): number {
-  ensureMountain(resort.mountainId)
+  ensureMountain(resort.mountainId, resort.mountainVersion ?? 1)
   let value = 0
   for (const lift of Object.values(resort.lifts)) {
     const site = LIFT_SITE_MAP[lift.siteId] ?? resort.customLiftSites[lift.siteId]
@@ -56,7 +56,7 @@ export function saleValue(state: GameState, mountainId: string): number {
   if (!def) return 0
   const resort = mountainId === state.mountainId ? state : state.company.resortStates[mountainId]
   const dev = resort ? developmentValue(resort) : 0
-  ensureMountain(state.mountainId)
+  ensureMountain(state.mountainId, state.mountainVersion ?? 1)
   return Math.round(def.price * RESALE_BASE_RATIO + dev * RESALE_DEVELOPMENT_RATIO)
 }
 
@@ -77,7 +77,7 @@ export function buyResort(state: GameState, mountainId: string): string | null {
   state.company.resortStates[mountainId] = fresh
   state.company.holdings.push({ mountainId, pricePaid: def.price, dayAcquired: state.day })
 
-  ensureMountain(state.mountainId) // newGame activated the purchase; come home
+  ensureMountain(state.mountainId, state.mountainVersion ?? 1) // newGame activated the purchase; come home
   pushAlert(state, 'info', `${def.name} acquired for $${def.price.toLocaleString()} — the keys are yours`)
   return null
 }
@@ -116,6 +116,6 @@ export function switchResort(state: GameState, mountainId: string): GameState | 
     cash: state.cash,
     company: { holdings: state.company.holdings, resortStates },
   }
-  ensureMountain(next.mountainId)
+  ensureMountain(next.mountainId, next.mountainVersion ?? 1)
   return next
 }

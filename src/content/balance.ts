@@ -2,7 +2,19 @@
  * Every tunable number in one place. If a designer might want to change it,
  * it lives here, not inline in a system.
  */
-import type { FacilityKind, FacilitySpec, LiftKind, LiftTypeSpec, Prices, SkillLevel, StaffRole } from '../game/types'
+import type { FacilityKind, FacilitySpec, LiftKind, LiftTypeSpec, Prices, SkillLevel, StaffRole, SurfaceQuality } from '../game/types'
+
+export const TERRAIN_SAMPLE_WU = 12
+export const SURFACE_ENJOYMENT: Record<SurfaceQuality, number> = {
+  'fresh-powder': 1.35, groomed: 1.2, 'packed-powder': 1, firm: 0.85,
+  'wind-affected': 0.7, thin: 0.6, icy: 0.55,
+}
+export const POWDER_PREFERENCE: Record<SkillLevel, number> = {
+  'first-timer': 0.65, beginner: 0.8, intermediate: 1.15, advanced: 1.45, expert: 1.6,
+}
+export const GROOMED_PREFERENCE: Record<SkillLevel, number> = {
+  'first-timer': 1.45, beginner: 1.4, intermediate: 1.3, advanced: 1.15, expert: 1.05,
+}
 
 // ------------------------------------------------------------------- time
 
@@ -337,3 +349,8 @@ export const SERIOUS_INCIDENT_REP_HIT = 0.12
 export const OBJ_SATISFACTION_TARGET = 65
 export const OBJ_GUESTS_IN_DAY = 250
 export const OBJ_MAX_SERIOUS_INCIDENTS = 5
+
+/** Drawn runs are graded by the steepest sustained pitch, not one tiny step. */
+export const TRAIL_GRADE_WINDOW_M = 100
+export const TRAIL_GRADE_THRESHOLDS = { blue: 0.28, black: 0.45, doubleBlack: 0.62 }
+export const TRAIL_ROLLOVER_WARNING_DELTA = 0.15

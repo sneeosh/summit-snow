@@ -9,7 +9,7 @@ import {
   SNOWMAKING_INSTALL_COST,
   STAFF_WAGES,
 } from '../content/balance'
-import { TRAILS } from '../content/mountain'
+import { ACTIVE_MOUNTAIN, TRAILS } from '../content/mountain'
 import { MOUNTAINS, snowfallLabel } from '../content/mountains'
 import { saleValue } from '../game/company'
 import { liftStaffRequired, staffCount } from '../game/resort'
@@ -91,6 +91,13 @@ function BuildPanel() {
 
   return (
     <div className="space-y-4">
+      {ACTIVE_MOUNTAIN.identity && (
+        <div className="rounded-xl border-l-4 bg-white/55 px-3 py-2.5" style={{ borderColor: ACTIVE_MOUNTAIN.identity.accent }}>
+          <div className="font-display text-[17px] font-semibold">{ACTIVE_MOUNTAIN.name}</div>
+          <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{ACTIVE_MOUNTAIN.identity.strategy}</p>
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-faint">{ACTIVE_MOUNTAIN.identity.development}</p>
+        </div>
+      )}
       <Section title="Lifts" hint="Pick a type, then click the bottom and top points anywhere on the mountain">
         <div className="grid grid-cols-2 gap-1.5">
           {(Object.keys(LIFT_TYPES) as LiftKind[]).map((kind) => {

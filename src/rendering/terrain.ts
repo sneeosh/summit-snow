@@ -11,6 +11,7 @@ import { hashNoise } from '../game/rng'
 import { ACTIVE_MOUNTAIN, WORLD_H, WORLD_W } from '../content/mountain'
 import { distToPath, elevationAt, scatterTrees, skyline, skylineYAt } from '../game/terrainModel'
 import type { Vec2, WeatherDay } from '../game/types'
+import { paintRegionalHorizon, paintRegionalRelief, paintRegionalTree, paintRegionalVillage } from './regionalTerrain'
 
 /** a felled corridor from a built custom trail — no trees painted inside */
 export interface Clearing {
@@ -101,7 +102,7 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
   // ---- distant ridges
   const ridgeAlpha = Math.max(0.2, mood.visibility)
   const ridgeColors = ['rgba(148, 170, 189, ALPHA)', 'rgba(170, 190, 205, ALPHA)']
-  FAR_RIDGES.forEach((ridge, i) => {
+  if (!paintRegionalHorizon(ctx, dim)) FAR_RIDGES.forEach((ridge, i) => {
     ctx.beginPath()
     ctx.moveTo(L, ridge[0][1])
     for (const [x, y] of ridge) ctx.lineTo(x, y)
@@ -211,6 +212,7 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
   }
 
   // ---- forests (avoid all trail corridors + village)
+  paintRegionalRelief(ctx, dim, seed)
   paintForests(ctx, seed, dim, clearings)
 
   // ---- village ground: gentle warm clearing at the bottom
@@ -220,6 +222,7 @@ export function paintTerrain(mood: TerrainMood, seed: number, clearings: Clearin
   village.addColorStop(1, 'rgba(233, 228, 218, 0)')
   ctx.fillStyle = village
   ctx.fillRect(400, 900, 1300, 300)
+  paintRegionalVillage(ctx)
 
   ctx.restore()
 
@@ -281,6 +284,7 @@ function paintForests(ctx: CanvasRenderingContext2D, seed: number, dim: number, 
 }
 
 function drawSpruce(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, tone: number, dim: number): void {
+  if (paintRegionalTree(ctx, x, y, size, tone, dim)) return
   const g = 58 + tone * 26 - dim * 12
   const dark = `rgb(${30 + tone * 14}, ${g}, ${44 + tone * 16})`
   // shadow

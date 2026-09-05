@@ -30,6 +30,22 @@ Known debt going in: per-segment trail grading is unfair (one steep pitch grades
 
 ---
 
+## Mountain identities — implementation in review (September 2026)
+
+All eight hills now have regional scenery and development guidance. Seven have
+new starting layouts; Alder retains the scenario network. Local relief and wind
+exposure affect routing and lift holds. Grooming can preserve natural snow,
+and guest surface preferences depend on ability. Optional sandbox goals vary
+by hill and require connected terrain. Save v8 retains both older geometry revisions.
+
+Terrain art was reviewed through rendered contact sheets. Full-season headless
+checks cover all eight hills. A 336-day first-week comparison is recorded in
+`docs/balance-playtest.md`. Full-season expansion and snow-recovery probes are
+in `docs/expansion-playtest.md` and `docs/snow-recovery-playtest.md`. Merged
+return routes now count correctly toward mountain goals. Interactive browser
+review, broader weather-seed balance and acquisition pacing remain before release. Follow-ons: richer village activity, night
+skiing for Prairie, and avalanche control for advanced alpine terrain.
+
 ## Release 1.0 — "Opening Day" *(target: late summer 2026)*
 
 **Theme: the game is finishable, fair, and welcoming. Ship the game we already have, polished.**
@@ -38,7 +54,7 @@ This is a hardening release informed by the friends playtest. No new systems.
 
 | Epic | What it delivers |
 |---|---|
-| **Fair terrain grading** | Sliding-window (~100 m) sustained-steepness grading so one rollover doesn't turn a cruiser into a double black. Live grade preview while drawing (resolve the badge UX question first). |
+| **Fair terrain grading — in review** | New regional trails use a 100 m sustained pitch, with separate rollover warnings and pitch readouts. Existing saved grades remain intact. |
 | **Playtest punch list** | Every stuck-point, confusion, and "wait, what happened?" from the friends playtest triaged and fixed. |
 | **Scenario arc** | The guided scenario gets a real ending: a season-end ceremony, a graded report card, and a hook into sandbox ("your mountain is yours now"). |
 | **Performance floor** | 500+ guests at 60 fps on a mid-tier laptop; hard budget enforced by a perf test in CI. |

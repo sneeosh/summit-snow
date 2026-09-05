@@ -50,6 +50,47 @@ your reputation. At 16:30 the day settles into an operating report.
 - **Scenario** mode has objectives and a bankruptcy condition; **Sandbox**
   starts with deep pockets.
 
+## Mountain identities — in review
+
+All eight resorts have regional identities. Seven have new authored starter runs;
+Alder preserves its tutorial layout. Each hill has distinct
+village footprints, opening cameras, regional vegetation, horizons and named
+landforms. Bowls and ridges affect the same elevation field used for map
+shading and custom-trail analysis. Long drawn segments are sampled between
+waypoints so they cannot skip a ridge. Newly drawn runs on regional terrain
+use the steepest 100 m horizontal window for difficulty; sharper rollovers
+still receive a warning. Uphill overlays use the same map progress as skiers.
+Previously built runs keep their saved grade.
+
+- **Prairie:** compact teaching terrain, bare hardwoods, red buildings and a
+  farmland horizon. Prioritize learners, snowmaking and short laps.
+- **Yukimura:** silver birch, sheltered bowls and a village street. In a built
+  trail's inspector, choose automatic grooming or **Preserve natural snow**.
+  Beginners prefer groomers; stronger skiers prefer fresh powder.
+- **Kea:** open bowls, scree and exposed ridges. Wind is sampled along lift
+  alignments; the most exposed section controls wind holds. The drawing
+  preview and lift inspector show local wind, and the forecast includes wind.
+
+Natural-view trails show corduroy, ice/thin-cover marks and accumulated tracks.
+These reuse the procedural renderer; no new asset downloads are required.
+
+Save v8 pins older resorts (including inactive holdings) to their original
+terrain and building layout. Newly purchased resorts use the new layout.
+Content is in `src/content/hillProfiles.ts` and `src/content/alpineProfiles.ts`; shared elevation mathematics is
+in `src/game/elevation.ts`. Future changes to existing authored geometry must
+retain the previous revision for saved resorts.
+
+Granite adds wooded ledges; Alder has tall fir forest; Elk has aspen basins;
+Wasatch has limestone bowls; Blanche has a glacial skyline. Sandbox mountain
+goals encourage different development patterns and reflect current operations,
+including connected routes back to base. They do not award cash or latch permanently.
+
+Night operations, avalanche control and richer village activity remain roadmap
+work. A terrain contact sheet has been visually reviewed; browser interaction
+QA remains blocked by the preview environment. Full-season headless checks
+cover all eight hills with additional capital to isolate simulation stability;
+these are not a profitability balance certification.
+
 ## Architecture
 
 The simulation is plain TypeScript with zero React/Pixi dependencies — it
@@ -117,3 +158,21 @@ Key decisions:
   depth, and crowding overlays ship)
 - Construction time (building is instant, per sandbox-style v1)
 - Sound, and mobile-first layout (playable on tablet, tuned for desktop)
+
+## Repeatable balance playtest
+
+Run `npm run playtest:balance` to compare seven-day starter operations across
+all eight hills, three seeds, and two rental-service setups. This refreshes
+`docs/balance-playtest.md`. Later hills are purchased with controlled working
+capital; this does not model earning the acquisition price.
+
+Run `npm run playtest:expansion` for paired full-season chair-and-trail
+expansions on all eight hills (seed 91). Results are in
+`docs/expansion-playtest.md`. `npm run playtest:snow` checks active reopening
+and staffed snowmaking on Alder and Blanche, with results in
+`docs/snow-recovery-playtest.md`. Later-hill acquisition capital is controlled;
+these tests do not certify the pace of earning a new resort.
+
+Mountain goals follow downhill junctions and merges, so a lift whose return
+joins another open piste counts toward connected-network goals. Closing the
+host return removes that credit.

@@ -144,6 +144,7 @@ export function TopBar() {
                   <div className="text-[16px] leading-tight">{weatherIcon(f.summary)}</div>
                   <div className="text-[11px] font-medium">{f.tempHigh}°</div>
                   <div className="text-[10px] text-diff-blue font-semibold">{f.snowfallCm > 0 ? `${f.snowfallCm}cm` : '—'}</div>
+                  <div className="mt-0.5 text-[11px] text-ink-soft">Wind {f.windKph} km/h</div>
                 </div>
               )
             })}

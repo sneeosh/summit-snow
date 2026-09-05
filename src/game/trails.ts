@@ -9,6 +9,8 @@
  * analysis warns; the skiers judge.
  */
 import {
+  TRAIL_GRADE_THRESHOLDS,
+  TRAIL_ROLLOVER_WARNING_DELTA,
   CUSTOM_TRAIL_NAMES_FALLBACK,
   CUSTOM_TRAIL_WIDTH_M,
   LIFT_BASE_COST,
@@ -20,6 +22,7 @@ import {
 } from '../content/balance'
 import {
   ACTIVE_MOUNTAIN,
+  ensureMountain,
   LIFT_LINES,
   LIFT_SITE_MAP,
   measurePath,
@@ -30,8 +33,9 @@ import {
   type MeasuredPath,
 } from '../content/mountain'
 import { CUSTOM_TRAIL_NAMES } from '../content/names'
+import { sustainedGradient } from './trailGradient'
 import { checkTrailConflicts, type TrailConflicts } from './junctions'
-import { clearingHalfWidthWu, distToPath, elevationAt, skylineYAt, treesInCorridor } from './terrainModel'
+import { clearingHalfWidthWu, distToPath, elevationAt, sampleTerrainPath, skylineYAt, treesInCorridor } from './terrainModel'
 import type { Difficulty, GameState, LiftKind, LiftSiteDef, MountainNode, TrailDef, Vec2 } from './types'
 
 /** snap radius for attaching trail endpoints to network nodes (world units) */
@@ -117,6 +121,8 @@ export interface PathAnalysis {
   verticalM: number
   /** steepest sustained downhill gradient (rise/run) */
   steepest: number
+  /** Instantaneous pitch, retained for rollover warnings. */
+  peakGradient: number
   difficulty: Difficulty
   uphillSegments: UphillSegment[]
   uphillFraction: number
@@ -143,6 +149,7 @@ export function analyzePath(points: Vec2[], nodes: MountainNode[] = NODES): Path
     lengthM: 0,
     verticalM: 0,
     steepest: 0,
+    peakGradient: 0,
     difficulty: 'green',
     uphillSegments: [],
     uphillFraction: 0,
@@ -152,27 +159,37 @@ export function analyzePath(points: Vec2[], nodes: MountainNode[] = NODES): Path
   }
   if (points.length < 2) return empty
 
+  // The original route still owns endpoint snapping. Sample its interior for
+  // local landforms; legacy terrain keeps its historical grading exactly.
+  const originalPoints = points
+  if (ACTIVE_MOUNTAIN.identity) points = sampleTerrainPath(points)
+
   let lengthM = 0
   let steepest = 0
   let totalClimbM = 0
-  const segs: { lenM: number; dropM: number }[] = []
+  const segs: { lenM: number; horizM: number; dropM: number }[] = []
   for (let i = 1; i < points.length; i++) {
     const horizM = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y) * 2
     const dropM = elevationAt(points[i - 1]) - elevationAt(points[i]) // positive = descends
     const lenM = Math.hypot(horizM, dropM)
-    segs.push({ lenM, dropM })
+    segs.push({ lenM, horizM, dropM })
     lengthM += lenM
     if (horizM > 1 && dropM > 0) steepest = Math.max(steepest, dropM / horizM)
     if (dropM < 0) totalClimbM += -dropM
   }
+
+  const peakGradient = steepest
+  if (ACTIVE_MOUNTAIN.identity) steepest = sustainedGradient(segs)
+  // Progress is horizontal map distance, matching guest movement and overlays.
+  const mapLengthM = segs.reduce((sum, seg) => sum + seg.horizM, 0)
 
   // uphill segments as progress ranges (merged when adjacent)
   const uphillSegments: UphillSegment[] = []
   let cum = 0
   for (const seg of segs) {
     if (seg.dropM < -0.5) {
-      const t0 = cum / lengthM
-      const t1 = (cum + seg.lenM) / lengthM
+      const t0 = cum / mapLengthM
+      const t1 = (cum + seg.horizM) / mapLengthM
       const last = uphillSegments[uphillSegments.length - 1]
       if (last && t0 - last.t1 < 0.02) {
         last.t1 = t1
@@ -181,27 +198,28 @@ export function analyzePath(points: Vec2[], nodes: MountainNode[] = NODES): Path
         uphillSegments.push({ t0, t1, climbM: -seg.dropM })
       }
     }
-    cum += seg.lenM
+    cum += seg.horizM
   }
   const uphillLen = uphillSegments.reduce((s, u) => s + (u.t1 - u.t0), 0)
 
   const verticalM = Math.max(0, elevationAt(points[0]) - elevationAt(points[points.length - 1]))
 
   let difficulty: Difficulty = 'green'
-  if (steepest >= 0.62) difficulty = 'double-black'
-  else if (steepest >= 0.45) difficulty = 'black'
-  else if (steepest >= 0.28) difficulty = 'blue'
+  if (steepest >= TRAIL_GRADE_THRESHOLDS.doubleBlack) difficulty = 'double-black'
+  else if (steepest >= TRAIL_GRADE_THRESHOLDS.black) difficulty = 'black'
+  else if (steepest >= TRAIL_GRADE_THRESHOLDS.blue) difficulty = 'blue'
 
   return {
     lengthM: Math.round(lengthM),
     verticalM: Math.round(verticalM),
     steepest: Math.round(steepest * 100) / 100,
+    peakGradient: Math.round(peakGradient * 100) / 100,
     difficulty,
     uphillSegments,
     uphillFraction: Math.round(uphillLen * 1000) / 1000,
     totalClimbM: Math.round(totalClimbM),
-    topNodeId: nearestNodeId(points[0], NODE_SNAP_WU, nodes),
-    bottomNodeId: nearestNodeId(points[points.length - 1], NODE_SNAP_WU, nodes),
+    topNodeId: nearestNodeId(originalPoints[0], NODE_SNAP_WU, nodes),
+    bottomNodeId: nearestNodeId(originalPoints[originalPoints.length - 1], NODE_SNAP_WU, nodes),
   }
 }
 
@@ -219,6 +237,7 @@ export interface TrailPlan {
 }
 
 export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
+  ensureMountain(state.mountainId, state.mountainVersion ?? 1)
   const analysis = analyzePath(points, allNodes(state))
   const conflicts = checkTrailConflicts(state, points)
 
@@ -233,6 +252,9 @@ export function planCustomTrail(state: GameState, points: Vec2[]): TrailPlan {
   const clearingCost = treesToClear * TREE_CLEAR_COST
 
   const warnings: string[] = []
+  if (analysis.peakGradient - analysis.steepest >= TRAIL_ROLLOVER_WARNING_DELTA) {
+    warnings.push(`Short rollover reaches ${Math.round(analysis.peakGradient * 100)}% pitch; the sustained grade is ${Math.round(analysis.steepest * 100)}%. Route across the slope to soften it.`)
+  }
   if (analysis.topNodeId === null && !conflicts.topMerge) {
     warnings.push('The start isn’t at a lift station or junction — skiers will never reach this run.')
   }

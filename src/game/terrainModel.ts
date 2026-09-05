@@ -7,6 +7,8 @@
 import { hashNoise } from './rng'
 import { ACTIVE_MOUNTAIN, LIFT_LINES, TRAIL_PATHS, TRAILS, WORLD_H, WORLD_W, type MeasuredPath } from '../content/mountain'
 import type { Vec2 } from './types'
+import { mountainElevation, mountainWindMultiplier } from './elevation'
+import { TERRAIN_SAMPLE_WU } from '../content/balance'
 
 /** the active mountain's skyline polygon (x rises to summit, descends right) */
 export function skyline(): [number, number][] {
@@ -27,15 +29,33 @@ export function skylineYAt(x: number): number {
 }
 
 /**
- * Continuous elevation (m) — linear in y between the active mountain's two
- * anchors: topElev at y=ySummit and baseElev at the village floor (y=1040).
- * Downhill therefore means increasing y, and a mountain with more vertical
- * grades the same drawn line steeper.
+ * Continuous elevation (m). Revised hills add authored local relief to the
+ * baseline; legacy saves retain the original linear elevation field.
  */
 export function elevationAt(p: Vec2): number {
-  const m = ACTIVE_MOUNTAIN
-  const M_PER_Y = (m.topElev - m.baseElev) / (1040 - m.ySummit)
-  return m.topElev - (p.y - m.ySummit) * M_PER_Y
+  return mountainElevation(ACTIVE_MOUNTAIN, p)
+}
+
+export function windMultiplierAt(p: Vec2): number {
+  return mountainWindMultiplier(ACTIVE_MOUNTAIN, p)
+}
+
+/** Sample between waypoints so drawing one long line cannot skip a ridge. */
+export function sampleTerrainPath(points: Vec2[]): Vec2[] {
+  if (points.length < 2) return points
+  const sampled = [points[0]]
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i]
+    const count = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / TERRAIN_SAMPLE_WU))
+    for (let j = 1; j <= count; j++) sampled.push({ x: a.x + (b.x - a.x) * j / count, y: a.y + (b.y - a.y) * j / count })
+  }
+  return sampled
+}
+
+/** An exposed section can stop the whole lift; sheltered lines stay useful. */
+export function routeWindMultiplier(points: Vec2[]): number {
+  if (!ACTIVE_MOUNTAIN.identity || !points.length) return 1
+  return Math.max(...sampleTerrainPath(points).map(windMultiplierAt))
 }
 
 // ------------------------------------------------------------------ forest
@@ -58,7 +78,7 @@ const treeCache = new Map<string, Tree[]>()
  * correct depth.
  */
 export function scatterTrees(seed: number): Tree[] {
-  const cacheKey = `${ACTIVE_MOUNTAIN.id}:${seed}`
+  const cacheKey = `${ACTIVE_MOUNTAIN.id}:${ACTIVE_MOUNTAIN.identity ? 2 : 1}:${seed}`
   const cached = treeCache.get(cacheKey)
   if (cached) return cached
 

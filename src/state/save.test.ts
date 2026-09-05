@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { newGame, SAVE_VERSION } from '../game/init'
 import type { GameState } from '../game/types'
 import { loadGame, saveGame } from './save'
+import { ensureMountain, NODE_MAP } from '../content/mountain'
+import { buyResort, switchResort } from '../game/company'
 
 // vitest runs in node — give save.ts the localStorage it expects
 const backing = new Map<string, string>()
@@ -35,6 +37,7 @@ function asV1Payload(state: GameState): string {
   delete old.mountainId // v5
   delete old.company // v5
   delete old.season // v6
+  delete old.mountainVersion // v7
   return JSON.stringify({ version: 1, savedAt: 'long ago', label: 'ancient save', state: old })
 }
 
@@ -62,6 +65,44 @@ describe('save migrations', () => {
     const loaded = loadGame('now')
     expect(loaded).toEqual(state)
     expect(loaded!.version).toBe(SAVE_VERSION)
+  })
+
+  it('v6 saves pin active and inactive hills to their original layout', () => {
+    const state = newGame('sandbox', 12, 'prairie')
+    state.cash = 2_000_000
+    buyResort(state, 'yuki')
+    // v6 contained no geometry version or grooming plans.
+    const strip = (s: GameState) => {
+      const raw = s as unknown as Record<string, unknown>
+      delete raw.mountainVersion
+      for (const t of Object.values(s.trails)) delete (t as unknown as Record<string, unknown>).groomingPolicy
+      s.version = 6
+    }
+    strip(state); strip(state.company.resortStates.yuki)
+    backing.set('summit-snow:save:v6', JSON.stringify({ version: 6, state, label: 'old portfolio', savedAt: 'before' }))
+    const loaded = loadGame('v6')!
+    expect(loaded.mountainVersion).toBe(1)
+    expect(loaded.company.resortStates.yuki.mountainVersion).toBe(1)
+    expect(loaded.version).toBe(SAVE_VERSION)
+    ensureMountain(loaded.mountainId, loaded.mountainVersion)
+    expect(NODE_MAP.base.pos.x).toBe(950)
+    const yuki = switchResort(loaded, 'yuki') as GameState
+    expect(NODE_MAP.base.pos.x).toBe(950)
+    expect(yuki.trails.bunny.groomingPolicy).toBe('auto')
+    expect(saveGame('migrated', yuki, 'kept my hill')).toBe(true)
+    expect(loadGame('migrated')).toEqual(yuki)
+  })
+
+  it('v7 portfolios retain revision two geometry', () => {
+    const state = newGame('sandbox', 12, 'granite')
+    state.mountainVersion = 2
+    state.version = 7
+    backing.set('summit-snow:save:v7', JSON.stringify({ version: 7, state }))
+    const loaded = loadGame('v7')!
+    expect(loaded.mountainVersion).toBe(2)
+    expect(loaded.version).toBe(SAVE_VERSION)
+    ensureMountain('granite', loaded.mountainVersion)
+    expect(NODE_MAP.base.pos.x).toBe(950)
   })
 
   it('an unreadable save fails soft, not loud', () => {
