@@ -9,7 +9,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "playtest:balance": "SUMMIT_BALANCE_REPORT=1 vitest run --config scripts/balance.config.ts"
+    "playtest:balance": "SUMMIT_BALANCE_REPORT=1 vitest run --config scripts/balance.config.ts",
+    "playtest:expansion": "SUMMIT_EXPANSION_REPORT=1 vitest run --config scripts/expansion.config.ts",
+    "playtest:snow": "vitest run --config scripts/snow-recovery.config.ts"
   },
   "dependencies": {
     "pixi.js": "^8.19.0",

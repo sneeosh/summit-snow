@@ -165,3 +165,14 @@ Run `npm run playtest:balance` to compare seven-day starter operations across
 all eight hills, three seeds, and two rental-service setups. This refreshes
 `docs/balance-playtest.md`. Later hills are purchased with controlled working
 capital; this does not model earning the acquisition price.
+
+Run `npm run playtest:expansion` for paired full-season chair-and-trail
+expansions on all eight hills (seed 91). Results are in
+`docs/expansion-playtest.md`. `npm run playtest:snow` checks active reopening
+and staffed snowmaking on Alder and Blanche, with results in
+`docs/snow-recovery-playtest.md`. Later-hill acquisition capital is controlled;
+these tests do not certify the pace of earning a new resort.
+
+Mountain goals follow downhill junctions and merges, so a lift whose return
+joins another open piste counts toward connected-network goals. Closing the
+host return removes that credit.

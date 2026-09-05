@@ -40,8 +40,10 @@ by hill and require connected terrain. Save v8 retains both older geometry revis
 
 Terrain art was reviewed through rendered contact sheets. Full-season headless
 checks cover all eight hills. A 336-day first-week comparison is recorded in
-`docs/balance-playtest.md`; interactive browser review, expansion economics and
-acquisition pacing remain before release. Follow-ons: richer village activity, night
+`docs/balance-playtest.md`. Full-season expansion and snow-recovery probes are
+in `docs/expansion-playtest.md` and `docs/snow-recovery-playtest.md`. Merged
+return routes now count correctly toward mountain goals. Interactive browser
+review, broader weather-seed balance and acquisition pacing remain before release. Follow-ons: richer village activity, night
 skiing for Prairie, and avalanche control for advanced alpine terrain.
 
 ## Release 1.0 — "Opening Day" *(target: late summer 2026)*
