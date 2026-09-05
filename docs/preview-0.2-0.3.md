@@ -37,3 +37,10 @@ These are playable previews for feedback, based on production 0.1.0. Production 
 - The 0.3 guest story includes recent positive/negative guest memories alongside the timeline.
 - This is an initial playable implementation. Groups do not yet move as a physically linked party, and town journeys are a town-scale representation of the simulation rather than one continuous camera/world between town and mountain. Event goals use actual lessons, trail laps, and daily satisfaction; race-specific course AI and festival crowd staging are future extensions.
 - Event balance needs longer player feedback. Safari/Firefox, physical touch devices, and frame-rate benchmarks were not tested in this pass.
+
+## Published versions
+
+- 0.2 source: `0c4cd61`; Cloudflare version `ecbf960e-341d-45d9-ad02-e640d4a34b70`.
+- 0.3 source: `1e2396d`; Cloudflare version `5b72a12a-ed0f-4837-bae9-e6b79d7f20df`.
+- Both remote preview landing pages verified. The 0.3 hosted-events menu was opened on the published alias; no console errors observed.
+- Production deployment verified unchanged at 100% version `4cbaa59c-e43b-49ec-afc4-e77b585351c8` (0.1.0).
