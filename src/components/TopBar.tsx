@@ -1,3 +1,4 @@
+import { ResortJournal } from './ResortJournal'
 /** Compact command bar: brand, date/clock, weather + forecast, cash, stars, speed. */
 import { useLayoutEffect, useRef, useState } from 'react'
 import { SEASON_DAYS } from '../content/balance'
@@ -113,6 +114,7 @@ export function TopBar() {
           )}
         </div>
 
+        <ResortJournal />
         {/* system menu */}
         <div className="relative">
           <button className="btn btn-ghost !px-2.5" onClick={() => setMenuOpen((v) => !v)} title="Menu">

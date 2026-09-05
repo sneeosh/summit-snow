@@ -58,3 +58,25 @@ export function TownSnow({ snowfall, wind }: { snowfall: number; wind: number })
     {Array.from({ length: count }, (_, i) => <circle key={i} className="town-snowflake" cx={(i * 197) % 1380 - 90} cy={-35} r={1.1 + (i % 4) * .5} fill="#ffffff" opacity={.4 + (i % 4) * .15} style={{ '--snow-drift': `${Math.min(160, wind * 2) + (i % 5) * 8}px`, animationDuration: `${12 + i % 9}s`, animationDelay: `${-(i * 3.71) % 21}s`, transform: `translate(0, ${(i * 79) % 760}px)` } as CSSProperties}/>)}
   </g>
 }
+
+/** Simulation-clock journeys: pause with the game and only use completed village projects. */
+export function TownJourneys({ game }: { game: import('../game/types').GameState }) {
+  const guests = Object.values(game.guests).filter(g=>g.visit && (g.objective==='leaving' || game.minute-g.arrivalMinute<16)).slice(0,12)
+  const staff = game.town.levels.housing > 0 ? Math.min(6, game.staff.reduce((n,d)=>n+d.headcount,0)) : 0
+  return <g aria-label="Journeys between the village and ski resort">
+    {guests.map(g=>{
+      const leaving=g.objective==='leaving'
+      const progress=Math.min(1,Math.max(0,(game.minute-g.arrivalMinute)/16))
+      const t=leaving?.82-((game.minute%16)/16)*.55:.27+progress*.55
+      const [x,y]=streetPoint(t,-35)
+      return <g key={g.id} transform={`translate(${x},${y-6})`}><title>{g.name} · {leaving?'Heading home':g.visit?.origin==='inn'?'Walking from the inn':g.visit?.origin==='shuttle'?'Arriving by shuttle':'Walking to the resort'}</title><path d="M-2 0L-3 6M2 0L3 6" stroke="#344f4c" strokeWidth="2"/><rect x="-4" y="-9" width="8" height="11" rx="2" fill={g.visit?.origin==='inn'?'#a56065':'#497c99'}/><circle cy="-12" r="3" fill="#dfb58d"/><path d="M5-14V7" stroke="#b38746" strokeWidth="2"/></g>
+    })}
+    {Array.from({length:staff},(_,i)=>{
+      const homeward=game.minute>=960
+      const t=.18+(homeward?1-Math.min(1,(game.minute-960)/35):Math.min(1,Math.max(0,(game.minute-510)/35)))*.6+i*.009
+      const [x,y]=streetPoint(t,-40)
+      return <g key={`staff-${i}`} transform={`translate(${x},${y-6})`}><title>{homeward?'Staff walking home':'Staff commute from employee housing'}</title><path d="M-2 0L-3 6M2 0L3 6" stroke="#344f4c" strokeWidth="2"/><rect x="-4" y="-9" width="8" height="11" rx="2" fill="#b7833f"/><circle cy="-12" r="3" fill="#dfb58d"/></g>
+    })}
+    {game.town.levels.shuttle>0&&game.phase==='operating'&&(()=>{const [x,y]=streetPoint((game.minute%30)/30,11);return <g transform={`translate(${x},${y})`}><title>Village shuttle service</title><rect x="-24" y="-8" width="48" height="16" rx="4" fill="#e7bb65"/><path d="M-16-5H15V5H-16Z" fill="#64878e"/><text textAnchor="middle" y="3" fontSize="7" fill="white">SHUTTLE</text></g>})()}
+  </g>
+}

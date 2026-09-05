@@ -1,6 +1,17 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
+    version: '0.2.0-preview.1', date: '2026-09-05', dateLabel: 'September 5, 2026',
+    title: '🎿 Guests & Village', summary: 'Every visit has a story. Follow it from arrival to the last run.',
+    changes: [
+      '📖 Open Resort journal for a morning briefing with visitor forecasts, yesterday’s results, and actions to review.',
+      '🎯 Guests arrive with learning, challenge, exploration, or leisure goals that shape trail choices. Completing a goal improves satisfaction.',
+      '⏱️ Follow live visit timelines through rentals, lessons, lifts, meals, and departures. Review the latest 24 departures each day.',
+      '🚌 Completed village projects connect to guest origins, shuttle service, and staff commutes that follow the simulation clock.',
+      '🧪 Preview build for playtesting; your production save stays on the production website.',
+    ],
+  },
+  {
     version: '0.1.0',
     date: '2026-09-05',
     dateLabel: 'September 5, 2026',

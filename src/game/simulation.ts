@@ -1,3 +1,4 @@
+import { archiveVisit } from './visits'
 /**
  * Simulation orchestrator: the tick pipeline and the day lifecycle
  * (planning → operating → day-end → next morning). Pure state-in/state-out;
@@ -96,6 +97,7 @@ export function tick(state: GameState): void {
     const remaining = Object.values(state.guests)
     if (remaining.length === 0 || (state.minute >= closingMinute(state) + 75 && !remaining.some(g => g.objective === 'rescue'))) {
       for (const g of remaining) {
+        archiveVisit(state, g)
         state.departedToday.push({
           satisfaction: g.satisfaction,
           name: g.name,
@@ -200,6 +202,7 @@ export function startNextDay(state: GameState): void {
   if (avalancheClosures.length) pushAlert(state, 'warning', `Avalanche holds on ${avalancheClosures.length} expert runs — review Mountain operations before opening`)
 
   // ---- reset daily accumulators
+  state.recentVisits = []
   state.departedToday = []
   state.guestsArrivedToday = 0
   state.peakGuestsToday = 0

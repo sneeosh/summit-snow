@@ -27,7 +27,7 @@ export function TownView() {
    <div className="town-heading shrink-0 rounded-xl bg-[#f5f1e6]/95 px-4 py-3 shadow-sm">
     <div className="text-[10px] uppercase tracking-[.2em] text-[#63776e]">{townStage(shown)}</div>
     <h2 className="font-serif text-[23px] text-[#294a40]">{MOUNTAIN_MAP[game.mountainId].name} Village</h2>
-    <p className="text-[11px] text-[#68766b]">A town shaped together. A mountain to come home to.</p>
+    <p className="text-[11px] text-[#68766b]">Blue coats: arriving guests · Gold coats: staff · Journeys follow the game clock.</p>
    </div>
    <div className="relative min-h-0 flex-1"><div className="absolute inset-0"><TownScene game={shown} camera={camera} celebrating={celebrating&&!snapshot} still={!!snapshot}/></div></div>
    {opening&&!snapshot&&<div className="town-opening mx-3 mt-2 shrink-0 rounded-xl border border-[#e4c776] bg-[#fff6d9] px-4 py-2 text-[#68542d] shadow-lg"><span className="text-[10px] font-bold uppercase tracking-widest">Now open</span><div className="font-serif text-lg">{TOWN_PROJECTS[opening.project].name} · Level {opening.level}</div><button className="mt-1 text-xs underline" onClick={()=>{setCelebrating(true);setCamera(opening.project==='housing'?'riverside':opening.project==='mainstreet'?'mainstreet':'station')}}>Visit the opening</button></div>}

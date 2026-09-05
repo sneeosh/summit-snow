@@ -214,3 +214,9 @@ body {
 @keyframes town-stroll { 0%, 12% { offset-distance: 0%; } 45%, 62% { offset-distance: 100%; } 95%, 100% { offset-distance: 0%; } }
 @keyframes town-step { from { translate: 0 0; } to { translate: 0 -0.6px; } }
 @keyframes town-snowfall { from { transform: translate(0, 0); } to { transform: translate(var(--snow-drift), 760px); } }
+
+.resort-dialog { position: fixed; inset: 0; margin: auto; width: min(800px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow: auto; border: 1px solid #d6dfda; border-radius: 22px; padding: 24px; background: #f7f8f2; color: #263c39; box-shadow: 0 24px 80px #172e3c40; }
+.resort-dialog::backdrop { background: #18302f70; backdrop-filter: blur(3px); }
+.journal-visits { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; }
+.journal-visits > div { max-height: 55dvh; overflow: auto; }
+@media (max-width: 560px) { .resort-dialog { padding: 16px; } .journal-visits { grid-template-columns: 1fr; } .journal-visits > div { max-height: 24dvh; } }

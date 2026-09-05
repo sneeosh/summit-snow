@@ -273,7 +273,17 @@ export interface GuestMemory {
   minute: number
 }
 
+export interface GuestVisit {
+  goal: 'learn' | 'explore' | 'challenge' | 'relax'
+  origin: 'day-trip' | 'inn' | 'shuttle'
+  steps: { minute: number; label: string }[]
+  lastActivity: string
+  fulfilled: boolean
+}
+
 export interface Guest {
+  visit?: GuestVisit
+
   id: number
   name: string
   skill: SkillLevel
@@ -531,6 +541,7 @@ export interface TownState {
 }
 
 export interface GameState {
+  recentVisits: { id: number; name: string; satisfaction: number; visit: GuestVisit }[]
   town: TownState
   version: number
   mode: GameMode

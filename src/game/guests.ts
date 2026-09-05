@@ -1,3 +1,4 @@
+import { ensureVisit, recordVisit, archiveVisit, visitTrailPreference } from './visits'
 /**
  * Guest agents: spawning, needs, the objective state machine, movement,
  * trail choice, spending, memories, and departures. Runs once per sim tick.
@@ -87,6 +88,7 @@ export function spawnArrivals(state: GameState, rng: Rng): void {
   while (state.arrivalCarry >= 1) {
     state.arrivalCarry -= 1
     const g = makeGuest(state, rng)
+    ensureVisit(state, g)
     state.guests[g.id] = g
     state.guestsArrivedToday++
     state.totalGuestsSeason++
@@ -185,6 +187,7 @@ export function tickGuests(state: GameState, rng: Rng): void {
   const coldFactor = Math.max(0, -weather.tempHigh) * 0.045 + (weather.windKph > 35 ? 0.35 : 0)
 
   for (const guest of Object.values(state.guests)) {
+    recordVisit(state, guest)
     if (guest.objective === 'rescue') {
       tickRescue(state, guest)
       continue
@@ -629,6 +632,7 @@ function finishRun(state: GameState, guest: Guest, rng: Rng): void {
   guest.progress = 0
   guest.stuckSegIdx = -1
   guest.runsCompleted++
+  if (def.difficulty === 'black' || def.difficulty === 'double-black') guest.memories.push({ kind: 'challenge-lap', text: 'completed a challenging run', delta: 0, minute: state.minute })
   guest.lastTrailId = trailId
 
   const bottom = getNode(state, def.bottomNodeId)
@@ -685,6 +689,7 @@ function tickLeaving(state: GameState, guest: Guest): void {
 }
 
 function depart(state: GameState, guest: Guest): void {
+  archiveVisit(state, guest)
   state.departedToday.push({
     satisfaction: guest.satisfaction,
     name: guest.name,
@@ -957,7 +962,7 @@ function scoreLine(state: GameState, guest: Guest, trailId: string, entryT: numb
   if (!trail?.built || !trail.open) return 0
   const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
   if (fit <= 0.02) return 0
-  let score = fit * surfaceEnjoyment(trail.surface, guest.skill)
+  let score = fit * surfaceEnjoyment(trail.surface, guest.skill) * visitTrailPreference(guest, def)
   const crowd = trail.skierIds.length / def.capacity
   if (crowd > 0.8) score *= 0.55
   if (guest.lastTrailId === trailId) score *= 0.85
@@ -1078,7 +1083,7 @@ export function chooseTrail(state: GameState, guest: Guest): TrailChoice | null 
     const fit = difficultyFit(guest.skill, def.difficulty, guest.riskTolerance)
     if (fit <= 0.02) continue
 
-    let score = fit * surfaceEnjoyment(trail.surface, guest.skill)
+    let score = fit * surfaceEnjoyment(trail.surface, guest.skill) * visitTrailPreference(guest, def)
     const crowd = trail.skierIds.length / def.capacity
     if (crowd > 0.8) score *= 0.55
     // queue aversion, scaled by patience
