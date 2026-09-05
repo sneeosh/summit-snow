@@ -1,28 +1,31 @@
 /** Scenario objectives widget with progress. */
 import { useState } from 'react'
 import { useStore } from '../state/store'
+import { hillGoals } from '../game/hillGoals'
 import { Meter } from './shared'
 
 export function Objectives() {
   const game = useStore((s) => s.game)
   const [open, setOpen] = useState(true)
-  if (!game || game.mode !== 'scenario' || game.objectives.length === 0) return null
-  const done = game.objectives.filter((o) => o.achieved).length
+  if (!game) return null
+  const objectives = game.mode === 'scenario' ? game.objectives : hillGoals(game)
+  if (!objectives.length) return null
+  const done = objectives.filter((o) => o.achieved).length
 
   return (
     <div className="pointer-events-auto absolute right-3 bottom-20 z-20 hidden w-[min(260px,calc(100vw-24px))] sm:block">
       <div className="glass rounded-2xl p-3">
         <button className="flex w-full items-center justify-between" onClick={() => setOpen((v) => !v)}>
           <span className="panel-title text-[14px]">
-            {game.scenarioComplete ? '🏆 Objectives complete' : 'Objectives'}
+            {game.mode === 'sandbox' ? 'Mountain goals' : game.scenarioComplete ? '🏆 Objectives complete' : 'Objectives'}
           </span>
           <span className="text-[11px] font-semibold text-ink-faint">
-            {done}/{game.objectives.length} {open ? '▾' : '▸'}
+            {done}/{objectives.length} {open ? '▾' : '▸'}
           </span>
         </button>
         {open && (
           <ul className="scroll-thin mt-2 max-h-[min(46vh,420px)] space-y-2 overflow-y-auto">
-            {game.objectives.map((o) => (
+            {objectives.map((o) => (
               <li key={o.id} className="text-[11px]">
                 <div className="flex items-start gap-1.5">
                   <span className={`mt-[1px] flex-none ${o.achieved ? 'text-diff-green' : 'text-snow-3'}`}>

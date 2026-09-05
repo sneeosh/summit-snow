@@ -93,6 +93,18 @@ describe('save migrations', () => {
     expect(loadGame('migrated')).toEqual(yuki)
   })
 
+  it('v7 portfolios retain revision two geometry', () => {
+    const state = newGame('sandbox', 12, 'granite')
+    state.mountainVersion = 2
+    state.version = 7
+    backing.set('summit-snow:save:v7', JSON.stringify({ version: 7, state }))
+    const loaded = loadGame('v7')!
+    expect(loaded.mountainVersion).toBe(2)
+    expect(loaded.version).toBe(SAVE_VERSION)
+    ensureMountain('granite', loaded.mountainVersion)
+    expect(NODE_MAP.base.pos.x).toBe(950)
+  })
+
   it('an unreadable save fails soft, not loud', () => {
     backing.set('summit-snow:save:junk', '{not json')
     expect(loadGame('junk')).toBeNull()

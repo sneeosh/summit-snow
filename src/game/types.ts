@@ -169,7 +169,7 @@ export interface Landform {
 }
 
 export interface MountainIdentity {
-  biome: 'hardwood' | 'birch' | 'tussock'
+  biome: 'hardwood' | 'birch' | 'tussock' | 'granite' | 'fir' | 'aspen' | 'limestone' | 'glacier'
   accent: string
   strategy: string
   development: string
@@ -503,7 +503,7 @@ export interface GameState {
   /** which MountainDef this state simulates */
   mountainId: string
   /** Pins the geometry of existing resorts when authored mountains change. */
-  mountainVersion: 1 | 2
+  mountainVersion: 1 | 2 | 3
   /** the resort portfolio (only meaningful on the active state) */
   company: CompanyState
   /** monotonically increasing RNG draw counter — the whole sim shares one stream */

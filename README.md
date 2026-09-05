@@ -50,9 +50,10 @@ your reputation. At 16:30 the day settles into an operating report.
 - **Scenario** mode has objectives and a bankruptcy condition; **Sandbox**
   starts with deep pockets.
 
-## Mountain identities — first release
+## Mountain identities — in review
 
-New Prairie Knob, Yukimura and Kea Basin resorts have authored starter runs,
+All eight resorts have regional identities. Seven have new authored starter runs;
+Alder preserves its tutorial layout. Each hill has distinct
 village footprints, opening cameras, regional vegetation, horizons and named
 landforms. Bowls and ridges affect the same elevation field used for map
 shading and custom-trail analysis. Long drawn segments are sampled between
@@ -70,16 +71,22 @@ waypoints so they cannot skip a ridge.
 Natural-view trails show corduroy, ice/thin-cover marks and accumulated tracks.
 These reuse the procedural renderer; no new asset downloads are required.
 
-Save v7 pins older resorts (including inactive holdings) to their original
+Save v8 pins older resorts (including inactive holdings) to their original
 terrain and building layout. Newly purchased resorts use the new layout.
-Content is in `src/content/hillProfiles.ts`; shared elevation mathematics is
+Content is in `src/content/hillProfiles.ts` and `src/content/alpineProfiles.ts`; shared elevation mathematics is
 in `src/game/elevation.ts`. Future changes to existing authored geometry must
 retain the previous revision for saved resorts.
 
-This is the first identity slice. Night operations, avalanche control,
-regional scenario objectives, the other five mountain art sets, and the full
-village animation pass remain roadmap work. Browser visual QA and a longer
-balance playtest are still needed before a production release.
+Granite adds wooded ledges; Alder has tall fir forest; Elk has aspen basins;
+Wasatch has limestone bowls; Blanche has a glacial skyline. Sandbox mountain
+goals encourage different development patterns and reflect current operations,
+including connected routes back to base. They do not award cash or latch permanently.
+
+Night operations, avalanche control and richer village activity remain roadmap
+work. A terrain contact sheet has been visually reviewed; browser interaction
+QA remains blocked by the preview environment. Full-season headless checks
+cover all eight hills with additional capital to isolate simulation stability;
+these are not a profitability balance certification.
 
 ## Architecture
 

@@ -12,6 +12,7 @@
  */
 import type { FacilitySlotDef, MountainDef, MountainNode, TrailDef, Vec2 } from '../game/types'
 import { withHillIdentity } from './hillProfiles'
+import { withAlpineIdentity } from './alpineProfiles'
 
 /** the shared base-village build sites; the mid-mountain hut site must sit
  * below the mountain's ridgeline, so its height is per-mountain */
@@ -538,7 +539,10 @@ const BLANCHE: MountainDef = {
 export const LEGACY_MOUNTAIN_MAP: Record<string, MountainDef> = Object.fromEntries(
   [PRAIRIE, GRANITE, ALDER, KEA, YUKI, ELK, WASATCH, BLANCHE].map((m) => [m.id, m]),
 )
-export const MOUNTAINS: MountainDef[] = Object.values(LEGACY_MOUNTAIN_MAP).map(withHillIdentity)
+export const REVISION_TWO_MAP: Record<string, MountainDef> = Object.fromEntries(
+  Object.values(LEGACY_MOUNTAIN_MAP).map(withHillIdentity).map((m) => [m.id, m]),
+)
+export const MOUNTAINS: MountainDef[] = Object.values(REVISION_TWO_MAP).map(withAlpineIdentity)
 
 export const MOUNTAIN_MAP: Record<string, MountainDef> = Object.fromEntries(MOUNTAINS.map((m) => [m.id, m]))
 

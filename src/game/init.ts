@@ -25,7 +25,7 @@ import { Rng } from './rng'
 import { computeSurface, generateSeasonWeather } from './weather'
 import type { GameMode, GameState, LiftState, StaffRole, TrailState } from './types'
 
-export const SAVE_VERSION = 7
+export const SAVE_VERSION = 8
 
 export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAULT_MOUNTAIN_ID): GameState {
   // scenario is Mount Alder's story; sandbox roams the world
@@ -84,7 +84,7 @@ export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAU
     mode,
     seed,
     mountainId: mountain.id,
-    mountainVersion: 2,
+    mountainVersion: 3,
     company: {
       holdings: [{ mountainId: mountain.id, pricePaid: purchasePrice, dayAcquired: 1 }],
       resortStates: {},

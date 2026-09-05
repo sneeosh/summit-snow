@@ -16,11 +16,11 @@ import { processOvernight, surfaceEnjoyment } from './weather'
 describe('mountain identities', () => {
   it('starts each hill with distinct, downhill, genuinely green routes connected to its lift', () => {
     const geometries = new Set<string>()
-    for (const id of ['prairie', 'yuki', 'kea']) {
+    for (const id of ['prairie', 'yuki', 'kea', 'granite', 'elk', 'wasatch', 'blanche']) {
       const game = newGame('sandbox', 71, id)
       const m = ACTIVE_MOUNTAIN
       geometries.add(JSON.stringify(m.trails.map((t) => t.path)))
-      expect(game.mountainVersion).toBe(2)
+      expect(game.mountainVersion).toBe(3)
       for (const node of m.nodes) expect(node.elevation).toBeCloseTo(mountainElevation(m, node.pos))
       for (const trail of m.trails) {
         const analysis = analyzePath(trail.path)
@@ -33,7 +33,7 @@ describe('mountain identities', () => {
       }
       expect(m.facilitySlots.filter((s) => s.id.startsWith('v')).every((s) => s.pos.y > 1040)).toBe(true)
     }
-    expect(geometries.size).toBe(3)
+    expect(geometries.size).toBe(7)
   })
 
   it('detects a ridge between two waypoints, including the uphill approach', () => {
@@ -88,7 +88,7 @@ describe('mountain identities', () => {
     game.cash = 2_000_000
     buyResort(game, 'kea')
     const kea = switchResort(game, 'kea') as GameState
-    expect(kea.mountainVersion).toBe(2)
+    expect(kea.mountainVersion).toBe(3)
     expect(ACTIVE_MOUNTAIN).toBe(MOUNTAIN_MAP.kea)
     switchResort(kea, 'prairie')
     expect(ACTIVE_MOUNTAIN).toBe(LEGACY_MOUNTAIN_MAP.prairie)
@@ -97,7 +97,7 @@ describe('mountain identities', () => {
     expect(scatterTrees(71)).not.toBe(oldForest)
   })
 
-  it.each(['prairie', 'yuki', 'kea'])('runs a deterministic three-day operating cycle on %s', (id) => {
+  it.each(['prairie', 'yuki', 'kea', 'granite', 'elk', 'wasatch', 'blanche'])('runs a deterministic three-day operating cycle on %s', (id) => {
     function run() {
       const game = newGame('sandbox', 91, id)
       game.cash = 1_000_000

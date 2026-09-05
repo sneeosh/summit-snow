@@ -337,8 +337,8 @@ export class MountainScene {
   }
 
   private handlePanKey(e: KeyboardEvent, down: boolean): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
-    if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (down && (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) return
+    if (down && (e.metaKey || e.ctrlKey || e.altKey)) return
     const dir = MountainScene.PAN_KEYS[e.key.toLowerCase()]
     if (!dir) return
     if (down) {
@@ -1149,7 +1149,8 @@ function makeBuilding(kind: string, x: number, y: number, selected: boolean): Co
     // shadow
     g.ellipse(x + 3, y + h / 2 + 2, w * 0.55, 4).fill({ color: 0x788fa0, alpha: 0.3 })
     // walls (wood)
-    const wall = biome === 'hardwood' ? 0xa34e40 : biome === 'birch' ? 0x485962 : biome === 'tussock' ? 0x8d795f : 0x9c7a52
+    const walls: Record<string, number> = { hardwood: 0xa34e40, birch: 0x485962, tussock: 0x8d795f, granite: 0x8e4244, fir: 0x785b3c, aspen: 0xa18154, limestone: 0x6f7e8b, glacier: 0xd9c7aa }
+    const wall = biome ? walls[biome] : 0x9c7a52
     g.roundRect(x - w / 2, y - h / 2 + 3, w, h - 3, 2).fill({ color: kind === 'first-aid' || kind === 'patrol-hq' ? 0xf4f6f8 : wall })
     // roof (snowy gable)
     g.poly([x - w / 2 - 4, y - h / 2 + 6, x, y - h / 2 - 8, x + w / 2 + 4, y - h / 2 + 6]).fill({ color: 0xf2f6f9 })

@@ -32,17 +32,16 @@ Known debt going in: per-segment trail grading is unfair (one steep pitch grades
 
 ## Mountain identities — implementation in review (September 2026)
 
-The first slice differentiates Prairie Knob, Yukimura and Kea Basin with
-regional scenery, authored starting layouts, local relief and camera framing.
-Grooming can preserve natural snow; guest surface preferences depend on
-ability; terrain shelter/exposure changes wind holds. Save v7 preserves all
-older resort geometry.
+All eight hills now have regional scenery and development guidance. Seven have
+new starting layouts; Alder retains the scenario network. Local relief and wind
+exposure affect routing and lift holds. Grooming can preserve natural snow,
+and guest surface preferences depend on ability. Optional sandbox goals vary
+by hill and require connected terrain. Save v8 retains both older geometry revisions.
 
-Remaining before release: visual review in-browser and an extended balance
-playtest. Follow-on slices: distinct objectives, richer village activity,
-night skiing for Prairie, avalanche control for advanced alpine terrain, and
-regional art/terrain for the other five mountains. These do not ship in the
-first slice.
+Terrain art was reviewed through rendered contact sheets. Full-season headless
+checks cover all eight hills; interactive browser review and economic balance
+playtesting remain before release. Follow-ons: richer village activity, night
+skiing for Prairie, and avalanche control for advanced alpine terrain.
 
 ## Release 1.0 — "Opening Day" *(target: late summer 2026)*
 
