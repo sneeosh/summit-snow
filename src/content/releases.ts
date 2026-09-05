@@ -1,7 +1,7 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
-    version: '0.1.0-rc.1',
+    version: '0.1.0',
     date: '2026-09-05',
     dateLabel: 'September 5, 2026',
     title: '🏘️ A livelier mountain town',

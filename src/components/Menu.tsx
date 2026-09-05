@@ -34,7 +34,7 @@ export function MainMenu() {
         </p>
 
         <p className="mt-3 text-center text-[11px] font-semibold tracking-wide text-ink-soft">
-          Version {GAME_VERSION} · Release candidate
+          Version {GAME_VERSION}
         </p>
 
         <div className="mt-6 space-y-2">

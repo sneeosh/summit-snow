@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState,useMemo} from 'react'
 import {Application,Graphics} from 'pixi.js'
 import {newGame} from '../../src/game/init'
 import {spawnArrivals,handleIncident} from '../../src/game/guests'
@@ -24,12 +24,11 @@ const initial=fixture(),cashBefore=initial.cash+initial.rescuesToday[0].cost
 export function Review(){
  const [elapsed,setElapsed]=useState(0),[playing,setPlaying]=useState(false)
  const host=useRef<HTMLDivElement>(null),appRef=useRef<Application|null>(null),graphic=useRef<Graphics|null>(null)
- const state=structuredClone(initial)
- for(let i=0;i<elapsed*4;i++)tick(state)
+ const state=useMemo(()=>{const next=structuredClone(initial);for(let i=0;i<elapsed*4;i++)tick(next);return next},[elapsed])
  const rescue=state.rescuesToday[0],motion=rescueProgress(rescue,state.minute)
  useEffect(()=>{useStore.setState({game:state,screen:'playing',speed:0,leftTab:null,bottomTab:null})
   if(graphic.current){const g=graphic.current;paintRescues(g,state,false);g.scale.set(3);g.position.set(205-motion.position.x*3,260-motion.position.y*3)}
- },[elapsed])
+ },[state,motion.position.x,motion.position.y])
  useEffect(()=>{if(!playing)return;const timer=setInterval(()=>setElapsed(e=>{if(e>=25){setPlaying(false);return e}return e+.25}),180);return()=>clearInterval(timer)},[playing])
  useEffect(()=>{let disposed=false;const app=new Application();app.init({width:440,height:340,background:'#e1edf1',antialias:true,resolution:1}).then(()=>{if(disposed){app.destroy(true);return}host.current!.appendChild(app.canvas);appRef.current=app;const g=new Graphics();graphic.current=g;app.stage.addChild(g);paintRescues(g,initial,false);g.scale.set(3);g.position.set(205-1000*3,260-800*3)});return()=>{disposed=true;appRef.current?.destroy(true)}},[])
  return <main style={{height:'100vh',position:'relative'}}><MountainCanvas/>
