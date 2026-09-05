@@ -1,4 +1,5 @@
 /** Collapsible bottom panel: alerts, guest census, finance history. */
+import { useLayoutEffect, useRef } from 'react'
 import { formatClock, formatMoney, useStore } from '../state/store'
 import { RegionalOperations } from './RegionalOperations'
 import { satColor } from './shared'
@@ -10,12 +11,25 @@ export function BottomPanel() {
   const tab = useStore((s) => s.bottomTab)
   const setTab = useStore((s) => s.setBottomTab)
   useStore((s) => s.tickCount)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const hasGame = !!game
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const hud = panel?.parentElement
+    if (!panel || !hud) return
+    const update = () => hud.style.setProperty('--hud-content-bottom', `${hud.clientHeight - panel.offsetTop + 12}px`)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(panel)
+    observer.observe(hud)
+    return () => { observer.disconnect(); hud.style.removeProperty('--hud-content-bottom') }
+  }, [hasGame])
   if (!game) return null
 
   const unreadCritical = game.alerts.filter((a) => a.day === game.day && a.severity !== 'info').length
 
   return (
-    <div className="pointer-events-auto absolute bottom-3 left-1/2 z-20 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
+    <div ref={panelRef} className="pointer-events-auto absolute bottom-3 left-1/2 z-20 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
       <div className="glass mx-auto mb-1 flex w-fit gap-1 rounded-xl p-1">
         <button className={`btn ${view === 'mountain' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('mountain')}>Mountain view</button>
         <button className={`btn ${view === 'town' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('town')}>Town view{game.town.lastOpening?.day === game.day && game.town.lastOpening?.season === game.season ? ' · New opening' : ''}</button>
@@ -87,7 +101,7 @@ function GuestsTab() {
 
   return (
     <div className="flex h-full gap-3 p-3">
-      <div className="w-44 flex-none space-y-1 border-r border-ink/8 pr-3 text-[12px]">
+      <div className="w-28 sm:w-44 flex-none space-y-1 border-r border-ink/8 pr-3 text-[12px]">
         <div className="stat-number text-[22px]">{guests.length}</div>
         <div className="-mt-1 text-[10px] uppercase tracking-wider text-ink-faint">on the mountain</div>
         <div className="pt-1.5">
@@ -98,7 +112,7 @@ function GuestsTab() {
         <div className="text-ink-soft">Arrived today: {game.guestsArrivedToday}</div>
         <div className="text-ink-soft">Departed: {game.departedToday.length}</div>
       </div>
-      <ul className="scroll-thin flex-1 space-y-0.5 overflow-y-auto">
+      <ul className="scroll-thin min-w-0 flex-1 space-y-0.5 overflow-y-auto">
         {guests.slice(0, 40).map((g) => (
           <li key={g.id}>
             <button
@@ -107,7 +121,7 @@ function GuestsTab() {
             >
               <span className="h-2 w-2 flex-none rounded-full" style={{ background: satColor(g.satisfaction) }} />
               <span className="flex-1 truncate font-medium">{g.name}</span>
-              <span className="flex-none text-[11px] text-ink-faint">{g.skill}</span>
+              <span className="hidden sm:inline flex-none text-[11px] text-ink-faint">{g.skill}</span>
               <span className="flex-none stat-number w-8 text-right text-[11px]">{Math.round(g.satisfaction)}</span>
             </button>
           </li>

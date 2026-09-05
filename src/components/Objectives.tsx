@@ -6,8 +6,9 @@ import { Meter } from './shared'
 
 export function Objectives() {
   const game = useStore((s) => s.game)
+  const panelOpen = useStore(s => !!(s.bottomTab || s.selection || s.leftTab || s.buildMode))
   const [open, setOpen] = useState(true)
-  if (!game) return null
+  if (!game || panelOpen) return null
   const objectives = game.mode === 'scenario' ? game.objectives : hillGoals(game)
   if (!objectives.length) return null
   const done = objectives.filter((o) => o.achieved).length

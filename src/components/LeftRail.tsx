@@ -34,7 +34,7 @@ export function LeftRail() {
   const tabs = mode === 'scenario' ? TABS.filter((t) => t.id !== 'resorts') : TABS
 
   return (
-    <div className="pointer-events-auto absolute left-3 top-[var(--hud-content-top,80px)] bottom-24 z-20 flex items-start gap-2">
+    <div className="pointer-events-auto absolute left-3 top-[var(--hud-content-top,80px)] bottom-[var(--hud-content-bottom,96px)] z-20 flex items-start gap-2">
       <div className="glass flex flex-col gap-1 rounded-2xl p-1.5">
         {tabs.map((t) => (
           <button

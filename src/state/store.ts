@@ -305,17 +305,18 @@ export const useStore = create<Store>((set, get) => {
       })
     },
 
-    select: (selection) => set({ selection }),
+    select: (selection) => set({ selection, ...(selection ? { leftTab: null } : {}) }),
     setBuildMode: (buildMode) =>
       set({
         buildMode,
+        ...(buildMode ? { selection: null, bottomTab: null } : {}),
         actionError: null,
         // phones: picking a build tool closes the panel — you need to see
         // the mountain you're about to build on
         ...(buildMode && typeof window !== 'undefined' && window.innerWidth < 768 ? { leftTab: null } : {}),
       }),
     setOverlay: (overlay) => set({ overlay }),
-    setLeftTab: (leftTab) => set({ leftTab }),
+    setLeftTab: (leftTab) => set({ leftTab, ...(leftTab ? { selection: null } : {}) }),
     setBottomTab: (bottomTab) => set({ bottomTab }),
     clearError: () => set({ actionError: null }),
     dismissReport: () => set({ showReport: false }),

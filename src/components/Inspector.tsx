@@ -16,7 +16,7 @@ export function Inspector() {
 
   return (
     <div className="pointer-events-auto absolute right-3 top-[var(--hud-content-top,80px)] z-20 w-[min(290px,calc(100vw-24px))]">
-      <div className="glass scroll-thin max-h-[calc(100vh-100px)] overflow-y-auto rounded-2xl p-3.5 rise-in">
+      <div className="glass scroll-thin max-h-[calc(100dvh-var(--hud-content-top,80px)-var(--hud-content-bottom,96px))] overflow-y-auto rounded-2xl p-3.5 rise-in">
         <button
           className="absolute right-2.5 top-2 rounded-md px-1.5 text-[14px] text-ink-faint hover:bg-ink/6 hover:text-ink"
           onClick={() => select(null)}

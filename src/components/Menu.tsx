@@ -21,7 +21,7 @@ export function MainMenu() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#aecbe0] via-[#dbe7ef] to-[#f2f5f7]" />
       <MountainBackdrop />
 
-      <div className="relative z-10 w-[420px] px-6">
+      <div className="relative z-10 max-h-full w-[420px] max-w-full overflow-y-auto px-6 py-6 scroll-thin">
         <div className="mb-1 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-ink-soft">
           Eight mountains · One company
         </div>
