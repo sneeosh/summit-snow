@@ -57,7 +57,10 @@ Alder preserves its tutorial layout. Each hill has distinct
 village footprints, opening cameras, regional vegetation, horizons and named
 landforms. Bowls and ridges affect the same elevation field used for map
 shading and custom-trail analysis. Long drawn segments are sampled between
-waypoints so they cannot skip a ridge.
+waypoints so they cannot skip a ridge. Newly drawn runs on regional terrain
+use the steepest 100 m horizontal window for difficulty; sharper rollovers
+still receive a warning. Uphill overlays use the same map progress as skiers.
+Previously built runs keep their saved grade.
 
 - **Prairie:** compact teaching terrain, bare hardwoods, red buildings and a
   farmland horizon. Prioritize learners, snowmaking and short laps.
@@ -155,3 +158,10 @@ Key decisions:
   depth, and crowding overlays ship)
 - Construction time (building is instant, per sandbox-style v1)
 - Sound, and mobile-first layout (playable on tablet, tuned for desktop)
+
+## Repeatable balance playtest
+
+Run `npm run playtest:balance` to compare seven-day starter operations across
+all eight hills, three seeds, and two rental-service setups. This refreshes
+`docs/balance-playtest.md`. Later hills are purchased with controlled working
+capital; this does not model earning the acquisition price.

@@ -349,3 +349,8 @@ export const SERIOUS_INCIDENT_REP_HIT = 0.12
 export const OBJ_SATISFACTION_TARGET = 65
 export const OBJ_GUESTS_IN_DAY = 250
 export const OBJ_MAX_SERIOUS_INCIDENTS = 5
+
+/** Drawn runs are graded by the steepest sustained pitch, not one tiny step. */
+export const TRAIL_GRADE_WINDOW_M = 100
+export const TRAIL_GRADE_THRESHOLDS = { blue: 0.28, black: 0.45, doubleBlack: 0.62 }
+export const TRAIL_ROLLOVER_WARNING_DELTA = 0.15

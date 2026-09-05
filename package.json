@@ -8,7 +8,8 @@
     "test": "vitest run",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "playtest:balance": "SUMMIT_BALANCE_REPORT=1 vitest run --config scripts/balance.config.ts"
   },
   "dependencies": {
     "pixi.js": "^8.19.0",

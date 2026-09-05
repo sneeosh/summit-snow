@@ -3,6 +3,8 @@
  * uphill stretches, unreachable tops, and dead ends — but never blocks
  * the build. Full control means full responsibility.
  */
+import { ACTIVE_MOUNTAIN } from '../content/mountain'
+import { TRAIL_GRADE_WINDOW_M } from '../content/balance'
 import { getTrailDef, getNode, planCustomTrail } from '../game/trails'
 import { formatMoney, useStore } from '../state/store'
 import { DiffBadge } from './shared'
@@ -52,6 +54,11 @@ export function DrawTrailPanel() {
               </div>
               <Stat label="trees" value={String(plan.treesToClear)} />
             </div>
+
+            <p className="mt-2 text-[11px] text-ink-soft">
+              Sustained pitch {Math.round(a.steepest * 100)}% · steepest point {Math.round(a.peakGradient * 100)}%
+              {ACTIVE_MOUNTAIN.identity && <span className="block text-ink-faint">Grade uses up to {TRAIL_GRADE_WINDOW_M} m of horizontal distance.</span>}
+            </p>
 
             <div className="mt-2 flex items-baseline justify-between text-[12px]">
               <span className="text-ink-soft">
