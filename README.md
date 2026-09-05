@@ -91,6 +91,16 @@ QA remains blocked by the preview environment. Full-season headless checks
 cover all eight hills with additional capital to isolate simulation stability;
 these are not a profitability balance certification.
 
+## Town & council — in review
+
+Switch from **Mountain view** to **Town view** for four authored village
+viewpoints. Fund housing, Main Street, transit and inns through a three-seat
+council; watch construction finish and the hamlet grow across twelve upgrades.
+Regional architecture, opening ceremonies, a village scrapbook and council
+charters make growth visible. Crowds follow attendance and windows warm at dusk.
+Completed projects affect demand, access capacity and payroll. See
+[`docs/town-council.md`](./docs/town-council.md) for rules and tradeoffs.
+
 ## Architecture
 
 The simulation is plain TypeScript with zero React/Pixi dependencies — it
@@ -156,7 +166,7 @@ Key decisions:
 - LLM-backed event provider (seam + schema ship; endpoint wiring does not)
 - Trail/lift overlays for patrol & snowmaking coverage (difficulty, snow
   depth, and crowding overlays ship)
-- Construction time (building is instant, per sandbox-style v1)
+- Mountain construction time (town projects take operating days; mountain building remains instant)
 - Sound, and mobile-first layout (playable on tablet, tuned for desktop)
 
 ## Repeatable balance playtest

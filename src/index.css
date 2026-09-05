@@ -176,3 +176,27 @@ body {
 .pulse-dot {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
+
+.town-shell { display: grid; grid-template-columns: minmax(0, 1fr) 355px; }
+.town-new-landmark { animation: town-unveil 1.5s ease-out; }
+.town-opening { animation: town-unveil .7s ease-out; }
+@keyframes town-unveil { from { opacity: .2; } to { opacity: 1; } }
+@media (max-width: 760px) {
+  .town-shell { grid-template-columns: 1fr; grid-template-rows: minmax(240px, 42%) minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .town-new-landmark, .town-opening { animation: none; }
+}
+
+.town-art .town-smoke { animation: town-smoke 5s ease-in-out infinite; }
+.town-art[data-dusk="true"] .town-window { fill: #ffe3a0; }
+.town-art[data-dusk="false"] .town-lamp-glow { opacity: 0; }
+.town-art[data-dark-sky="true"] .town-lamp-glow { r: 8px; opacity: .12; }
+.town-shuttle-arrival { animation: town-bus 18s ease-in-out infinite; }
+.town-celebration { animation: town-unveil 1s ease-out; }
+@keyframes town-smoke { 0%,100% { opacity: .15; } 50% { opacity: .55; } }
+@keyframes town-bus { 0%,15% { translate: 0 0; opacity: 1; } 35%,65% { translate: 35px -15px; opacity: 0; } 85%,100% { translate: 0 0; opacity: 1; } }
+.town-still *, .town-still .town-smoke { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+ .town-art *, .town-art .town-smoke { animation: none !important; }
+}

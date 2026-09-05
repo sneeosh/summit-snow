@@ -496,7 +496,26 @@ export interface Alert {
   text: string
 }
 
+export type TownProject = 'inn' | 'housing' | 'shuttle' | 'mainstreet'
+export type TownSeat = 'residents' | 'businesses' | 'conservation'
+export type TownPolicy = 'winterMarket' | 'darkSky'
+export interface TownMemory {
+  label: string; day: number; season: number
+  levels: Record<TownProject, number>; compactHomes: number
+  policies: Record<TownPolicy, boolean>
+}
+export interface TownState {
+  policies: Record<TownPolicy, boolean>
+  scrapbook: TownMemory[]
+  levels: Record<TownProject, number>
+  trust: Record<TownSeat, number>
+  compactHomes: number
+  construction: { project: TownProject; homes: boolean; remainingDays: number; totalDays: number } | null
+  lastOpening: { project: TownProject; level: number; day: number; season: number } | null
+}
+
 export interface GameState {
+  town: TownState
   version: number
   mode: GameMode
   seed: number

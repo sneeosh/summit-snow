@@ -4,6 +4,8 @@ import { RegionalOperations } from './RegionalOperations'
 import { satColor } from './shared'
 
 export function BottomPanel() {
+  const view = useStore(s => s.worldView)
+  const setView = useStore(s => s.setWorldView)
   const game = useStore((s) => s.game)
   const tab = useStore((s) => s.bottomTab)
   const setTab = useStore((s) => s.setBottomTab)
@@ -14,6 +16,10 @@ export function BottomPanel() {
 
   return (
     <div className="pointer-events-auto absolute bottom-3 left-1/2 z-20 w-max max-w-[calc(100vw-16px)] -translate-x-1/2">
+      <div className="glass mx-auto mb-1 flex w-fit gap-1 rounded-xl p-1">
+        <button className={`btn ${view === 'mountain' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('mountain')}>Mountain view</button>
+        <button className={`btn ${view === 'town' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('town')}>Town view{game.town.lastOpening?.day === game.day && game.town.lastOpening?.season === game.season ? ' · New opening' : ''}</button>
+      </div>
       {tab && (
         <div className="glass mb-2 h-[190px] w-[min(640px,calc(100vw-16px))] overflow-hidden rounded-2xl rise-in">
           {tab === 'alerts' && <AlertsTab />}
@@ -22,7 +28,7 @@ export function BottomPanel() {
           {tab === 'operations' && <RegionalOperations />}
         </div>
       )}
-      <div className="glass mx-auto flex w-fit items-center gap-1 rounded-2xl p-1.5">
+      <div className={`glass mx-auto flex w-fit items-center gap-1 rounded-2xl p-1.5 ${view === 'town' ? 'hidden' : ''}`}>
         <TabButton label="Alerts" badge={unreadCritical || undefined} active={tab === 'alerts'} onClick={() => setTab(tab === 'alerts' ? null : 'alerts')} />
         <TabButton label="Guests" active={tab === 'guests'} onClick={() => setTab(tab === 'guests' ? null : 'guests')} />
         <TabButton label="Mountain" active={tab === 'operations'} onClick={() => setTab(tab === 'operations' ? null : 'operations')} />

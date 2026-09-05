@@ -9,6 +9,7 @@ import { newGame, SAVE_VERSION } from '../game/init'
 import type { GameState } from '../game/types'
 import { loadGame, saveGame } from './save'
 import { ensureMountain, NODE_MAP } from '../content/mountain'
+import { proposeTownProject } from '../game/actions'
 import { buyResort, switchResort } from '../game/company'
 
 // vitest runs in node — give save.ts the localStorage it expects
@@ -61,6 +62,12 @@ describe('save migrations', () => {
 
   it('a current save round-trips unchanged', () => {
     const state = newGame('sandbox', 12, 'yuki')
+    state.cash = 100_000
+    state.town.levels.housing = 2
+    state.town.trust.residents = 63
+    state.town.compactHomes = 1
+    expect(proposeTownProject(state, 'shuttle')).toBeNull()
+    state.town.construction!.remainingDays = 1
     expect(saveGame('now', state, 'today')).toBe(true)
     const loaded = loadGame('now')
     expect(loaded).toEqual(state)
@@ -117,6 +124,44 @@ describe('save migrations', () => {
     expect(loaded.company.resortStates.kea.operations).toEqual(loaded.operations)
     expect(loaded.mountainVersion).toBe(3)
     expect(loaded.version).toBe(SAVE_VERSION)
+  })
+
+  it('v9 portfolios gain independent empty towns and preserve operations', () => {
+    const state = newGame('sandbox', 71, 'prairie')
+    state.cash = 2_000_000
+    state.operations.nightLighting = true
+    buyResort(state, 'kea')
+    const strip = (s: GameState) => { delete (s as unknown as Record<string, unknown>).town; s.version = 9 }
+    strip(state); strip(state.company.resortStates.kea)
+    backing.set('summit-snow:save:v9', JSON.stringify({ version: 9, state }))
+    const loaded = loadGame('v9')!
+    expect(loaded.town.levels).toEqual({ inn: 0, housing: 0, shuttle: 0, mainstreet: 0 })
+    expect(loaded.company.resortStates.kea.town).toEqual(loaded.town)
+    expect(loaded.company.resortStates.kea.town).not.toBe(loaded.town)
+    expect(loaded.operations.nightLighting).toBe(true)
+    expect(loaded.version).toBe(SAVE_VERSION)
+  })
+
+  it('v10 preserves construction and seeds honest scrapbook history', () => {
+    const state = newGame('sandbox', 71, 'prairie')
+    state.cash = 2_000_000
+    buyResort(state, 'kea')
+    state.town.levels.housing = 2
+    state.town.construction = { project: 'inn', homes: true, remainingDays: 2, totalDays: 4 }
+    const strip = (s: GameState) => {
+      delete (s.town as unknown as Record<string, unknown>).policies
+      delete (s.town as unknown as Record<string, unknown>).scrapbook
+      s.version = 10
+    }
+    strip(state); strip(state.company.resortStates.kea)
+    backing.set('summit-snow:save:v10', JSON.stringify({ version: 10, state }))
+    const loaded = loadGame('v10')!
+    expect(loaded.town.construction).toEqual(state.town.construction)
+    expect(loaded.town.scrapbook[0].levels.housing).toBe(2)
+    expect(loaded.town.scrapbook[0].label).toBe('The village when we arrived')
+    expect(loaded.company.resortStates.kea.town.scrapbook[0].levels.housing).toBe(0)
+    expect(saveGame('v11', loaded, 'with history')).toBe(true)
+    expect(loadGame('v11')).toEqual(loaded)
   })
 
   it('an unreadable save fails soft, not loud', () => {

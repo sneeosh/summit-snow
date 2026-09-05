@@ -16,6 +16,7 @@ import {
 } from '../content/balance'
 import { MEMORY_COPY, renderReview, REVIEW_TEMPLATES } from '../content/names'
 import { closingMinute, nightOperating } from './operations'
+import { townBenefits } from './town'
 import { Rng } from './rng'
 import { facilityOperatingDaily, liftMaintenanceDaily, openTrailsByDifficulty, parkingCapacity } from './resort'
 import type { DailyReport, ExpenseBreakdown, GameState, GuestMemory } from './types'
@@ -38,7 +39,8 @@ export function computeDailyDemand(state: GameState): number {
   if (trailsOpen === 0) return 0
 
   // the local market: an interstate hill draws differently than a fjord
-  let demand = ACTIVE_MOUNTAIN.baseDemand
+  const town = townBenefits(state)
+  let demand = (ACTIVE_MOUNTAIN.baseDemand + town.demand) * town.demandMultiplier
   demand *= isWeekend(state.day) ? WEEKEND_MULT : 1
 
   // reputation: 2.5 stars ≈ neutral
@@ -93,9 +95,9 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
   const operatedMinutes = closingMinute(state) - DAY_START_MIN
 
   // ---- expenses
-  const payroll = state.staff.reduce((sum, d) => sum + d.headcount * d.dailyWage, 0) * (operatedMinutes / (DAY_END_MIN - DAY_START_MIN))
+  const payroll = state.staff.reduce((sum, d) => sum + d.headcount * d.dailyWage, 0) * (operatedMinutes / (DAY_END_MIN - DAY_START_MIN)) * (1 - townBenefits(state).payrollDiscount)
   const maintenance = liftMaintenanceDaily(state)
-  const facilities = facilityOperatingDaily(state)
+  const facilities = facilityOperatingDaily(state) + townBenefits(state).dailyCost
 
   let energy = ENERGY_COST_LIGHTS_DAILY + (nightOperating(state) ? NIGHT_LIGHTS_ENERGY : 0)
   for (const lift of Object.values(state.lifts)) {

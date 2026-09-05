@@ -9,12 +9,14 @@ import { LeftRail } from './components/LeftRail'
 import { MainMenu } from './components/Menu'
 import { Objectives } from './components/Objectives'
 import { Toast } from './components/Toast'
+import { TownView } from './components/TownView'
 import { TopBar } from './components/TopBar'
 import { Tutorial } from './components/Tutorial'
 import { MountainCanvas } from './rendering/MountainCanvas'
 import { startGameLoop, useStore } from './state/store'
 
 export default function App() {
+  const worldView = useStore(s => s.worldView)
   const screen = useStore((s) => s.screen)
   const mountainId = useStore((s) => s.game?.mountainId)
 
@@ -28,6 +30,7 @@ export default function App() {
       const s = useStore.getState()
       if (s.screen !== 'playing' || !s.game) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+      if (e.target instanceof HTMLElement && e.target.closest('button, a, [contenteditable="true"]')) return
       switch (e.key) {
         case ' ':
           e.preventDefault()
@@ -66,15 +69,13 @@ export default function App() {
   return (
     <div className="relative h-full w-full select-none overflow-hidden bg-snow-1">
       {/* keyed by mountain: switching resorts rebuilds the whole Pixi scene */}
-      <MountainCanvas key={mountainId ?? 'none'} />
+      {worldView === 'mountain' && <MountainCanvas key={mountainId ?? 'none'} />}
       <div className="pointer-events-none absolute inset-0">
         <ErrorBoundary label="HUD">
           <TopBar />
-          <LeftRail />
-          <Inspector />
+          {worldView === 'mountain' ? <><LeftRail /><Inspector /></> : <TownView key={mountainId} />}
           <BottomPanel />
-          <Objectives />
-          <Tutorial />
+          {worldView === 'mountain' && <><Objectives /><Tutorial /></>}
           <EventsUI />
           <BuildModeHint />
           <DrawTrailPanel />

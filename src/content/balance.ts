@@ -367,3 +367,22 @@ export const AVALANCHE_CONTROL_COST_PER_RUN = 650
 export const AVALANCHE_STORM_CM = 20
 export const AVALANCHE_WIND_KPH = 45
 export const AVALANCHE_THAW_C = 3
+
+// Town investments are public partnerships, not resort-owned saleable facilities.
+export const TOWN_MAX_LEVEL = 3
+export const TOWN_VOTE_THRESHOLD = 55
+export const TOWN_HOMES_COMPACT_COST = 18_000
+export const TOWN_BEDS_PER_INN = 48
+export const TOWN_DEMAND_PER_INN = 24
+export const TOWN_SHUTTLE_CAPACITY = 80
+export const TOWN_HOUSING_PAYROLL_DISCOUNT = 0.035
+export const TOWN_COMPACT_PAYROLL_DISCOUNT = 0.02
+export const TOWN_MAX_PAYROLL_DISCOUNT = 0.15
+export const TOWN_STREET_DEMAND_MULT = 0.05
+export const TOWN_SERVICE_COSTS = { inn: 80, housing: 30, shuttle: 100, mainstreet: 40 }
+export const TOWN_COUNCIL_RULES = { housingSupport: 6, streetSupport: 2, compactSupport: 24, shuttleSupport: 5, compactBusinessCost: 5, compactTrust: 8, trustMin: 25, trustMax: 90 }
+
+export const TOWN_POLICY_COSTS = { winterMarket: 12_000, darkSky: 8_000 }
+export const TOWN_MARKET_DEMAND = .03
+export const TOWN_MARKET_DAILY_COST = 60
+export const TOWN_DARK_SKY_SAVING = .2

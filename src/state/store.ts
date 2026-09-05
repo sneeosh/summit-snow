@@ -40,6 +40,10 @@ export type Overlay = 'none' | 'difficulty' | 'snow' | 'crowding' | 'coverage'
 export type LeftTab = 'build' | 'staff' | 'pricing' | 'finance' | 'overlays' | 'resorts' | null
 
 interface Store {
+  adoptTownPolicy: (policy: import('../game/types').TownPolicy) => void
+  worldView: 'mountain' | 'town'
+  setWorldView: (view: 'mountain' | 'town') => void
+  proposeTownProject: (project: import('../game/types').TownProject, homes: boolean) => void
   screen: Screen
   game: GameState | null
   speed: Speed
@@ -129,6 +133,10 @@ export const useStore = create<Store>((set, get) => {
   return {
     screen: 'menu',
     game: null,
+    adoptTownPolicy: (policy) => mutate(g => actions.adoptTownPolicy(g, policy)),
+    worldView: 'mountain',
+    setWorldView: (worldView) => set({ worldView, buildMode: null, selection: null, bottomTab: null }),
+    proposeTownProject: (project, homes) => mutate(g => actions.proposeTownProject(g, project, homes)),
     speed: 1,
     selection: null,
     buildMode: null,
@@ -143,6 +151,7 @@ export const useStore = create<Store>((set, get) => {
       const game = newGame(mode, seed ?? Math.floor(Math.random() * 2 ** 31), mountainId)
       set({
         screen: 'playing',
+        worldView: 'mountain',
         game,
         speed: 1,
         selection: null,
@@ -161,6 +170,7 @@ export const useStore = create<Store>((set, get) => {
       ensureMountain(state.mountainId, state.mountainVersion ?? 1)
       set({
         screen: 'playing',
+        worldView: 'mountain',
         game: state,
         speed: state.phase === 'operating' ? 1 : 1,
         selection: null,
