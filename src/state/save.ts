@@ -30,6 +30,13 @@ function migrateMountainIdentity(state: GameState): GameState {
 
 /** version → upgrade fn producing the next version's payload */
 const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
+  8: (p) => {
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 9,
+      operations: { nightLighting: false, nightSkiing: false, avalancheClearedDay: 0, avalancheClearedTrails: [], controlCostToday: 0 },
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },
+    })
+    return { ...p, version: 9, state: upgrade(p.state) }
+  },
   // v8 keeps already-open resorts on their saved content revision.
   7: (p) => {
     const upgrade = (s: GameState): GameState => ({ ...s, version: SAVE_VERSION,

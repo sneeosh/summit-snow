@@ -354,3 +354,16 @@ export const OBJ_MAX_SERIOUS_INCIDENTS = 5
 export const TRAIL_GRADE_WINDOW_M = 100
 export const TRAIL_GRADE_THRESHOLDS = { blue: 0.28, black: 0.45, doubleBlack: 0.62 }
 export const TRAIL_ROLLOVER_WARNING_DELTA = 0.15
+
+// Regional operations: capital, shift costs and forecast-based avalanche holds.
+export const NIGHT_LIGHTING_COST = 45_000
+export const NIGHT_END_MIN = 20 * 60 + 30
+export const NIGHT_LAST_ARRIVAL_MIN = 19 * 60 + 30
+export const NIGHT_VISITOR_RATIO = 0.35
+export const NIGHT_LIGHTS_ENERGY = 360
+export const AVALANCHE_MOUNTAINS = ['kea', 'wasatch', 'blanche']
+export const AVALANCHE_CONTROL_STAFF = 3
+export const AVALANCHE_CONTROL_COST_PER_RUN = 650
+export const AVALANCHE_STORM_CM = 20
+export const AVALANCHE_WIND_KPH = 45
+export const AVALANCHE_THAW_C = 3

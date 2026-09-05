@@ -504,6 +504,7 @@ export interface GameState {
   mountainId: string
   /** Pins the geometry of existing resorts when authored mountains change. */
   mountainVersion: 1 | 2 | 3
+  operations: { nightLighting: boolean; nightSkiing: boolean; avalancheClearedDay: number; avalancheClearedTrails: string[]; controlCostToday: number }
   /** the resort portfolio (only meaningful on the active state) */
   company: CompanyState
   /** monotonically increasing RNG draw counter — the whole sim shares one stream */

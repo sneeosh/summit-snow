@@ -1,5 +1,6 @@
 /** Collapsible bottom panel: alerts, guest census, finance history. */
 import { formatClock, formatMoney, useStore } from '../state/store'
+import { RegionalOperations } from './RegionalOperations'
 import { satColor } from './shared'
 
 export function BottomPanel() {
@@ -18,11 +19,13 @@ export function BottomPanel() {
           {tab === 'alerts' && <AlertsTab />}
           {tab === 'guests' && <GuestsTab />}
           {tab === 'finance' && <FinanceTab />}
+          {tab === 'operations' && <RegionalOperations />}
         </div>
       )}
       <div className="glass mx-auto flex w-fit items-center gap-1 rounded-2xl p-1.5">
         <TabButton label="Alerts" badge={unreadCritical || undefined} active={tab === 'alerts'} onClick={() => setTab(tab === 'alerts' ? null : 'alerts')} />
         <TabButton label="Guests" active={tab === 'guests'} onClick={() => setTab(tab === 'guests' ? null : 'guests')} />
+        <TabButton label="Mountain" active={tab === 'operations'} onClick={() => setTab(tab === 'operations' ? null : 'operations')} />
         <TabButton label="Finances" active={tab === 'finance'} onClick={() => setTab(tab === 'finance' ? null : 'finance')} />
       </div>
     </div>

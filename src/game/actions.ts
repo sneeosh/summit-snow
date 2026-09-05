@@ -5,6 +5,9 @@
  * paused mid-day — per the vision.
  */
 import {
+  NIGHT_LIGHTING_COST,
+  AVALANCHE_CONTROL_STAFF,
+  AVALANCHE_CONTROL_COST_PER_RUN,
   FACILITIES,
   LIFT_BASE_COST,
   LIFT_COST_PER_M,
@@ -28,6 +31,8 @@ import {
   planCustomLift,
   planCustomTrail,
 } from './trails'
+import { avalancheHeld, avalancheRuns } from './operations'
+import { staffCount } from './resort'
 import { computeSurface } from './weather'
 import type { FacilityKind, GameState, LiftKind, LiftSiteDef, Prices, StaffRole, TrailState, Vec2 } from './types'
 
@@ -137,7 +142,7 @@ export function buildTrail(state: GameState, trailId: string): string | null {
   const err = spend(state, def.buildCost)
   if (err) return err
   trail.built = true
-  trail.open = trail.snowDepthCm >= TRAIL_MIN_DEPTH_CM
+  trail.open = trail.snowDepthCm >= TRAIL_MIN_DEPTH_CM && !avalancheHeld(state, trailId)
   registerTrailJunctions(state, trailId)
   pushAlert(state, 'info', `${def.name} cut and ${trail.open ? 'open' : 'awaiting snow'}`)
   return null
@@ -192,6 +197,7 @@ export function buildCustomTrail(state: GameState, points: Vec2[]): string | nul
   }
   trailState.surface = computeSurface(trailState, state.weatherSeason[state.day - 1], (id) => getTrailDef(state, id))
   trailState.open = trailState.snowDepthCm >= TRAIL_MIN_DEPTH_CM
+  if (avalancheHeld(state, def.id)) trailState.open = false
   state.trails[def.id] = trailState
 
   const crossings = registerTrailJunctions(state, def.id)
@@ -206,6 +212,7 @@ export function buildCustomTrail(state: GameState, points: Vec2[]): string | nul
 export function setTrailOpen(state: GameState, trailId: string, open: boolean): string | null {
   const trail = state.trails[trailId]
   if (!trail?.built) return 'Trail not cut yet'
+  if (open && avalancheHeld(state, trailId)) return 'Avalanche hold — complete morning control before opening'
   if (open && trail.snowDepthCm < TRAIL_MIN_DEPTH_CM) {
     return `Not enough snow to open (${trail.snowDepthCm} cm, needs ${TRAIL_MIN_DEPTH_CM})`
   }
@@ -285,4 +292,35 @@ export function takeLoan(state: GameState, offerId: string): string | null {
 
 function clampNum(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Number.isFinite(v) ? v : min))
+}
+
+/** Install a hill-wide lighting network; evening operations are chosen each morning. */
+export function installNightLighting(state: GameState): string | null {
+  if (state.mountainId !== 'prairie') return 'Night skiing is available at Prairie Knob'
+  if (state.phase !== 'planning') return 'Install lighting before opening the resort'
+  if (state.operations.nightLighting) return 'Night lighting is already installed'
+  const error = spend(state, NIGHT_LIGHTING_COST)
+  if (error) return error
+  state.operations.nightLighting = true
+  pushAlert(state, 'info', 'Prairie floodlights installed — choose evening operations before opening')
+  return null
+}
+export function setNightSkiing(state: GameState, enabled: boolean): string | null {
+  if (state.phase !== 'planning') return 'Choose evening hours before opening the resort'
+  if (state.mountainId !== 'prairie' || !state.operations.nightLighting) return 'Install Prairie night lighting first'
+  state.operations.nightSkiing = enabled
+  return null
+}
+export function controlAvalanches(state: GameState): string | null {
+  if (state.phase !== 'planning') return 'Avalanche control must finish before guests arrive'
+  const runs = avalancheRuns(state).filter(id => avalancheHeld(state, id))
+  if (!runs.length) return 'No high-risk terrain needs control today'
+  if (staffCount(state, 'patrol') < AVALANCHE_CONTROL_STAFF) return `Control needs ${AVALANCHE_CONTROL_STAFF} patrollers on staff`
+  const error = spend(state, runs.length * AVALANCHE_CONTROL_COST_PER_RUN)
+  if (error) return error
+  state.operations.controlCostToday += runs.length * AVALANCHE_CONTROL_COST_PER_RUN
+  state.operations.avalancheClearedTrails = state.operations.avalancheClearedDay === state.day ? [...state.operations.avalancheClearedTrails, ...runs] : runs
+  state.operations.avalancheClearedDay = state.day
+  pushAlert(state, 'info', `Avalanche control complete on ${runs.length} runs — closed trails can now be reopened`)
+  return null
 }
