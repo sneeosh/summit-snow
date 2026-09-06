@@ -11,7 +11,9 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/admin",
+      "/admin/*"
     ]
   },
   "workers_dev": true,
@@ -46,5 +48,10 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
+  },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://kennyatx.cloudflareaccess.com",
+    "ACCESS_AUD": "b0b8c1ca86ec698b2d453c01a9b28e85c3027155db8ef70934c4bedb698dea30",
+    "ADMIN_EMAILS": "kennyallenjohnson@gmail.com,kjohnson@cloudflare.com"
   }
 }

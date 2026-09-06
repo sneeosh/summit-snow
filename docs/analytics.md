@@ -2,7 +2,46 @@
 
 Added to production 0.1.0 without promoting the 0.2/0.3 gameplay previews.
 
-## Where to see results
+## Visual dashboard
+
+Open **https://ski.kennyatx.com/admin**. Use Cloudflare sign-in or an emailed login
+code. Only `kennyallenjohnson@gmail.com` and `kjohnson@cloudflare.com` are allowed.
+The public game and `/api/events` remain public.
+
+The dashboard includes 7/30/90-day ranges, six summary cards, a daily visits/players
+chart with an accessible numbers table, engagement milestones, mountain activity,
+campaign/source comparisons and ready-to-share links. A range includes the current
+UTC day plus the preceding N−1 days. Unlike the original rolling 30-day SQL views,
+these ranges begin at UTC midnight. All queries exclude test data. No individual
+browser IDs are displayed. Data refreshes on navigation or Refresh data.
+
+Cloudflare Access application: `49b62d20-b9bf-47ee-84f3-3ace5abd6789`.
+Its only policy is an explicit allow for the two emails above; it does not reuse
+broader account policies. Email one-time PIN and Cloudflare identity are enabled.
+Sessions last 12 hours. Both `/admin` and `/admin/*` are protected.
+
+The Worker additionally verifies the JWT signature, issuer, application audience,
+expiry and email allowlist. It denies admin requests on alternate hostnames even
+with a token. No local/test auth bypass is shipped. HTML is generated server-side
+with no public dashboard-data API, private/no-store caching, an explicit CSP,
+output escaping, no external dashboard assets, and no indexing.
+
+Admin release: `4b20ae0e-2c00-4ad1-9db5-c3c4d2436997` at 100%.
+Previous analytics-only version / rollback: `8d22917d-3d5c-4918-99a3-79e525c3d68f`.
+Access configuration is independent of Worker rollback and should remain enabled.
+
+Verification: 139 existing tests plus 9 dashboard/security tests passed. Tests use
+real RSA signatures and SQLite fixtures. Worker type check, build and deployment
+dry run passed. Desktop and 390px layouts were reviewed with sample data; no
+horizontal page overflow at 390px. The deployed admin routes redirect anonymous
+visitors to Access; preview and workers.dev admin routes deny access; public game
+returns 200. The real-user login flow was left at Access sign-in, not completed.
+
+Source changes are on `feat/game-analytics`. Run `npm run test:admin` for the new
+tests. Visual fixtures are generated only under `/tmp` by tests and are never
+included in production assets.
+
+## Querying results directly
 
 Cloudflare account **kennyATX → Storage & databases → D1 → summit-snow-analytics → Console**.
 The database is private; the game's public endpoint only accepts events and never returns analytics data.

@@ -15,5 +15,8 @@
     "worker",
     "worker-configuration.d.ts",
     "src/analytics/schema.ts"
+  ],
+  "exclude": [
+    "worker/**/*.test.ts"
   ]
 }

@@ -13,9 +13,11 @@
     "playtest:expansion": "SUMMIT_EXPANSION_REPORT=1 vitest run --config scripts/expansion.config.ts",
     "playtest:snow": "vitest run --config scripts/snow-recovery.config.ts",
     "check:worker": "tsc -p tsconfig.worker.json",
-    "analytics:report": "wrangler d1 execute summit-snow-analytics --remote --command \"SELECT * FROM traffic_sources_30d ORDER BY visits DESC; SELECT * FROM daily_usage ORDER BY date DESC LIMIT 30; SELECT * FROM returning_players_30d;\""
+    "analytics:report": "wrangler d1 execute summit-snow-analytics --remote --command \"SELECT * FROM traffic_sources_30d ORDER BY visits DESC; SELECT * FROM daily_usage ORDER BY date DESC LIMIT 30; SELECT * FROM returning_players_30d;\"",
+    "test:admin": "vitest run --config vitest.admin.config.ts"
   },
   "dependencies": {
+    "jose": "^6.2.12",
     "pixi.js": "^8.19.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
