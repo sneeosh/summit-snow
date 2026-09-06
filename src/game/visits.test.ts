@@ -60,3 +60,23 @@ describe('guest visits',()=>{
     expect(JSON.stringify(state)).toBe(before)
   })
 })
+
+it('keeps arrival and departure time stable during a long visit',()=>{
+ const {state,guest}=fixture(); const arrival=guest.visit!.steps[0]
+ for(let i=0;i<60;i++){state.minute++;guest.objective=i%2?'walking':'resting';recordVisit(state,guest)}
+ expect(guest.visit!.steps[0]).toEqual(arrival)
+ expect(guest.visit!.steps.length).toBeLessThanOrEqual(32)
+ guest.memories.push({kind:'long-line',text:'waited too long',delta:-5,minute:state.minute})
+ guest.objective='leaving';recordVisit(state,guest);const departure=guest.visit!.departureMinute
+ state.minute+=10;recordVisit(state,guest)
+ expect(guest.visit!.departureMinute).toBe(departure)
+ expect(guest.visit!.notes).toContainEqual({text:'waited too long',delta:-5})
+})
+it('warns about closed lifts and inaccessible terrain',()=>{
+ const {state}=fixture();Object.values(state.lifts).forEach(l=>l.open=false)
+ expect(morningBriefing(state).tips.some(t=>t.title==='No lifts are running')).toBe(true)
+ Object.values(state.lifts).forEach(l=>{l.open=true;l.forcedClosed=null})
+ state.staff.find(d=>d.role==='lift-ops')!.headcount=30
+ Object.values(state.trails).forEach(t=>t.open=false)
+ expect(morningBriefing(state).tips.some(t=>t.title==='No accessible runs are open')).toBe(true)
+})

@@ -207,3 +207,15 @@ it('in-flight rescues round-trip with the original dispatch charge and timeline'
   put('autosave', 6, '2026-09-05T21:20:00.000Z')
   expect(loadGame(listSaves()[0].slot)!.day).toBe(6)
  })
+
+it('restores paused and fast manual saves through the store',async()=>{
+ const {useStore}=await import('./store')
+ for(const speed of [0,4] as const){
+ const game=newGame('sandbox',42,'prairie');game.phase='operating'
+ useStore.setState({game,speed})
+ expect(useStore.getState().saveSlot('polish','Polish test')).toBe(true)
+ useStore.setState({game:null,speed:1})
+ expect(useStore.getState().loadSlot('polish')).toBe(true)
+ expect(useStore.getState().speed).toBe(speed)
+ }
+})

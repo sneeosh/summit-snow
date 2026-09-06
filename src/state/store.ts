@@ -172,7 +172,7 @@ export const useStore = create<Store>((set, get) => {
         screen: 'playing',
         worldView: 'mountain',
         game: state,
-        speed: state.phase === 'operating' ? 1 : 1,
+        speed: state.savedSpeed ?? 0,
         selection: null,
         buildMode: null,
         showReport: state.phase === 'day-end',
@@ -184,7 +184,7 @@ export const useStore = create<Store>((set, get) => {
     saveSlot: (slot, label) => {
       const game = get().game
       if (!game) return false
-      return saveGame(slot, game, label)
+      return saveGame(slot, { ...game, savedSpeed: get().speed }, label)
     },
 
     toMenu: () => set({ screen: 'menu', speed: 0 }),

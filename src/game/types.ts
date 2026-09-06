@@ -274,6 +274,8 @@ export interface GuestMemory {
 }
 
 export interface GuestVisit {
+  notes?: { text: string; delta: number }[]
+  departureMinute?: number
   goal: 'learn' | 'explore' | 'challenge' | 'relax'
   origin: 'day-trip' | 'inn' | 'shuttle'
   steps: { minute: number; label: string }[]
@@ -541,6 +543,7 @@ export interface TownState {
 }
 
 export interface GameState {
+  savedSpeed?: 0 | 1 | 4
   recentVisits: { id: number; name: string; satisfaction: number; visit: GuestVisit }[]
   town: TownState
   version: number
