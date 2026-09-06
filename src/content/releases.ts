@@ -1,7 +1,7 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
-    version: '0.2.0-preview.2', date: '2026-09-05', dateLabel: 'September 5, 2026',
+    version: '0.2.0-preview.3', date: '2026-09-05', dateLabel: 'September 5, 2026',
     title: '🎿 Guests & Village', summary: 'Every visit has a story. Follow it from arrival to the last run.',
     changes: [
       '✨ Clearer readiness checks, searchable guest stories with satisfaction memories, staggered commutes, and saved simulation speed.',
