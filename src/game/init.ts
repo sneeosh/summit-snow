@@ -27,7 +27,7 @@ import type { GameMode, GameState, LiftState, StaffRole, TrailState } from './ty
 
 import { newTown } from './town'
 
-export const SAVE_VERSION = 14
+export const SAVE_VERSION = 15
 
 export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAULT_MOUNTAIN_ID): GameState {
   // scenario is Mount Alder's story; sandbox roams the world

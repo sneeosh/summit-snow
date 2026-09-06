@@ -222,3 +222,15 @@ it('upgrades a production v12 save and preserves v14 customizations on reload',(
   saveGame('updated',loaded,'My resort')
   expect(loadGame('updated')!.style).toEqual(loaded.style)
 })
+
+it('restores paused and fast manual saves through the store',async()=>{
+ const {useStore}=await import('./store')
+ for(const speed of [0,4] as const){
+ const game=newGame('sandbox',42,'prairie');game.phase='operating'
+ useStore.setState({game,speed})
+ expect(useStore.getState().saveSlot('polish','Polish test')).toBe(true)
+ useStore.setState({game:null,speed:1})
+ expect(useStore.getState().loadSlot('polish')).toBe(true)
+ expect(useStore.getState().speed).toBe(speed)
+ }
+})

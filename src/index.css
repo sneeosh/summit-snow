@@ -221,3 +221,7 @@ body {
 .journal-visits > div { max-height: 55dvh; overflow: auto; }
 @media (max-width: 560px) { .resort-dialog { padding: 16px; } .journal-visits { grid-template-columns: 1fr; } .journal-visits > div { max-height: 24dvh; } }
 .workshop-input { border: 1px solid #bdcbc2; border-radius: 9px; padding: 9px 12px; background: white; color: #263c39; font-size: 14px; }
+
+.journal-header { position: sticky; top: -24px; z-index: 2; background: #f7f8f2; padding-block: 8px; }
+.journal-visits > section { min-width: 0; max-height: 55dvh; overflow: auto; overflow-wrap: anywhere; }
+@media (max-width:560px) { .journal-header { top:-16px; } .journal-visits > section { max-height: 45dvh; } }
