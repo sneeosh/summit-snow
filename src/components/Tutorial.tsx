@@ -105,8 +105,8 @@ export function Tutorial() {
   const index = STEPS.indexOf(current)
 
   return (
-    <div aria-label="Getting started" className={`pointer-events-auto absolute bottom-16 right-3 z-20 w-[min(270px,calc(100vw-96px))] sm:left-20 sm:right-auto sm:w-[270px] ${panelOpen ? 'hidden' : ''}`}>
-      <div className="glass max-h-[calc(100dvh-180px)] overflow-y-auto overscroll-contain rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in" key={current.id}>
+    <div aria-label="Getting started" className={`pointer-events-auto absolute bottom-[var(--hud-content-bottom,64px)] right-3 z-20 w-[min(270px,calc(100vw-96px))] sm:left-20 sm:right-auto sm:w-[270px] ${panelOpen ? 'hidden' : ''}`}>
+      <div className="glass max-h-[calc(100dvh-var(--hud-content-top,116px)-var(--hud-content-bottom,64px))] overflow-y-auto overscroll-contain rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in" key={current.id}>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pine">
             Getting started · {index + 1}/{STEPS.length}

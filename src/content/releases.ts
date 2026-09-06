@@ -1,6 +1,18 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
+    version: '0.1.1',
+    date: '2026-09-06',
+    dateLabel: 'September 6, 2026',
+    title: '📱 Easier first steps on mobile',
+    summary: 'Clearer tutorial controls and guidance for your first ski runs.',
+    changes: [
+      '👉 Move through tips with a larger Next tip button, or choose Skip tutorial.',
+      '📱 Tutorial cards leave room for controls and panels, including when your phone is sideways.',
+      '🎿 Learn how to open the starter carpet and get guests skiing before expanding.',
+    ],
+  },
+  {
     version: '0.1.0',
     date: '2026-09-05',
     dateLabel: 'September 5, 2026',
