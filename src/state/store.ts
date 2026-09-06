@@ -159,7 +159,8 @@ export const useStore = create<Store>((set, get) => {
         selection: null,
         buildMode: null,
         overlay: 'none',
-        leftTab: defaultLeftTab(),
+        // Keep the first tip visible, including on phones held sideways.
+        leftTab: game.tutorialActive ? null : defaultLeftTab(),
         bottomTab: null,
         showReport: false,
         tickCount: 0,

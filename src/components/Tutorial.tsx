@@ -1,8 +1,8 @@
 /** Contextual, non-blocking tutorial: one nudge at a time, auto-advancing. */
 import { useEffect } from 'react'
 import { DEFAULT_PRICES } from '../content/balance'
-import { liftStaffRequired, staffCount } from '../game/resort'
-import { getTrailDef } from '../game/trails'
+import { isLiftRunning, liftStaffRequired, staffCount } from '../game/resort'
+import { getLiftSite, getTrailDef } from '../game/trails'
 import { useStore } from '../state/store'
 import type { GameState } from '../game/types'
 
@@ -17,19 +17,25 @@ const STEPS: Step[] = [
   {
     id: 'inspect',
     title: 'Look around the mountain',
-    body: 'Drag or use WASD to move around, scroll or press . and / to zoom. Click any trail, lift, or building to inspect it. The carpet lift and two green runs are already in place.',
+    body: 'Drag to move around and pinch to zoom on your phone. Tap a trail, lift, or building to inspect it. Tips advance when you do the action, or tap Next tip to read ahead. The carpet and two green runs are already built.',
     done: (_g, ui) => ui.selection !== null,
+  },
+  {
+    id: 'starter-lift',
+    title: 'Start with the beginner runs',
+    body: 'The starter carpet is built but starts closed. Tap it, then tap Open lift. Your starting operator can run it. Check that its green trails say Open, then use Open the resort to welcome skiers — you can try the basic runs before building a chairlift.',
+    done: (g) => Object.values(g.lifts).some((lift) => getLiftSite(g, lift.siteId).prebuilt && isLiftRunning(g, lift.siteId)),
   },
   {
     id: 'build-lift',
     title: 'String a lift up the hill',
-    body: 'Open Build → pick a Fixed-grip chairlift, then click a BOTTOM terminal near the village (rings snap to stations) and a TOP spot up the mountain. Higher means more vertical — and a pricier line.',
+    body: 'Open Build → pick a Fixed-grip chairlift, then tap a BOTTOM terminal near the village (rings snap to stations) and tap a TOP spot up the mountain. Higher means more vertical — and a pricier line.',
     done: (g) => Object.keys(g.lifts).length >= 2,
   },
   {
     id: 'open-trail',
     title: 'Give them a way down',
-    body: 'In Build → Trails, pick “Draw a custom trail”: start at your new top station, click waypoints downhill, and double-click (or press Enter) at a base station. Gentle zigzags grade green; the fall line grades black. On Mount Alder you can also cut a surveyed corridor.',
+    body: 'In Build → Trails, pick “Draw a custom trail”: start at your new top station, tap waypoints downhill to a base station, then tap Cut this trail to finish. Gentle zigzags grade green; the fall line grades black. On Mount Alder you can also cut a surveyed corridor.',
     // every mountain starts with two prebuilt greens — any third trail counts
     done: (g) =>
       Object.values(g.trails).filter((t) => t.built).length > 2 ||
@@ -59,7 +65,7 @@ const STEPS: Step[] = [
   {
     id: 'open-resort',
     title: 'Open the resort',
-    body: 'Hit “Open the resort” in the top bar. Guests arrive through the morning — watch them ride, ski, and spend.',
+    body: 'Tap “Open the resort” in the top bar. Opening the resort does not open closed lifts. If guests leave without skiing, check that the carpet and its trails are open, the lift has an operator, and rental gear is available. Tap a guest to inspect their memories.',
     done: (g) => g.phase !== 'planning' || g.day > 1,
   },
   {
@@ -80,6 +86,7 @@ export function Tutorial() {
   const game = useStore((s) => s.game)
   const selection = useStore((s) => s.selection)
   const bottomTab = useStore((s) => s.bottomTab)
+  const panelOpen = useStore((s) => !!(s.selection || s.leftTab || s.bottomTab || s.buildMode || s.showReport))
   const completeTutorialStep = useStore((s) => s.completeTutorialStep)
   const skipTutorial = useStore((s) => s.skipTutorial)
   useStore((s) => s.tickCount)
@@ -98,18 +105,23 @@ export function Tutorial() {
   const index = STEPS.indexOf(current)
 
   return (
-    <div className="pointer-events-auto absolute bottom-16 left-3 z-20 w-[min(270px,calc(100vw-24px))] sm:bottom-6">
-      <div className="glass rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in" key={current.id}>
+    <div aria-label="Getting started" className={`pointer-events-auto absolute bottom-16 right-3 z-20 w-[min(270px,calc(100vw-96px))] sm:left-20 sm:right-auto sm:w-[270px] ${panelOpen ? 'hidden' : ''}`}>
+      <div className="glass max-h-[calc(100dvh-180px)] overflow-y-auto overscroll-contain rounded-2xl border-l-4 !border-l-pine p-3.5 rise-in" key={current.id}>
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pine">
             Getting started · {index + 1}/{STEPS.length}
           </span>
-          <button className="text-[10px] font-semibold text-ink-faint hover:text-ink" onClick={skipTutorial}>
-            skip
-          </button>
         </div>
         <h4 className="font-display mt-1 text-[15px] font-semibold">{current.title}</h4>
         <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">{current.body}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button className="btn btn-primary min-h-11 flex-1" onClick={() => completeTutorialStep(current.id)}>
+            {index === STEPS.length - 1 ? 'Finish tips' : 'Next tip'}
+          </button>
+          <button className="btn btn-ghost min-h-11" onClick={skipTutorial}>
+            Skip tutorial
+          </button>
+        </div>
       </div>
     </div>
   )
