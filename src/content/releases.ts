@@ -1,7 +1,7 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
-    version: '0.3.0-preview.2', date: '2026-09-05', dateLabel: 'September 5, 2026',
+    version: '0.3.0-preview.3', date: '2026-09-05', dateLabel: 'September 5, 2026',
     title: '🎨 Make It Yours', summary: 'Your colors. Your celebrations. Your winter memories.',
     changes: [
       '✨ Clearer readiness checks, searchable guest stories, staggered commutes, and saved simulation speed.',

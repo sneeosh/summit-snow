@@ -97,7 +97,7 @@ export function TownScene({ game, camera = 'panorama', celebrating = false, stil
   {celebrating&&fresh&&<g className="town-celebration" aria-label="Opening ribbon ceremony" transform={`translate(${LOTS[fresh][0]} ${LOTS[fresh][1]+(fresh==='mainstreet'?20:42)})`}><path d="M-42 0H42" stroke="#bf534a" strokeWidth="5"/><path d="M-42-8V12M42-8V12" stroke="#827658" strokeWidth="3"/>{[-30,-12,12,30].map((x,i)=><Person key={x} x={x} y={16} color={i%2?'#536f83':'#ae724f'}/>)}{Array.from({length:16},(_,i)=><rect key={i} x={-55+i*7} y={-48-(i%4)*7} width="3" height="5" fill={i%2?'#d3ab55':'#b96a5b'}/>)}</g>}
   {dusk&&<rect width="1200" height="680" fill="#253751" opacity={darkSky?'.30':'.19'} pointerEvents="none"/>}
   {total>0&&[300,570,718,1030].map(x=><Lamp key={x} x={x} y={x===300?399:x===570?423:x===718?429:405}/>)}
-  <g transform="translate(35 651)"><path d="M0 45V-13M3 -5H205" stroke="#7a7160" strokeWidth="5"/><rect x="-4" y="-37" width="217" height="30" rx="3" fill="#38574f"/><text x="104" y="-17" textAnchor="middle" fontSize="13" fontFamily="Georgia,serif" fill="#f4e8cd">{resortName(game)}</text></g>
+  <g transform="translate(35 651)"><path d="M0 45V-13M3 -5H205" stroke="#7a7160" strokeWidth="5"/><rect x="-4" y="-37" width="217" height="30" rx="3" fill="#38574f"/><text x="104" y="-17" textAnchor="middle" textLength={resortName(game).length>23?200:undefined} lengthAdjust="spacingAndGlyphs" fontSize="13" fontFamily="Georgia,serif" fill="#f4e8cd">{resortName(game)}</text></g>
   <TownSnow snowfall={weather?.snowfallCm ?? 0} wind={weather?.windKph ?? 0}/>
  </svg></Architecture.Provider>
 }

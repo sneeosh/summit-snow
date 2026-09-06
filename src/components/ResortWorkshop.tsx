@@ -41,7 +41,7 @@ export function PostcardStudio() {
   const [status,setStatus]=useState('')
   const svgRef=useRef<SVGSVGElement>(null)
   const card=game.postcards[selected]??makePostcard(game)
-  const shown={...game,mountainId:card.mountainId,day:card.day,season:card.season,town:card.town,style:card.style}
+  const shown={...game,minute:510,mountainId:card.mountainId,day:card.day,season:card.season,town:card.town,style:card.style}
   async function download() {
     if(!svgRef.current)return
     setStatus('Preparing your postcard…')
@@ -63,7 +63,7 @@ export function PostcardStudio() {
     <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" width="1200" height="820" role="img" aria-label={`Postcard from ${card.name}`} style={{width:'100%',height:'auto',fontFamily:'Georgia, serif',background:'#f6f1df'}}>
       <style>{'.postcard-scene .town-car,.postcard-scene .town-walker,.postcard-scene .town-snowflake{display:none}.postcard-scene .town-art{width:100%;height:100%}'}</style>
       <rect width="1200" height="820" rx="20" fill="#f6f1df"/>
-      <text x="50" y="66" fontSize="36" fill="#315347">Greetings from {card.name}</text><text x="50" y="101" fontSize="20" fill="#627768">SUMMIT &amp; SNOW · WINTER {card.season} · DAY {card.day}</text>
+      <text x="50" y="66" textLength={card.name.length>24?1100:undefined} lengthAdjust="spacingAndGlyphs" fontSize="36" fill="#315347">Greetings from {card.name}</text><text x="50" y="101" fontSize="20" fill="#627768">SUMMIT &amp; SNOW · WINTER {card.season} · DAY {card.day}</text>
       <svg className="postcard-scene" x="40" y="125" width="1120" height="535" viewBox="0 0 1200 680"><TownScene game={shown} still/></svg>
       <text x="50" y="715" fontSize="28" fill="#315347">{card.guests.toLocaleString()} guests · {card.reputation.toFixed(1)} stars · {card.events} successful events</text>
       <text x="50" y="770" fontSize="21" fill="#627768">A mountain shaped by you. See you next winter.</text>

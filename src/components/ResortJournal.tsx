@@ -32,6 +32,7 @@ export function ResortJournal() {
   const past=game.recentVisits?.find(v=>v.id===chosen)
   const selected = useRef<{name:string;visit:GuestVisit}|null>(null)
   useEffect(()=>{ const g=live??past; if(g?.visit) selected.current={name:g.name,visit:structuredClone(g.visit)} },[game,live,past])
+  useEffect(()=>{selected.current=null;setChosen(null)},[game.mountainId,game.season,game.day])
   const visit=live?.visit??past?.visit??selected.current?.visit
   const matches = (g:{name:string;satisfaction:number;visit?:GuestVisit}, departed=false) => g.name.toLowerCase().includes(query.toLowerCase()) && (filter==='all'||filter==='unhappy'&&g.satisfaction<60||filter==='goals'&&g.visit?.fulfilled||filter==='departed'&&departed)
   const filteredGuests = guests.filter(g=>matches(g))
@@ -58,8 +59,8 @@ export function ResortJournal() {
           <input aria-label="Search guests" placeholder="Search guests" className="w-full rounded-lg border p-2" value={query} onChange={e=>setQuery(e.target.value)}/>
           <select aria-label="Filter guests" className="w-full rounded-lg border p-2" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All guests</option><option value="unhappy">Unhappy (under 60%)</option><option value="goals">Goal achieved</option><option value="departed">Departed</option></select>
           {!filteredGuests.length&&!filteredPast.length&&(query||filter!=='all')&&<p>No guests match this search.</p>}
-          {filteredGuests.map(g=><button key={g.id} onClick={()=>{selected.current=null;setChosen(g.id)}} aria-pressed={chosen===g.id} className={`w-full rounded-lg border p-2 text-left text-sm ${chosen===g.id?'border-pine bg-pine/10':'border-ink/10'}`}><strong>{g.name}</strong><small className="block">{activityLabel(game,g)} · {Math.round(g.satisfaction)}%</small></button>)}
-          {filteredPast.map(g=><button key={g.id} onClick={()=>{selected.current=null;setChosen(g.id)}} className="w-full rounded-lg border border-ink/10 p-2 text-left text-sm">{g.name}<small className="block">Departed · {Math.round(g.satisfaction)}%</small></button>)}
+          {filteredGuests.map(g=><button key={g.id} onClick={()=>{selected.current=null;setChosen(g.id)}} aria-pressed={chosen===g.id} className={`w-full rounded-lg border p-2 text-left text-sm ${chosen===g.id?'border-pine bg-pine/10':'border-ink/10'}`}><strong>{g.name}</strong><small className="block">Visitor #{g.id} · {activityLabel(game,g)} · {Math.round(g.satisfaction)}%</small></button>)}
+          {filteredPast.map(g=><button key={g.id} onClick={()=>{selected.current=null;setChosen(g.id)}} className="w-full rounded-lg border border-ink/10 p-2 text-left text-sm">{g.name}<small className="block">Visitor #{g.id} · Departed · {Math.round(g.satisfaction)}%</small></button>)}
         </div><section>{visit?<><h3 className="mb-3 font-display text-2xl">{live?.name??past?.name??selected.current?.name}</h3>{!live&&!past&&<p className="text-sm">Saved view of the selected story.</p>}<VisitStory key={chosen} visit={visit}/>{live&&<button className="btn mt-3" onClick={()=>{setOpen(false);useStore.getState().setWorldView('mountain');useStore.getState().select({type:'guest',id:live.id})}}>Show guest on mountain</button>}</>:<p className="p-4 text-ink-soft">Choose a visitor to read their story.</p>}</section>
       </div>}
     </dialog>

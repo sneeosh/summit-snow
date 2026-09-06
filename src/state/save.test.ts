@@ -234,3 +234,14 @@ it('restores paused and fast manual saves through the store',async()=>{
  expect(useStore.getState().speed).toBe(speed)
  }
 })
+
+it('upgrades a 0.2 v15 portfolio without creativity fields',()=>{
+ const state=newGame('sandbox',42,'prairie');state.cash=1e7;buyResort(state,'alder')
+ const strip=(g:GameState)=>{const x=g as unknown as Record<string,unknown>;delete x.style;delete x.hostedEvents;delete x.postcards;g.version=15}
+ strip(state);Object.values(state.company.resortStates).forEach(strip)
+ localStorage.setItem('summit-snow:save:old-preview',JSON.stringify({version:15,savedAt:'2026-09-05',label:'0.2 preview',state}))
+ const loaded=loadGame('old-preview')!
+ expect(loaded.style.name).toBe('');expect(loaded.hostedEvents).toEqual([])
+ const switched=switchResort(loaded,'alder') as GameState
+ expect(switched.style.name).toBe('');expect(switched.postcards).toEqual([])
+})
