@@ -1,3 +1,4 @@
+import { track } from '../analytics/client'
 /**
  * Zustand store: owns the GameState, the tick scheduler, UI state, and
  * wraps player actions so every mutation flows through one place. Sim
@@ -149,6 +150,7 @@ export const useStore = create<Store>((set, get) => {
 
     startNew: (mode, seed, mountainId) => {
       const game = newGame(mode, seed ?? Math.floor(Math.random() * 2 ** 31), mountainId)
+      track('new_game', game)
       set({
         screen: 'playing',
         worldView: 'mountain',
@@ -167,6 +169,7 @@ export const useStore = create<Store>((set, get) => {
     loadSlot: (slot) => {
       const state = loadGame(slot)
       if (!state) return false
+      track('continue_game', state)
       ensureMountain(state.mountainId, state.mountainVersion ?? 1)
       set({
         screen: 'playing',
@@ -214,7 +217,9 @@ export const useStore = create<Store>((set, get) => {
 
     openResortNow: () =>
       mutate((g) => {
+        const wasPlanning = g.phase === 'planning'
         openResort(g)
+        if (wasPlanning && g.phase === 'operating') track('resort_opened', g)
       }),
 
     endDayNow: () => {
@@ -353,6 +358,7 @@ export const useStore = create<Store>((set, get) => {
 
 /** autosave whenever a day closes */
 function afterSimAdvance(game: GameState): void {
+  track('day_completed', game)
   saveGame(AUTOSAVE_SLOT, game, `Day ${game.day} — autosave`)
 }
 

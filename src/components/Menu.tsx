@@ -1,5 +1,6 @@
 /** Main menu: new season, sandbox mountain pick, continue, saved games. */
 import { useState } from 'react'
+import { disableTracking, trackingDisabled } from '../analytics/client'
 import { GAME_VERSION, RELEASES } from '../content/releases'
 import { STARTING_CASH_SANDBOX } from '../content/balance'
 import { MOUNTAINS, snowfallLabel } from '../content/mountains'
@@ -13,6 +14,7 @@ export function MainMenu() {
   const [showLoad, setShowLoad] = useState(false)
   const [showHow, setShowHow] = useState(false)
   const [showPick, setShowPick] = useState(false)
+  const [analyticsOff, setAnalyticsOff] = useState(trackingDisabled)
   const saves = listSaves()
   const latestSave = saves[0]
 
@@ -161,6 +163,13 @@ export function MainMenu() {
             ))}
           </details>
         </section>
+        <details className="mt-4 text-[11px] leading-relaxed text-ink-soft">
+          <summary className="cursor-pointer">Privacy &amp; usage measurement</summary>
+          <p className="mt-2">We measure referral sources, game starts, completed days and active playtime to improve the game. A random browser ID helps count returning players for up to 90 days. Game analytics records expire after 90 days. We do not store your name, IP address, custom names or saved games in game analytics. Cloudflare also measures page performance.</p>
+          <button className="btn btn-ghost mt-2" disabled={analyticsOff} onClick={() => { disableTracking(); setAnalyticsOff(true); location.reload() }}>
+            {analyticsOff ? 'Usage measurement is off' : 'Turn off usage measurement'}
+          </button>
+        </details>
       </div>
     </div>
   )

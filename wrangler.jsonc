@@ -1,15 +1,50 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "summit-snow",
-  "compatibility_date": "2026-07-01",
-  // static Vite build served as Worker assets — no server code
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-05",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
-  // workers.dev stays on as a fallback URL alongside the custom domain
   "workers_dev": true,
   "routes": [
-    { "pattern": "ski.kennyatx.com", "custom_domain": true }
-  ]
+    {
+      "pattern": "ski.kennyatx.com",
+      "custom_domain": true
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "ANALYTICS_DB",
+      "database_name": "summit-snow-analytics",
+      "database_id": "717e88dc-c74a-4ab1-a0ec-fde88bf060b8"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "EVENT_LIMIT",
+      "namespace_id": "2026090601",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 5 * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  }
 }
