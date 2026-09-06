@@ -91,3 +91,11 @@ Rollback: deploy the previous version at 100%. Keep the analytics database for
 forward fixes; no game-save schema changes were made. Runtime types are generated
 with `wrangler types`. Migration 0001 was applied via the Cloudflare connector and
 recorded in `d1_migrations`, since the local CLI lacks D1 permission.
+
+Live verification: production page loaded; explicit Cloudflare beacon returned
+HTTP 200 and its RUM request returned HTTP 200. The gameplay collector returned
+HTTP 204 and matching `live-verification` test records were read back from D1.
+The browser error log was empty. The daily cleanup trigger was deployed.
+
+Source is committed locally on `feat/game-analytics`. GitHub push was rejected by
+automatic approval review as separate repository publication; no push occurred.
