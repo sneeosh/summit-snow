@@ -14,7 +14,7 @@ Plan: connect guest outcomes to future audiences; give growth a capacity consequ
 - Three days of substantial unmet physical arrival demand record an access setback. The last seven days of unmet demand reduce resident support for more inns, capped at 12 points. Transport and housing retain their existing council benefits. The player can resolve the shortage by expanding access or reducing demand; recovery also requires positive operations and 65% satisfaction.
 - Emergency resurfacing moves stored snow to one thin run per morning for $2,400. It adds 16 cm, is charged/expensed once, and does not override manual or avalanche closures. The journal offers an explicit Reopen action once cover is sufficient; avalanche validation is preserved. Warmth can melt it again.
 - The closing-week prompt points to the existing hosted events. Lessons, qualifying laps, visitors and satisfaction determine success. The final report includes actual route diagrams before/after, cash change, operating profit, audience outcomes, event results and recorded decisions/setbacks. Old saves start honest history at their current day.
-- Save v17 migrates active/inactive resorts. Opening geometry is copied, not referenced. Sandbox rollover resets the current journal; archived season postcards retain a copy of it.
+- Save v18 migrates active/inactive resorts. Opening geometry is copied, not referenced. Sandbox rollover resets the current journal; archived season postcards retain a copy of it.
 
 ## Art and controls
 
@@ -26,8 +26,8 @@ Skier render smoothing projects back onto its own piste so sharp bends do not se
 
 - `npm ci && npm run build && npm test`
 - `npm run playtest:winter`: nine 60-day scenario runs, three strategies × seeds 11/42/91, real starting funds and weather; produces `docs/winter-balance.md`.
-- `npm run playtest:showcase`: generates five seed-91 snapshots under ignored `public/winter-review/`: original opening, busy day 25 at 11:00, controlled thin-cover recovery, day-54 finale and day-60 ending.
-- `npm run dev -- --host 127.0.0.1`, then `/scripts/winter-review/index.html`. The review bench loads scenes paused, freezes feedback state, exports feedback plus exact state/seed/build ID, and restores matching-build captures. Test saves use a dedicated import slot.
+- `npm run playtest:showcase`: generates five seed-91 snapshots under ignored `public/winter-review/`: original opening, busy terrain resort on day 35 at 12:30, controlled thin-cover recovery, day-54 finale and day-60 ending.
+- `npm run dev -- --host 127.0.0.1`, then `/scripts/winter-review/index.html`. The review bench loads scenes paused, freezes feedback state, exports feedback plus exact state/seed/build ID and a SHA-256 checksum, and restores matching-build captures. A copyable JSON path works where browser file controls are unavailable. Test saves use a dedicated import slot.
 - `npm run build:review` builds the optional review entry. The ordinary build does not include that entry.
 
 The source fingerprint covers tracked and untracked TS/TSX/CSS/JSON/HTML source (excluding ignored generated fixtures); it accompanies the Git commit. Keep a reviewed build unchanged while collecting feedback. A feedback note never uploads itself anywhere.
@@ -36,6 +36,6 @@ The source fingerprint covers tracked and untracked TS/TSX/CSS/JSON/HTML source 
 
 ## Remaining limits
 
-The strategy probe is heuristic, not an optimizer. Conditions can be prevented entirely by good management; there is no mandatory scripted punishment. A well-equipped resort remains economically generous, and satisfaction is often high. Guests have ability-dependent goals but do not move as linked parties. Village journeys remain an authored representation, not continuous navigation between town and mountain. Mountain construction is immediate; town construction takes operating days. No new sound system or destructive avalanches were added. Physical touch devices and cross-browser performance require separate verification.
+The strategy probe is heuristic, not an optimizer. Conditions can be prevented entirely by good management; there is no mandatory scripted punishment. The completion balance pass charges visitor services and supplies, raises chair maintenance, and makes repeated positive experiences diminish. Learner and terrain cash results now overlap across seeds; the village policy grows public assets with a smaller cash reserve. See winter-completion.md for the completed checks. Guests have ability-dependent goals but do not move as linked parties. Village journeys remain an authored representation, not continuous navigation between town and mountain. Mountain construction is immediate; town construction takes operating days. No new sound system or destructive avalanches were added. Physical touch devices and cross-browser performance require separate verification.
 
 Production deployment is a separate step. No PR merge or production promotion is part of this work.

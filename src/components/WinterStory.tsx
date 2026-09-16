@@ -1,5 +1,5 @@
 import { WINTER, TRAIL_MIN_DEPTH_CM, FACILITIES } from '../content/balance'
-import { demandExplanation } from '../game/economy'
+import { demandExplanation, serviceCosts } from '../game/economy'
 import { liftDiagnosis, mountainPortrait, winterAdvice } from '../game/winter'
 import type { MountainPortrait } from '../game/winter'
 import type { GameState } from '../game/types'
@@ -49,6 +49,7 @@ export function WinterStory() {
     {planning&&game.day<=7&&!Object.values(game.facilities).includes('rental-shop')&&<section className="rounded-xl border border-pine/20 p-4"><h3 className="font-display text-xl">Give the first guests a good start</h3><p className="my-2 text-sm">Open the starter lift and set up staffed rentals. Adding a school gives learners a reason to return. Leave money for snow and daily wages.</p>{[false,true].map(lessons=>{const cost=FACILITIES['rental-shop'].buildCost+(lessons&&!Object.values(game.facilities).includes('ski-school')?FACILITIES['ski-school'].buildCost:0);return <button key={String(lessons)} disabled={game.cash<cost} className="btn btn-ghost m-1" onClick={()=>useStore.getState().prepareOpening(lessons)}>{lessons?'Rentals + teaching':'Rentals first'} · {formatMoney(cost)}</button>})}<p className="mt-2 text-xs">Rental crew: $240/day; two instructors add $320/day. Buildings also have upkeep. You can change staffing later.</p></section>}
     <section className="space-y-2"><h3 className="font-display text-xl">How many guests can we welcome?</h3>
       {demand&&<p className="text-sm">{demand.interested} interested · {demand.admitted} bookings · {demand.capacity} arrival spaces. Returning-audience effect: {Math.round((demand.returning-1)*100)}%. {game.phase!=='planning'&&'Forecast captured before opening.'}</p>}
+      {demand&&<p className="text-xs text-ink-soft">Visitor-service forecast: {formatMoney(serviceCosts(game,demand.admitted).visitorServices)}/day before supplies. Fewer admissions reduce these costs; employee housing reduces the service rate.</p>}
       <div className="flex flex-wrap gap-2">{(['welcome','comfortable'] as const).map(p=><button key={p} disabled={!planning} aria-pressed={game.winter.admission===p} className={`btn ${game.winter.admission===p?'btn-primary':'btn-ghost'}`} onClick={()=>setAdmission(p)}>{p==='welcome'?'Welcome up to capacity':'Comfortable · 70% capacity'}</button>)}</div>
       <p className="text-xs text-ink-soft">Lower admissions only help if crowds strain the mountain. They do not award satisfaction; guests still judge actual runs, queues and services.</p>
       <p className="text-xs text-ink-soft">If interested visitors exceed physical arrival capacity, repeated unmet demand reduces resident support for new inns. Close this journal and open Town view to compare shuttle and housing proposals.</p>

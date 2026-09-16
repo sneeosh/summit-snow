@@ -17,7 +17,7 @@
     "test:admin": "vitest run --config vitest.admin.config.ts",
     "playtest:winter": "vitest run --config scripts/winter.config.ts",
     "playtest:showcase": "vitest run --config scripts/showcase.config.ts",
-    "build:review": "SUMMIT_REVIEW=1 vite build"
+    "build:review": "tsc -p tsconfig.review.json && SUMMIT_REVIEW=1 vite build"
   },
   "dependencies": {
     "jose": "^6.2.12",

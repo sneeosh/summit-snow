@@ -225,3 +225,8 @@ body {
 .journal-header { position: sticky; top: -24px; z-index: 2; background: #f7f8f2; padding-block: 8px; }
 .journal-visits > section { min-width: 0; max-height: 55dvh; overflow: auto; overflow-wrap: anywhere; }
 @media (max-width:560px) { .journal-header { top:-16px; } .journal-visits > section { max-height: 45dvh; } }
+
+/* Comfortable finger targets on narrow screens, without enlarging desktop chrome. */
+@media (max-width: 640px) {
+  .btn { min-height: 44px; }
+}

@@ -1,3 +1,4 @@
+import {reviewTiming} from './reviewTiming'
 /**
  * MountainScene — owns the Pixi stage: camera, terrain backdrop, trails,
  * lifts (with animated chairs), buildings, guest dots, weather particles,
@@ -180,7 +181,13 @@ export class MountainScene {
   private destroyed = false
   private onKeyDown = (e: KeyboardEvent) => this.handlePanKey(e, true)
   private onKeyUp = (e: KeyboardEvent) => this.handlePanKey(e, false)
-  private onBlur = () => this.panKeys.clear()
+  private onPointerCancel = () => {
+    this.touchPoints.clear()
+    this.pinchDist = 0
+    this.dragging = false
+    this.dragMoved = true
+  }
+  private onBlur = () => { this.panKeys.clear(); this.onPointerCancel() }
   private onPointerMove = (e: PointerEvent) => {
     if (this.destroyed) return
     this.mouseWorld = this.toWorld(e)
@@ -240,7 +247,12 @@ export class MountainScene {
     this.fitCamera()
     this.bindInput()
 
-    app.ticker.add(() => this.frame())
+    app.ticker.add(() => {
+      if (!reviewTiming.enabled) { this.frame(); return }
+      const start = performance.now()
+      this.frame()
+      if (reviewTiming.samples.length < 1000) reviewTiming.samples.push(performance.now() - start)
+    })
   }
 
   destroy(): void {
@@ -250,6 +262,7 @@ export class MountainScene {
     window.removeEventListener('blur', this.onBlur)
     window.removeEventListener('pointermove', this.onPointerMove)
     window.removeEventListener('pointerup', this.onPointerUp)
+    window.removeEventListener('pointercancel', this.onPointerCancel)
     this.app.destroy(true, { children: true })
   }
 
@@ -322,6 +335,7 @@ export class MountainScene {
     })
     window.addEventListener('pointermove', this.onPointerMove)
     window.addEventListener('pointerup', this.onPointerUp)
+    window.addEventListener('pointercancel', this.onPointerCancel)
 
     // WASD / arrow-key panning, applied continuously in the frame loop
     window.addEventListener('keydown', this.onKeyDown)

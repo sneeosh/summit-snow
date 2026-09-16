@@ -8,6 +8,7 @@ import { ensureVisit, recordVisit, archiveVisit, visitTrailPreference } from './
  * speed_wu_per_tick = (m_per_min / 2) * TICK_MINUTES.
  */
 import {
+  GUEST_JOY,
   MEDEVAC_COST,
   MEDEVAC_SERIOUS_FRACTION,
   RESCUE_PATROL_MINUTES,
@@ -173,10 +174,11 @@ function makeGuest(state: GameState, rng: Rng): Guest {
  */
 function easedDelta(current: number, delta: number): number {
   if (delta <= 0) return delta
-  return delta * Math.max(0.3, (105 - current) / 60)
+  return delta * Math.max(0, (GUEST_JOY.ceiling - current) / GUEST_JOY.easingRange)
 }
 
 export function remember(guest: Guest, kind: string, text: string, delta: number, minute: number): void {
+  if (delta > 0) delta /= 1 + guest.memories.filter(m => m.kind === kind).length
   guest.memories.push({ kind, text, delta, minute })
   guest.satisfaction = clamp(guest.satisfaction + easedDelta(guest.satisfaction, delta), 0, 100)
 }
@@ -677,6 +679,7 @@ function finishRun(state: GameState, guest: Guest, rng: Rng): void {
   if (fit < 0.2) {
     remember(guest, 'wrong-terrain', 'was in over their head', -8, state.minute)
   }
+  if (delta > 0) delta /= Math.max(1, guest.runsCompleted / GUEST_JOY.freshLaps)
   guest.satisfaction = clamp(guest.satisfaction + easedDelta(guest.satisfaction, delta), 0, 100)
 
   decideNext(state, guest)

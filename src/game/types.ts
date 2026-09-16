@@ -441,6 +441,8 @@ export interface ExpenseBreakdown {
   interest: number
   other: number
   /** Included in other; optional on historical reports. */
+  visitorServices?: number
+  supplies?: number
   hostedEvent?: number
   medevac?: number
 }

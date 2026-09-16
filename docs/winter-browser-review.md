@@ -1,5 +1,7 @@
 # Browser review — September 16, 2026
 
+Historical first pass. See [completion review](winter-completion.md) for the subsequent fixes and completed checks.
+
 ## Builds and evidence
 
 Final review URL (temporary, not production): https://summit-winter-v4.cedar-mist.workers.dev/scripts/winter-review/
