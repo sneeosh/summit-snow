@@ -1,3 +1,4 @@
+import { newWinter, mountainPortrait } from './winter'
 /** New-game state construction for scenario and sandbox modes. */
 import {
   DAY_START_MIN,
@@ -27,7 +28,7 @@ import type { GameMode, GameState, LiftState, StaffRole, TrailState } from './ty
 
 import { newTown } from './town'
 
-export const SAVE_VERSION = 12
+export const SAVE_VERSION = 17
 
 export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAULT_MOUNTAIN_ID): GameState {
   // scenario is Mount Alder's story; sandbox roams the world
@@ -81,9 +82,13 @@ export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAU
   // family hill comes with the story
   const purchasePrice = mode === 'sandbox' ? mountain.price : 0
 
-  return {
+  const state: GameState = {
+    winter: newWinter(),
     version: SAVE_VERSION,
     town: newTown(),
+    recentVisits: [],
+    style: { name: '', color: '', decor: 'natural', trailNames: {}, liftNames: {} },
+    hostedEvents: [], postcards: [],
     mode,
     seed,
     mountainId: mountain.id,
@@ -138,6 +143,8 @@ export function newGame(mode: GameMode, seed: number, mountainId: string = DEFAU
     bestDayGuests: 0,
     seasonIncidents: 0,
   }
+  state.winter.opening = mountainPortrait(state)
+  return state
 }
 
 export function makeLiftState(siteId: string, kind: LiftState['kind'], customLengthM?: number): LiftState {

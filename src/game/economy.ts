@@ -1,7 +1,10 @@
+import { returningMultiplier } from './winter'
+import { WINTER } from '../content/balance'
+import { HOSTED_EVENTS, todayHostedEvent } from './creativity'
 /**
  * Demand modelling, day-end settlement, reputation, and the daily report.
  */
-import { ACTIVE_MOUNTAIN } from '../content/mountain'
+import { ACTIVE_MOUNTAIN, ensureMountain } from '../content/mountain'
 import {
   DAY_END_MIN,
   NIGHT_LIGHTS_ENERGY,
@@ -31,12 +34,17 @@ export function isWeekend(day: number): boolean {
  * Expected visitors for the coming day. Deterministic given state — computed
  * once each morning.
  */
-export function computeDailyDemand(state: GameState): number {
+export function computeDailyDemand(state: GameState): number { return demandExplanation(state).admitted }
+
+export function demandExplanation(state: GameState) {
+  ensureMountain(state.mountainId, state.mountainVersion)
+  const capacity = Math.max(80, parkingCapacity(state))
+  const returning = returningMultiplier(state)
   const weather = state.weatherSeason[state.day - 1]
   const byDiff = openTrailsByDifficulty(state)
   const trailsOpen = byDiff.green + byDiff.blue + byDiff.black + byDiff['double-black']
 
-  if (trailsOpen === 0) return 0
+  if (trailsOpen === 0) return { interested: 0, admitted: 0, capacity, returning }
 
   // the local market: an interstate hill draws differently than a fjord
   const town = townBenefits(state)
@@ -65,16 +73,18 @@ export function computeDailyDemand(state: GameState): number {
   if (byDiff.blue + byDiff.black + byDiff['double-black'] === 0) demand *= 0.75 // greens-only hill
 
   // uphill capacity credibility: guests know when a hill is one carpet
-  const capacity = runningLiftCapacityEstimate(state)
-  demand *= Math.min(1.25, 0.6 + capacity / 2600)
+  const uphill = runningLiftCapacityEstimate(state)
+  demand *= Math.min(1.25, 0.6 + uphill / 2600)
 
-  // parking ceiling
-  demand = Math.min(demand, Math.max(80, parkingCapacity(state)))
+  const hosted=todayHostedEvent(state)
+  if(hosted?.status==='booked') demand *= HOSTED_EVENTS[hosted.kind].demand
 
-  // event promotions etc.
-  demand *= state.demandMultTomorrow
+  // All promotions, audience memory and hosted events obey the physical ceiling.
+  demand *= state.demandMultTomorrow * returning
+  const interested = Math.round(demand)
+  const limit = state.winter.admission === 'comfortable' ? Math.floor(capacity * WINTER.comfortableCapacity) : capacity
+  return { interested, admitted: Math.min(interested, limit), capacity, returning }
 
-  return Math.round(demand)
 }
 
 function runningLiftCapacityEstimate(state: GameState): number {
@@ -125,7 +135,8 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
     energy: Math.round(energy),
     facilities,
     interest: Math.round(interest),
-    other: state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
+    hostedEvent: todayHostedEvent(state)?.cost ?? 0,
+    other: state.winter.recoverySpendToday + (todayHostedEvent(state)?.cost ?? 0) + state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
     medevac: state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
   }
   state.cash -= payroll + maintenance + expenses.energy + facilities

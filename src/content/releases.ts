@@ -1,6 +1,40 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
+    version: '0.4.0-winter-preview.1', date: '2026-09-16', dateLabel: 'September 16, 2026',
+    title: '❄️ The winter we built', summary: 'Guest loyalty, growing pains, and a season worth remembering.',
+    changes: [
+      'Start with staffed rentals or a teaching package in Resort journal → Our winter.',
+      'See how guest experiences change future audiences, choose morning admissions, and help a growing resort catch up with demand.',
+      'Recover thin terrain with emergency resurfacing, then review and reopen it.',
+      'Finish with actual before-and-after routes, decisions, recovery, event results and finances.',
+      'Preview: economic tuning and touch-device validation remain in progress.',
+    ],
+  },
+  {
+    version: '0.3.0-preview.3', date: '2026-09-05', dateLabel: 'September 5, 2026',
+    title: '🎨 Make It Yours', summary: 'Your colors. Your celebrations. Your winter memories.',
+    changes: [
+      '✨ Clearer readiness checks, searchable guest stories, staggered commutes, and saved simulation speed.',
+      '🎨 Name your resort, lifts, and trails. Choose village colors and lanterns or bunting in Resort journal → Customize.',
+      '🎉 Host First Tracks Day, Local Race Day, or a Winter Festival. Plan around their requirements, pay a booking fee, and earn reputation by meeting the goal.',
+      '📷 Download a village postcard with your resort name and season achievements. Season-end postcards are preserved automatically.',
+      '🎿 Includes all Guests & Village features from the 0.2 preview.',
+      '🧪 Preview build for playtesting; event balance is ready for your feedback.',
+    ],
+  },
+  {
+    version: '0.2.0-preview.1', date: '2026-09-05', dateLabel: 'September 5, 2026',
+    title: '🎿 Guests & Village', summary: 'Every visit has a story. Follow it from arrival to the last run.',
+    changes: [
+      '📖 Open Resort journal for a morning briefing with visitor forecasts, yesterday’s results, and actions to review.',
+      '🎯 Guests arrive with learning, challenge, exploration, or leisure goals that shape trail choices. Completing a goal improves satisfaction.',
+      '⏱️ Follow live visit timelines through rentals, lessons, lifts, meals, and departures. Review the latest 24 departures each day.',
+      '🚌 Completed village projects connect to guest origins, shuttle service, and staff commutes that follow the simulation clock.',
+      '🧪 Preview build for playtesting; your production save stays on the production website.',
+    ],
+  },
+  {
     version: '0.1.1',
     date: '2026-09-06',
     dateLabel: 'September 6, 2026',

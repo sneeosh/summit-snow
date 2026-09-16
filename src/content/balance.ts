@@ -394,3 +394,12 @@ export const RESCUE_PATROL_MINUTES = 6
 export const RESCUE_UNDERSTAFFED_MINUTES = 12
 export const RESCUE_TREATMENT_MINUTES = 5
 export const RESCUE_TRANSPORT_MINUTES = 8
+
+// Season feedback: bounded audience memory, never an exponential demand loop.
+export const WINTER = {
+  accessSetbackThreshold: 20, councilPressureDays: 7, councilPressurePerDay: 3, councilPressureCap: 12,
+  maxEntries: 80, returnDemandStrength: .3, audienceStrength: 1.2,
+  audienceSmoothing: .18, audienceMinGuests: 5, comfortableCapacity: .7,
+  setbackEarliestDay: 4, setbackSatisfaction: 45, recoverySatisfaction: 65,
+  crowdMilestone: 150, finaleDay: 54, recoveryCost: 2400, recoveryDepth: 16,
+} as const

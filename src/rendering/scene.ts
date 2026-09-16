@@ -9,7 +9,7 @@
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
 import { ACTIVE_MOUNTAIN, ensureMountain, FACILITY_SLOTS, measurePath, NODE_MAP, pointAt, TRAIL_MAP, WORLD_H, WORLD_W } from '../content/mountain'
 import { FACILITIES } from '../content/balance'
-import { nearestOnTrail } from '../game/junctions'
+import { nearestOnTrail, projectOnTrail } from '../game/junctions'
 import { hashNoise } from '../game/rng'
 import { isLiftRunning } from '../game/resort'
 import {
@@ -20,6 +20,7 @@ import {
   getLiftLine,
   getLiftSite,
   getTrailPath,
+  getTrailDef,
   nearestNodeId,
   planCustomLift,
 } from '../game/trails'
@@ -550,7 +551,7 @@ export class MountainScene {
     }
 
     // structural rebuild (rare)
-    const sKey = structureKeyOf(game, selection, buildMode, overlay)
+    const sKey = structureKeyOf(game, selection, buildMode, overlay) + JSON.stringify(game.style)
     if (sKey !== this.structureKey) {
       this.structureKey = sKey
       this.rebuildStatic(game, selection, buildMode, overlay)
@@ -875,7 +876,7 @@ export class MountainScene {
 
   private updateGuests(game: GameState): void {
     const seen = new Set<number>()
-    const t = performance.now() / 1000
+    const t = game.minute * .7
     for (const guest of Object.values(game.guests)) {
       seen.add(guest.id)
       let view = this.guestViews.get(guest.id)
@@ -913,12 +914,15 @@ export class MountainScene {
         const isBoard = look.rides === 'board'
         const cycle = Math.sin(t * (isBoard ? 2.2 : 2.9) + phase)
         const pose = Math.round(cycle * 2)
-        const swayAmp = isBoard ? 3.4 : 2.4
+        const piste = guest.routeTrailId ? getTrailDef(game, guest.routeTrailId) : null
+        const swayAmp = Math.min(isBoard ? 3.4 : 2.4, (piste?.widthM ?? 20) / 8)
+        // Keep render smoothing from cutting across the inside of a sharp bend.
+        const center = guest.routeTrailId ? projectOnTrail(game,guest.routeTrailId,view.smooth).pos : view.smooth
         const px = -Math.sin(view.heading) * cycle * swayAmp
         const py = Math.cos(view.heading) * cycle * swayAmp
         sprite.texture = guestTexture(look.rides, pose, look.palette)
         sprite.rotation = view.heading - Math.PI / 2
-        sprite.position.set(view.smooth.x + px, view.smooth.y + py)
+        sprite.position.set(center.x + px, center.y + py)
       } else if (hiking) {
         // stuck on an uphill stretch: upright, trudging
         sprite.texture = guestTexture('stand', 0, look.palette)

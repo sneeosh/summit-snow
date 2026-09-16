@@ -207,3 +207,57 @@ it('in-flight rescues round-trip with the original dispatch charge and timeline'
   put('autosave', 6, '2026-09-05T21:20:00.000Z')
   expect(loadGame(listSaves()[0].slot)!.day).toBe(6)
  })
+
+it('upgrades a production v12 save and preserves v14 customizations on reload',()=>{
+  const state=newGame('sandbox',42,'prairie')
+  const old={...state} as Partial<GameState>
+  delete old.style;delete old.hostedEvents;delete old.postcards;delete old.recentVisits
+  old.version=12
+  backing.set('summit-snow:save:production',JSON.stringify({version:12,state:old}))
+  const loaded=loadGame('production')!
+  expect(loaded.version).toBe(SAVE_VERSION)
+  expect(loaded.recentVisits).toEqual([])
+  expect(loaded.style.trailNames).toEqual({})
+  loaded.style.name='Snow & Co';loaded.style.decor='lanterns'
+  saveGame('updated',loaded,'My resort')
+  expect(loadGame('updated')!.style).toEqual(loaded.style)
+})
+
+it('restores paused and fast manual saves through the store',async()=>{
+ const {useStore}=await import('./store')
+ for(const speed of [0,4] as const){
+ const game=newGame('sandbox',42,'prairie');game.phase='operating'
+ useStore.setState({game,speed})
+ expect(useStore.getState().saveSlot('polish','Polish test')).toBe(true)
+ useStore.setState({game:null,speed:1})
+ expect(useStore.getState().loadSlot('polish')).toBe(true)
+ expect(useStore.getState().speed).toBe(speed)
+ }
+})
+
+it('upgrades a 0.2 v15 portfolio without creativity fields',()=>{
+ const state=newGame('sandbox',42,'prairie');state.cash=1e7;buyResort(state,'alder')
+ const strip=(g:GameState)=>{const x=g as unknown as Record<string,unknown>;delete x.style;delete x.hostedEvents;delete x.postcards;g.version=15}
+ strip(state);Object.values(state.company.resortStates).forEach(strip)
+ localStorage.setItem('summit-snow:save:old-preview',JSON.stringify({version:15,savedAt:'2026-09-05',label:'0.2 preview',state}))
+ const loaded=loadGame('old-preview')!
+ expect(loaded.style.name).toBe('');expect(loaded.hostedEvents).toEqual([])
+ const switched=switchResort(loaded,'alder') as GameState
+ expect(switched.style.name).toBe('');expect(switched.postcards).toEqual([])
+})
+
+it('v16 migration begins an honest journal for active and inactive resorts',()=>{
+ const state=newGame('sandbox',91,'prairie');state.cash=10000000;buyResort(state,'alder')
+ state.day=23
+ const payload=JSON.parse(JSON.stringify(state))
+ delete payload.winter
+ for(const r of Object.values(payload.company.resortStates) as Record<string,unknown>[])delete r.winter
+ localStorage.setItem('summit-snow:save:old16',JSON.stringify({version:16,state:payload}))
+ const restored=loadGame('old16')!
+ expect(restored.version).toBe(SAVE_VERSION)
+ expect(restored.winter.opening!.day).toBe(23)
+ expect(restored.winter.days).toHaveLength(0)
+ expect(restored.company.resortStates.alder.winter.opening).not.toBeNull()
+ expect(saveGame('roundtrip',restored,'Roundtrip')).toBe(true)
+ expect(loadGame('roundtrip')).toEqual(restored)
+})

@@ -1,3 +1,4 @@
+import { newWinter, mountainPortrait } from '../game/winter'
 /**
  * Versioned save persistence in localStorage. Payloads carry a schema
  * version; migrations upgrade old saves step by step so future schema
@@ -31,6 +32,42 @@ function migrateMountainIdentity(state: GameState): GameState {
 
 /** version → upgrade fn producing the next version's payload */
 const MIGRATIONS: Record<number, (payload: SavePayload) => SavePayload> = {
+  16: (p) => {
+    const upgrade = (s: GameState): GameState => {
+      const state = { ...s, version: 17, winter: newWinter(s.season), company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id,r]) => [id,upgrade(r)])) } }
+      state.winter.opening = mountainPortrait(state)
+      return state
+    }
+    return { ...p, version: 17, state: upgrade(p.state) }
+  },
+  15: (p) => {
+    // Both preview branches used v15; 0.2 has no creativity fields yet.
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 16,
+      style: s.style ?? { name: '', color: '', decor: 'natural', trailNames: {}, liftNames: {} },
+      hostedEvents: s.hostedEvents ?? [], postcards: s.postcards ?? [],
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id,r])=>[id,upgrade(r)])) },
+    })
+    return { ...p, version: 16, state: upgrade(p.state) }
+  },
+  14: (p) => {
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 15, savedSpeed: 0,
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id,r])=>[id,upgrade(r)])) },
+    })
+    return { ...p, version: 15, state: upgrade(p.state) }
+  },
+  13: (p) => {
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 14,
+      style: { name: '', color: '', decor: 'natural', trailNames: {}, liftNames: {} }, hostedEvents: [], postcards: [],
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },
+    })
+    return { ...p, version: 14, state: upgrade(p.state) }
+  },
+  12: (p) => {
+    const upgrade = (s: GameState): GameState => ({ ...s, version: 13, recentVisits: [],
+      company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },
+    })
+    return { ...p, version: 13, state: upgrade(p.state) }
+  },
   11: (p) => {
     const upgrade = (s: GameState): GameState => ({ ...s, version: 12, rescuesToday: [],
       company: { ...s.company, resortStates: Object.fromEntries(Object.entries(s.company.resortStates).map(([id, r]) => [id, upgrade(r)])) },
