@@ -82,6 +82,7 @@ export function liftDiagnosis(s:GameState) {
 }
 export function winterAdvice(s:GameState):string {
   if(!hasFacility(s,'rental-shop')||!staffCount(s,'rental'))return 'Start with staffed rentals: visitors without equipment currently turn away. Keep a cash reserve for wages.'
+  if(s.winter.setback?.kind==='access'&&!s.winter.setback.recoveredDay)return `Recovery target: meet interested demand with arrival spaces, then finish profitably with ${WINTER.recoverySatisfaction}% satisfaction. Add parking or town shuttles, or use ticket prices to moderate demand. An admission limit alone does not add transport.`
   if(s.winter.setback&&!s.winter.setback.recoveredDay)return `Recovery target: a profitable day with ${WINTER.recoverySatisfaction}% satisfaction. Check closed runs, lift staffing, and the most common guest complaint before spending.`
   if(s.day>=WINTER.finaleDay)return 'Make your closing weekend count. Book First Tracks, a race, or a village festival in Events; the goal uses actual lessons, laps, and guest satisfaction.'
   if(s.winter.openingDemand && s.winter.openingDemand.interested>parkingCapacity(s))return 'Your offer has outgrown access. A shuttle adds arrival spaces; a comfortable admission limit protects breathing room but gives up ticket sales.'

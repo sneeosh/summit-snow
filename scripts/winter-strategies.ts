@@ -22,16 +22,16 @@ export function prepareStrategy(seed:number,strategy:Strategy) {
 }
 export function planStrategyDay(s:GameState,strategy:Strategy) {
  const before=mountainPortrait(s)
- if(strategy!=='village'&&s.winter.days.slice(-3).filter(d=>d.lost>=20).length>=3&&s.cash>25000){
+ if(strategy!=='village'&&s.winter.days.slice(-3).filter(d=>d.lost>=20).length>=3&&s.cash>60000){
    const slot=['p2','p3','p4'].find(id=>!s.facilities[id]);if(slot)a.buildFacility(s,slot,'parking')
  }
  if(s.day===8&&s.cash>30000){a.buildFacility(s,'v5','cafe');a.setStaffCount(s,'food-service',2)}
  if(s.day>=12&&!s.lifts['alder-chair']&&s.cash>100000){a.buildLift(s,'alder-chair','chair');a.buildTrail(s,'alder-run');a.setStaffCount(s,'lift-ops',3)}
  if(strategy==='terrain'&&s.cash>110000&&!s.lifts['timber-chair']){a.buildLift(s,'timber-chair','chair');a.buildTrail(s,'timberline');a.setStaffCount(s,'lift-ops',5);a.setStaffCount(s,'patrol',3)}
  if(strategy==='village'&&!s.town.construction){
-  if(!s.town.levels.shuttle&&s.cash>45000)a.proposeTownProject(s,'shuttle',false)
+  if(s.town.levels.shuttle<2&&s.cash>60000)a.proposeTownProject(s,'shuttle',false)
   else if(!s.town.levels.housing&&s.cash>60000)a.proposeTownProject(s,'housing',false)
-  else if(!s.town.levels.inn&&s.cash>100000)a.proposeTownProject(s,'inn',false)
+  else if(!s.town.levels.inn&&s.cash>100000)a.proposeTownProject(s,'inn',true)
  }
  for(const t of Object.values(s.trails).filter(t=>t.built)){
   if(!t.hasSnowmaking&&s.cash>35000){a.installSnowmaking(s,t.trailId);a.setStaffCount(s,'snowmaking',Math.ceil(Object.values(s.trails).filter(t=>t.hasSnowmaking).length/2))}

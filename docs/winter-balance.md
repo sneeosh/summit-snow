@@ -4,12 +4,12 @@ Real scenario starting cash ($80,000), unmodified weather. Terrain takes the exi
 
 | Seed | Strategy | Last day | Cash | Operating profit | Arrivals | Mean daily satisfaction | Setback / recovery | Runs / town upgrades | Finale |
 |---|---|---:|---:|---:|---:|---:|---|---|---|
-| 11 | learners | 60 | 1088317 | 1190319 | 19979 | 91.5 | 17 / 19 | 3 / 0 | success |
-| 11 | terrain | 60 | 1329271 | 1508807 | 26258 | 91.9 | 9 / 10 | 4 / 0 | missed |
-| 11 | village | 60 | 500185 | 644188 | 12293 | 92.9 | 23 / — | 3 / 3 | success |
-| 42 | learners | 60 | 1042302 | 1154297 | 19495 | 86.0 | 17 / 18 | 3 / 0 | success |
-| 42 | terrain | 60 | 1306719 | 1486252 | 26151 | 83.3 | 7 / 9 | 4 / 0 | missed |
-| 42 | village | 60 | 488759 | 632760 | 12189 | 88.3 | 27 / — | 3 / 3 | success |
-| 91 | learners | 60 | 1052929 | 1154930 | 19443 | 93.5 | 17 / 19 | 3 / 0 | success |
-| 91 | terrain | 60 | 1298750 | 1478282 | 26185 | 92.8 | 7 / 10 | 4 / 0 | success |
-| 91 | village | 60 | 494313 | 638315 | 12236 | 94.8 | 23 / — | 3 / 3 | success |
+| 11 | learners | 60 | 936662 | 1108657 | 19155 | 91.9 | 17 / 24 | 3 / 0 | success |
+| 11 | terrain | 60 | 1177517 | 1462053 | 26173 | 92.3 | 9 / 10 | 4 / 0 | missed |
+| 11 | village | 60 | 509829 | 784835 | 14513 | 91.3 | 30 / — | 3 / 5 | success |
+| 42 | learners | 60 | 870790 | 1087783 | 18966 | 86.3 | 17 / 24 | 3 / 0 | success |
+| 42 | terrain | 60 | 1122204 | 1406740 | 25576 | 83.8 | 7 / 9 | 4 / 0 | missed |
+| 42 | village | 60 | 478252 | 753256 | 14119 | 85.6 | 32 / 49 | 3 / 5 | success |
+| 91 | learners | 60 | 876527 | 1048524 | 18231 | 93.5 | 17 / 25 | 3 / 0 | success |
+| 91 | terrain | 60 | 1140638 | 1425170 | 26057 | 93.1 | 7 / 9 | 4 / 0 | success |
+| 91 | village | 60 | 487442 | 762447 | 14425 | 92.9 | 30 / — | 3 / 5 | success |

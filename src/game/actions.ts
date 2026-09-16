@@ -221,6 +221,7 @@ export function setTrailOpen(state: GameState, trailId: string, open: boolean): 
   if (open && trail.snowDepthCm < TRAIL_MIN_DEPTH_CM) {
     return `Not enough snow to open (${trail.snowDepthCm} cm, needs ${TRAIL_MIN_DEPTH_CM})`
   }
+  if(open&&!trail.open) winterEntry(state,'Run reopened',`${getTrailDef(state,trailId).name}: ${Math.round(trail.snowDepthCm)} cm of cover; ${trail.surface}.`)
   trail.open = open
   return null
 }

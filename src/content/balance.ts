@@ -189,8 +189,8 @@ export const FACILITIES: Record<FacilityKind, FacilitySpec> = {
   parking: {
     kind: 'parking',
     label: 'Parking expansion',
-    buildCost: 10_000,
-    operatingDaily: 40,
+    buildCost: 45_000,
+    operatingDaily: 240,
     capacity: 0,
     description: 'Each lot raises the daily visitor ceiling by 150.',
   },

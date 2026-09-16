@@ -34,7 +34,7 @@ export function townProposal(state: GameState, project: TownProject, homes = fal
   return { seat, score: Math.max(0,Math.min(100,score)), yes: score >= TOWN_VOTE_THRESHOLD }
  })
  return { cost: spec.cost * (level + 1) + (compact ? TOWN_HOMES_COMPACT_COST : 0), days: spec.days + level,
-  votes, approved: votes.filter(v=>v.yes).length >= 2, maxed: level >= TOWN_MAX_LEVEL }
+  trafficPressure, votes, approved: votes.filter(v=>v.yes).length >= 2, maxed: level >= TOWN_MAX_LEVEL }
 }
 /** Construction advances once per completed operating day, never from real time. */
 export function advanceTown(state: GameState): string | null {
