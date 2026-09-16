@@ -1,3 +1,5 @@
+import { WINTER } from '../content/balance'
+import { winterEntry } from './winter'
 /**
  * Player actions: construction, operations, staffing, pricing, financing.
  * Each returns an error string (shown in UI) or null on success, mutating
@@ -17,7 +19,7 @@ import {
   SNOWMAKING_INSTALL_COST,
   TRAIL_MIN_DEPTH_CM,
 } from '../content/balance'
-import { LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
+import { FACILITY_SLOTS, LIFT_SITE_MAP, SLOT_MAP, TRAIL_MAP } from '../content/mountain'
 import { CUSTOM_LIFT_NAMES } from '../content/names'
 import { pushAlert } from './guests'
 import { makeLiftState } from './init'
@@ -219,6 +221,7 @@ export function setTrailOpen(state: GameState, trailId: string, open: boolean): 
   if (open && trail.snowDepthCm < TRAIL_MIN_DEPTH_CM) {
     return `Not enough snow to open (${trail.snowDepthCm} cm, needs ${TRAIL_MIN_DEPTH_CM})`
   }
+  if(open&&!trail.open) winterEntry(state,'Run reopened',`${getTrailDef(state,trailId).name}: ${Math.round(trail.snowDepthCm)} cm of cover; ${trail.surface}.`)
   trail.open = open
   return null
 }
@@ -357,4 +360,51 @@ export function adoptTownPolicy(state: GameState, policy: TownPolicy): string | 
  state.town.scrapbook.push(townMemory(state.town, state.day, state.season, TOWN_POLICIES[policy].name))
  pushAlert(state, 'info', `${TOWN_POLICIES[policy].name} adopted — visit the village to see the change`)
  return null
+}
+
+export { updateStyle, renameRoute, bookHostedEvent } from './creativity'
+
+/** Bounded daily admissions trade ticket volume for less pressure; no free mood bonus. */
+export function setAdmission(state: GameState, policy: 'welcome' | 'comfortable'): string | null {
+  if(state.phase !== 'planning' || state.gameOver) return 'Change admissions during morning planning.'
+  if(!['welcome','comfortable'].includes(policy)) return 'Choose an admission policy.'
+  if(state.winter.admission===policy)return null
+  state.winter.admission=policy
+  winterEntry(state,'Changed admission policy',policy==='comfortable'?'Limit bookings to 70% of arrival capacity. Fewer ticket sales; less pressure on lifts and services.':'Welcome guests up to arrival capacity. More potential sales; watch queues and service staffing.')
+  return null
+}
+
+/** Emergency work is explicit, expensive, and limited to one thin run each morning. */
+export function restoreThinRun(state: GameState, trailId: string): string | null {
+  if(state.phase!=='planning'||state.gameOver)return 'Arrange resurfacing during morning planning.'
+  const trail=state.trails[trailId]
+  if(!trail?.built || trail.snowDepthCm>=TRAIL_MIN_DEPTH_CM)return 'Choose a built run closed by thin cover.'
+  if(state.winter.entries.some(e=>e.day===state.day&&e.title==='Emergency resurfacing'))return 'The crew can resurface one run per morning.'
+  const err=spend(state,WINTER.recoveryCost); if(err)return err
+  trail.snowDepthCm=Math.max(TRAIL_MIN_DEPTH_CM,trail.snowDepthCm+WINTER.recoveryDepth)
+  trail.surface=computeSurface(trail,state.weatherSeason[state.day-1],id=>getTrailDef(state,id))
+  // Keep manual and avalanche closures intact; the player explicitly reopens it.
+  winterEntry(state,'Emergency resurfacing',`${getTrailDef(state,trailId).name}: snow hauled from storage for $${WINTER.recoveryCost}. Cover is now ${Math.round(trail.snowDepthCm)} cm. Review safety and reopen the run; warm weather can melt it again.`)
+  state.winter.recoverySpendToday+=WINTER.recoveryCost
+  return null
+}
+
+/** First improvement, composed from the same validated building/staffing actions. */
+export function prepareOpening(state: GameState, lessons: boolean): string | null {
+  if(state.phase!=='planning'||state.gameOver)return 'Prepare the opening during morning planning.'
+  const draft=structuredClone(state)
+  const facilities: FacilityKind[] = lessons?['rental-shop','ski-school']:['rental-shop']
+  for(const kind of facilities){
+    if(Object.values(draft.facilities).includes(kind))continue
+    const slot=FACILITY_SLOTS.find(s=>s.allowed==='any-village'&&!draft.facilities[s.id])
+    if(!slot)return 'No free village site. Use the Build panel to review your layout.'
+    const error=buildFacility(draft,slot.id,kind);if(error)return error
+  }
+  setStaffCount(draft,'rental',Math.max(2,staffCount(draft,'rental')))
+  if(lessons)setStaffCount(draft,'instructors',Math.max(2,staffCount(draft,'instructors')))
+  const starter=Object.values(draft.lifts)[0]
+  if(starter)setLiftOpen(draft,starter.siteId,true)
+  winterEntry(draft,lessons?'Room for first turns':'Rental shop ready',lessons?'Built missing rentals and ski school, assigned two staff to each, and opened the starter lift. More teaching capacity, higher daily wages.':'Built missing rentals, assigned two rental staff, and opened the starter lift. Equipment access improves; wages and upkeep increase.')
+  Object.assign(state,draft)
+  return null
 }

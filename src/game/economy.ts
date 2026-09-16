@@ -1,7 +1,10 @@
+import { returningMultiplier } from './winter'
+import { WINTER, SERVICE_COSTS, SCHOOL_DEMAND_PER_INSTRUCTOR, SCHOOL_DEMAND_MAX } from '../content/balance'
+import { HOSTED_EVENTS, todayHostedEvent } from './creativity'
 /**
  * Demand modelling, day-end settlement, reputation, and the daily report.
  */
-import { ACTIVE_MOUNTAIN } from '../content/mountain'
+import { ACTIVE_MOUNTAIN, ensureMountain } from '../content/mountain'
 import {
   DAY_END_MIN,
   NIGHT_LIGHTS_ENERGY,
@@ -18,7 +21,7 @@ import { MEMORY_COPY, renderReview, REVIEW_TEMPLATES } from '../content/names'
 import { closingMinute, nightOperating } from './operations'
 import { townBenefits } from './town'
 import { Rng } from './rng'
-import { facilityOperatingDaily, liftMaintenanceDaily, openTrailsByDifficulty, parkingCapacity } from './resort'
+import { hasFacility, staffCount, facilityOperatingDaily, liftMaintenanceDaily, openTrailsByDifficulty, parkingCapacity } from './resort'
 import type { DailyReport, ExpenseBreakdown, GameState, GuestMemory } from './types'
 
 export function isWeekend(day: number): boolean {
@@ -31,12 +34,17 @@ export function isWeekend(day: number): boolean {
  * Expected visitors for the coming day. Deterministic given state — computed
  * once each morning.
  */
-export function computeDailyDemand(state: GameState): number {
+export function computeDailyDemand(state: GameState): number { return demandExplanation(state).admitted }
+
+export function demandExplanation(state: GameState) {
+  ensureMountain(state.mountainId, state.mountainVersion)
+  const capacity = Math.max(80, parkingCapacity(state))
+  const returning = returningMultiplier(state)
   const weather = state.weatherSeason[state.day - 1]
   const byDiff = openTrailsByDifficulty(state)
   const trailsOpen = byDiff.green + byDiff.blue + byDiff.black + byDiff['double-black']
 
-  if (trailsOpen === 0) return 0
+  if (trailsOpen === 0) return { interested: 0, admitted: 0, capacity, returning }
 
   // the local market: an interstate hill draws differently than a fjord
   const town = townBenefits(state)
@@ -64,17 +72,21 @@ export function computeDailyDemand(state: GameState): number {
   demand *= Math.min(1.5, 0.55 + trailsOpen * 0.16)
   if (byDiff.blue + byDiff.black + byDiff['double-black'] === 0) demand *= 0.75 // greens-only hill
 
+  if (hasFacility(state, 'ski-school') && byDiff.green > 0) demand *= 1 + Math.min(SCHOOL_DEMAND_MAX, staffCount(state, 'instructors') * SCHOOL_DEMAND_PER_INSTRUCTOR)
+
   // uphill capacity credibility: guests know when a hill is one carpet
-  const capacity = runningLiftCapacityEstimate(state)
-  demand *= Math.min(1.25, 0.6 + capacity / 2600)
+  const uphill = runningLiftCapacityEstimate(state)
+  demand *= Math.min(1.25, 0.6 + uphill / 2600)
 
-  // parking ceiling
-  demand = Math.min(demand, Math.max(80, parkingCapacity(state)))
+  const hosted=todayHostedEvent(state)
+  if(hosted?.status==='booked') demand *= HOSTED_EVENTS[hosted.kind].demand
 
-  // event promotions etc.
-  demand *= state.demandMultTomorrow
+  // All promotions, audience memory and hosted events obey the physical ceiling.
+  demand *= state.demandMultTomorrow * returning
+  const interested = Math.round(demand)
+  const limit = state.winter.admission === 'comfortable' ? Math.floor(capacity * WINTER.comfortableCapacity) : capacity
+  return { interested, admitted: Math.min(interested, limit), capacity, returning }
 
-  return Math.round(demand)
 }
 
 function runningLiftCapacityEstimate(state: GameState): number {
@@ -82,6 +94,15 @@ function runningLiftCapacityEstimate(state: GameState): number {
   return Object.values(state.lifts)
     .filter((l) => l.open)
     .reduce((sum, l) => sum + LIFT_TYPES[l.kind].hourlyCapacity, 0)
+}
+
+/** Agency cleanup, guest support and consumables scale with actual business. */
+export function serviceCosts(state: GameState, visitors = state.guestsArrivedToday) {
+  const revenue = state.revenueToday
+  return {
+    visitorServices: Math.round(visitors * SERVICE_COSTS.perVisitor * (1 - townBenefits(state).payrollDiscount)),
+    supplies: Math.round(revenue.food * SERVICE_COSTS.foodShare + revenue.rentals * SERVICE_COSTS.rentalShare + revenue.lessons * SERVICE_COSTS.lessonShare),
+  }
 }
 
 // -------------------------------------------------------------- settlement
@@ -119,16 +140,20 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
   }
   state.loans = state.loans.filter((l) => l.balance > 1)
 
+  const service = serviceCosts(state)
   const expenses: ExpenseBreakdown = {
+    visitorServices: service.visitorServices,
+    supplies: service.supplies,
     payroll,
     maintenance,
     energy: Math.round(energy),
     facilities,
     interest: Math.round(interest),
-    other: state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
+    hostedEvent: todayHostedEvent(state)?.cost ?? 0,
+    other: service.visitorServices + service.supplies + state.winter.recoverySpendToday + (todayHostedEvent(state)?.cost ?? 0) + state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
     medevac: state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
   }
-  state.cash -= payroll + maintenance + expenses.energy + facilities
+  state.cash -= payroll + maintenance + expenses.energy + facilities + service.visitorServices + service.supplies
 
   const revenue = state.revenueToday
   const revTotal = revenue.tickets + revenue.rentals + revenue.food + revenue.lessons + revenue.parking

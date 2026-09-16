@@ -1,3 +1,4 @@
+import { mountainPortrait, rememberInvestment, winterEntry } from '../game/winter'
 import { track } from '../analytics/client'
 /**
  * Zustand store: owns the GameState, the tick scheduler, UI state, and
@@ -41,6 +42,12 @@ export type Overlay = 'none' | 'difficulty' | 'snow' | 'crowding' | 'coverage'
 export type LeftTab = 'build' | 'staff' | 'pricing' | 'finance' | 'overlays' | 'resorts' | null
 
 interface Store {
+  prepareOpening: (lessons: boolean) => void
+  setAdmission: (policy: 'welcome' | 'comfortable') => void
+  restoreThinRun: (id: string) => void
+  updateStyle: (patch: Partial<import('../game/types').ResortStyle>) => void
+  renameRoute: (kind: 'trail'|'lift', id: string, name: string) => void
+  bookHostedEvent: (kind: import('../game/types').HostedEventKind) => void
   adoptTownPolicy: (policy: import('../game/types').TownPolicy) => void
   worldView: 'mountain' | 'town'
   setWorldView: (view: 'mountain' | 'town') => void
@@ -127,11 +134,25 @@ export const useStore = create<Store>((set, get) => {
     const game = get().game
     if (!game) return
     ensureMountain(game.mountainId, game.mountainVersion ?? 1)
+    const before = mountainPortrait(game)
+    const oldConstruction = game.town.construction
+    const oldStaff = JSON.stringify(game.staff)
     const err = fn(game) ?? null
+    if(!err) {
+      rememberInvestment(game,before)
+      if(!oldConstruction && game.town.construction) winterEntry(game,'Council approved construction',`${game.town.construction.project}: $${Math.round(before.cash-game.cash).toLocaleString()} committed; ${game.town.construction.remainingDays} operating days until opening.`)
+      if(oldStaff!==JSON.stringify(game.staff)) winterEntry(game,'Changed the crew',`Daily base wages now $${game.staff.reduce((n,d)=>n+d.headcount*d.dailyWage,0).toLocaleString()}. Staffing changes capacity before they change guest outcomes.`)
+    }
     set({ game: { ...game }, actionError: err, tickCount: get().tickCount + 1 })
   }
 
   return {
+    updateStyle: patch => mutate(g=>actions.updateStyle(g,patch)),
+    renameRoute: (kind,id,name) => mutate(g=>actions.renameRoute(g,kind,id,name)),
+    bookHostedEvent: kind => mutate(g=>actions.bookHostedEvent(g,kind)),
+    prepareOpening: lessons => mutate(g=>actions.prepareOpening(g,lessons)),
+    setAdmission: policy => mutate(g=>actions.setAdmission(g,policy)),
+    restoreThinRun: id => mutate(g=>actions.restoreThinRun(g,id)),
     screen: 'menu',
     game: null,
     adoptTownPolicy: (policy) => mutate(g => actions.adoptTownPolicy(g, policy)),
@@ -176,7 +197,7 @@ export const useStore = create<Store>((set, get) => {
         screen: 'playing',
         worldView: 'mountain',
         game: state,
-        speed: state.phase === 'operating' ? 1 : 1,
+        speed: state.savedSpeed ?? 0,
         selection: null,
         buildMode: null,
         showReport: state.phase === 'day-end',
@@ -188,7 +209,7 @@ export const useStore = create<Store>((set, get) => {
     saveSlot: (slot, label) => {
       const game = get().game
       if (!game) return false
-      return saveGame(slot, game, label)
+      return saveGame(slot, { ...game, savedSpeed: get().speed }, label)
     },
 
     toMenu: () => set({ screen: 'menu', speed: 0 }),

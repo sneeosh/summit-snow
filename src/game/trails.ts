@@ -58,7 +58,9 @@ export function allNodes(state: GameState): MountainNode[] {
 }
 
 export function getLiftSite(state: GameState, siteId: string): LiftSiteDef {
-  return LIFT_SITE_MAP[siteId] ?? state.customLiftSites[siteId]
+  const def=LIFT_SITE_MAP[siteId] ?? state.customLiftSites[siteId]
+  const name=state.style?.liftNames[siteId]
+  return name ? {...def,name} : def
 }
 
 const liftLineCache = new WeakMap<LiftSiteDef, MeasuredPath>()
@@ -86,11 +88,13 @@ export function liftSlopeLengthM(state: GameState, site: LiftSiteDef): number {
 // ----------------------------------------------------------- def lookups
 
 export function getTrailDef(state: GameState, trailId: string): TrailDef {
-  return TRAIL_MAP[trailId] ?? state.customTrailDefs[trailId]
+  const def=TRAIL_MAP[trailId] ?? state.customTrailDefs[trailId]
+  const name=state.style?.trailNames[trailId]
+  return name ? {...def,name} : def
 }
 
 export function allTrailDefs(state: GameState): TrailDef[] {
-  return [...Object.values(TRAIL_MAP), ...Object.values(state.customTrailDefs)]
+  return [...Object.values(TRAIL_MAP), ...Object.values(state.customTrailDefs)].map(def => state.style?.trailNames[def.id] ? {...def, name:state.style.trailNames[def.id]} : def)
 }
 
 const pathCache = new WeakMap<TrailDef, MeasuredPath>()

@@ -1,4 +1,7 @@
 /// <reference types="vitest/config" />
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { appendFileSync } from 'node:fs'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -37,7 +40,14 @@ function diagEndpoint(): Plugin {
   }
 }
 
+const sourceHash = createHash('sha256')
+for (const file of execFileSync('git',['ls-files','--cached','--others','--exclude-standard'],{encoding:'utf8'}).trim().split('\n').filter(f=>/\.(ts|tsx|css|json|html)$/.test(f)).sort()) {
+  try { sourceHash.update(file); sourceHash.update(readFileSync(file)) } catch { /* deleted source */ }
+}
+const buildId = execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim() + '-' + sourceHash.digest('hex').slice(0,12)
 export default defineConfig({
+  define: { 'import.meta.env.VITE_BUILD_ID': JSON.stringify(buildId) },
+  build: process.env.SUMMIT_REVIEW ? { rollupOptions: { input: { main: 'index.html', review: 'scripts/winter-review/index.html' } } } : undefined,
   plugins: [react(), tailwindcss(), diagEndpoint()],
   base: './',
   test: {

@@ -1,7 +1,7 @@
+import { resortName } from '../game/creativity'
 import { useEffect, useState } from 'react'
 import { TOWN_POLICIES, TOWN_PROJECT_ORDER, TOWN_PROJECTS, TOWN_SEAT_LABELS } from '../content/town'
 import { TOWN_HOMES_COMPACT_COST, TOWN_MAX_LEVEL } from '../content/balance'
-import { MOUNTAIN_MAP } from '../content/mountains'
 import { townPolicyProposal, townBenefits, townProposal, townStage } from '../game/town'
 import type { TownProject, TownPolicy } from '../game/types'
 import { formatMoney, useStore } from '../state/store'
@@ -26,8 +26,8 @@ export function TownView() {
   <section className="town-panorama relative flex min-h-0 flex-col overflow-hidden bg-[#bdced1]">
    <div className="town-heading shrink-0 rounded-xl bg-[#f5f1e6]/95 px-4 py-3 shadow-sm">
     <div className="text-[10px] uppercase tracking-[.2em] text-[#63776e]">{townStage(shown)}</div>
-    <h2 className="font-serif text-[23px] text-[#294a40]">{MOUNTAIN_MAP[game.mountainId].name} Village</h2>
-    <p className="text-[11px] text-[#68766b]">A town shaped together. A mountain to come home to.</p>
+    <h2 className="font-serif text-[23px] text-[#294a40]">{resortName(game)} Village</h2>
+    <p className="text-[11px] text-[#68766b]">Blue coats: arriving guests · Gold coats: staff · Journeys follow the game clock.</p>
    </div>
    <div className="relative min-h-0 flex-1"><div className="absolute inset-0"><TownScene game={shown} camera={camera} celebrating={celebrating&&!snapshot} still={!!snapshot}/></div></div>
    {opening&&!snapshot&&<div className="town-opening mx-3 mt-2 shrink-0 rounded-xl border border-[#e4c776] bg-[#fff6d9] px-4 py-2 text-[#68542d] shadow-lg"><span className="text-[10px] font-bold uppercase tracking-widest">Now open</span><div className="font-serif text-lg">{TOWN_PROJECTS[opening.project].name} · Level {opening.level}</div><button className="mt-1 text-xs underline" onClick={()=>{setCelebrating(true);setCamera(opening.project==='housing'?'riverside':opening.project==='mainstreet'?'mainstreet':'station')}}>Visit the opening</button></div>}
@@ -59,6 +59,7 @@ export function TownView() {
      <div className="space-y-2">
       {proposal.votes.map(v=><div key={v.seat} className="rounded-lg bg-white/55 p-2"><div className="flex items-center justify-between gap-2 text-[11px]"><span className="font-medium text-[#4f6455]">{TOWN_SEAT_LABELS[v.seat]}</span><span className={v.yes?'font-bold text-[#477954]':'font-bold text-[#a06e42]'}>{v.yes?'Supports':'Opposes'}</span></div><div className="mt-1 text-[10px] text-[#7e8978]">Relationship {game.town.trust[v.seat]}/100 · Proposal support {v.score}/100</div></div>)}
      </div>
+     {project==='inn'&&proposal.trafficPressure>0&&<p className="rounded-lg bg-amber/10 p-2 text-xs">Access shortage: recent demand exceeded arrival capacity. Resident support is reduced by {proposal.trafficPressure} points. Expand transport or moderate demand; this pressure clears as those days leave the seven-day window.</p>}
      <p className="text-[11px] text-[#6f7967]">Two votes required. Completed public projects build relationships. Housing and transit make future inn proposals easier to approve.</p>
      <button className="btn btn-primary w-full" disabled={game.phase!=='planning'||!!construction||!proposal.approved||game.cash<proposal.cost} onClick={()=>propose(project,homes)}>Propose & fund · {formatMoney(proposal.cost)}</button>
      <p className="text-center text-[11px] text-[#78816e]">{construction?'One town project at a time.':game.phase!=='planning'?'Council meets during morning planning.':!proposal.approved?'Revise the plan or build community support first.':game.cash<proposal.cost?'More company cash is needed.':`Council approves · Opens in ${proposal.days} operating days`}</p>

@@ -73,7 +73,7 @@ export const LIFT_TYPES: Record<LiftKind, LiftTypeSpec> = {
     speed: 150,
     faultChance: 0.05,
     windTolerance: 55,
-    maintenanceDaily: 220,
+    maintenanceDaily: 1400,
     staffRequired: 2,
     energyPerHour: 14,
   },
@@ -85,7 +85,7 @@ export const LIFT_TYPES: Record<LiftKind, LiftTypeSpec> = {
     speed: 300,
     faultChance: 0.06,
     windTolerance: 50,
-    maintenanceDaily: 420,
+    maintenanceDaily: 2400,
     staffRequired: 3,
     energyPerHour: 30,
   },
@@ -97,7 +97,7 @@ export const LIFT_TYPES: Record<LiftKind, LiftTypeSpec> = {
     speed: 360,
     faultChance: 0.05,
     windTolerance: 80,
-    maintenanceDaily: 650,
+    maintenanceDaily: 3800,
     staffRequired: 4,
     energyPerHour: 45,
   },
@@ -189,8 +189,8 @@ export const FACILITIES: Record<FacilityKind, FacilitySpec> = {
   parking: {
     kind: 'parking',
     label: 'Parking expansion',
-    buildCost: 10_000,
-    operatingDaily: 40,
+    buildCost: 45_000,
+    operatingDaily: 240,
     capacity: 0,
     description: 'Each lot raises the daily visitor ceiling by 150.',
   },
@@ -394,3 +394,18 @@ export const RESCUE_PATROL_MINUTES = 6
 export const RESCUE_UNDERSTAFFED_MINUTES = 12
 export const RESCUE_TREATMENT_MINUTES = 5
 export const RESCUE_TRANSPORT_MINUTES = 8
+
+// Season feedback: bounded audience memory, never an exponential demand loop.
+export const WINTER = {
+  accessSetbackThreshold: 20, councilPressureDays: 7, councilPressurePerDay: 3, councilPressureCap: 12,
+  maxEntries: 80, returnDemandStrength: .3, audienceStrength: 1.2,
+  audienceSmoothing: .18, audienceMinGuests: 5, comfortableCapacity: .7,
+  setbackEarliestDay: 4, setbackSatisfaction: 45, recoverySatisfaction: 65,
+  crowdMilestone: 150, finaleDay: 54, recoveryCost: 2400, recoveryDepth: 16,
+} as const
+
+// Scaling service costs keep a crowded hill from becoming nearly cost-free revenue.
+export const SERVICE_COSTS = { perVisitor: 18, foodShare: .4, rentalShare: .2, lessonShare: .1 }
+export const GUEST_JOY = { ceiling: 92, easingRange: 40, freshLaps: 3 }
+export const SCHOOL_DEMAND_PER_INSTRUCTOR = .1
+export const SCHOOL_DEMAND_MAX = .2

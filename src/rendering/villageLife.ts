@@ -52,7 +52,8 @@ export function paintVillageLife(g: Graphics, state: GameState, time: number): v
       || (kind === 'rental-shop' && staffCount(state, 'rental') > 0)
       || (kind === 'ski-school' && staffCount(state, 'instructors') > 0)
     if (!served) continue
-    for (let person = 0; person < crowd; person++) {
+    const gathering = Object.values(state.guests).filter(guest => ['eating','resting'].includes(guest.objective) && Math.hypot(guest.pos.x-x,guest.pos.y-y)<55).length
+    for (let person = 0; person < Math.min(5, gathering); person++) {
       const phase = hashNoise(state.seed, index, person + 21)
       const px = x - 20 + person * 9, py = y + 22 + Math.sin(time * 0.8 + phase * 8) * 1.5
       g.ellipse(px + 2, py + 5, 4, 1.5).fill({ color: 0x435c70, alpha: 0.25 })
