@@ -113,6 +113,7 @@ function angleDelta(a: number, b: number): number {
 }
 
 export interface SceneCallbacks {
+  onError?: (error: unknown) => void
   onSelect: (sel: Selection) => void
   onSlotClick: (slotId: string) => void
   onTrailClick: (trailId: string) => void
@@ -239,16 +240,28 @@ export class MountainScene {
     this.fitCamera()
     this.bindInput()
 
-    app.ticker.add(() => this.frame())
+    app.ticker.add(() => {
+      if (this.destroyed) return
+      try { this.frame() } catch (error) {
+        app.stop()
+        this.callbacks.onError?.(error)
+      }
+    })
   }
 
   destroy(): void {
+    if (this.destroyed) return
     this.destroyed = true
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     window.removeEventListener('blur', this.onBlur)
     window.removeEventListener('pointermove', this.onPointerMove)
     window.removeEventListener('pointerup', this.onPointerUp)
+    // These textures belong to this scene. Shared guest textures must survive
+    // a Town → Mountain remount, so never blanket-destroy child textures.
+    this.terrainSprite?.texture.destroy(true)
+    this.dotTexture.destroy(true)
+    this.flakeTexture.destroy(true)
     this.app.destroy(true, { children: true })
   }
 

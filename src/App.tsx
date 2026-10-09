@@ -1,3 +1,4 @@
+import { BugReport } from './components/BugReport'
 import { useEffect } from 'react'
 import { BottomPanel } from './components/BottomPanel'
 import { DailyReportModal } from './components/DailyReport'
@@ -64,10 +65,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  if (screen === 'menu') return <MainMenu />
+  if (screen === 'menu') return <><MainMenu /><BugReport /></>
 
   return (
     <div className="relative h-full w-full select-none overflow-hidden bg-snow-1">
+      <BugReport />
       {/* keyed by mountain: switching resorts rebuilds the whole Pixi scene */}
       {worldView === 'mountain' && <MountainCanvas key={mountainId ?? 'none'} />}
       <div className="pointer-events-none absolute inset-0">

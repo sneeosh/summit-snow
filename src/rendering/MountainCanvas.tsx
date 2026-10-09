@@ -1,12 +1,14 @@
 /** React wrapper that owns the Pixi Application and MountainScene lifecycle. */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Application } from 'pixi.js'
 import { MountainScene } from './scene'
+import { recordRenderFailure } from './diagnostics'
 import { useStore } from '../state/store'
 
 export function MountainCanvas() {
   const hostRef = useRef<HTMLDivElement>(null)
-  const sceneRef = useRef<MountainScene | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const [failure, setFailure] = useState<string | null>(null)
 
   useEffect(() => {
     const host = hostRef.current
@@ -14,10 +16,28 @@ export function MountainCanvas() {
     let cancelled = false
     let scene: MountainScene | null = null
     let observer: ResizeObserver | null = null
+    let initialized = false
+    let diagnosticTimer: ReturnType<typeof setTimeout> | undefined
+    let canvas: HTMLCanvasElement | undefined
+    let failed = false
+    const fail = (error: unknown) => {
+      if (cancelled || failed) return
+      failed = true
+      app.stop?.()
+      useStore.getState().setSpeed(0)
+      recordRenderFailure(error)
+      setFailure('The mountain display stopped. Your current game is still here.')
+    }
+    const contextLost = (event: Event) => {
+      event.preventDefault()
+      fail(new Error('WebGL context lost'))
+    }
 
     const app = new Application()
     app
       .init({
+        preference: 'webgl',
+        autoStart: false,
         width: Math.max(1, host.clientWidth),
         height: Math.max(1, host.clientHeight),
         background: '#dfe9ef',
@@ -29,6 +49,7 @@ export function MountainCanvas() {
         autoDensity: false,
       })
       .then(() => {
+        initialized = true
         if (cancelled) {
           app.destroy(true)
           return
@@ -40,6 +61,13 @@ export function MountainCanvas() {
         app.canvas.style.height = '100%'
         // the game owns all touch gestures: no browser scroll/zoom on the map
         app.canvas.style.touchAction = 'none'
+        canvas = app.canvas as HTMLCanvasElement
+        canvas.addEventListener('webglcontextlost', contextLost)
+        // Own rendering so GPU submission errors reach the recovery UI too.
+        app.ticker.remove(app.render, app)
+        app.ticker.add(() => {
+          if (!failed) { try { app.render() } catch (error) { fail(error) } }
+        }, undefined, -25)
         host.appendChild(app.canvas)
         scene = new MountainScene(
           app,
@@ -48,6 +76,7 @@ export function MountainCanvas() {
             return { game: s.game, selection: s.selection, buildMode: s.buildMode, overlay: s.overlay }
           },
           {
+            onError: fail,
             onSelect: (sel) => useStore.getState().select(sel),
             onSlotClick: (slotId) => {
               const s = useStore.getState()
@@ -63,12 +92,13 @@ export function MountainCanvas() {
             onDrawFinish: () => useStore.getState().finishDrawTrail(),
           },
         )
-        sceneRef.current = scene
+        app.start()
 
         // Source of truth for canvas size: the host element's laid-out box.
         // ResizeObserver fires once on observe, correcting any init-time
         // measurement, and again on every window/layout change.
         const syncSize = () => {
+          if (cancelled || failed) return
           const w = host.clientWidth
           const h = host.clientHeight
           if (w < 1 || h < 1) return
@@ -89,18 +119,30 @@ export function MountainCanvas() {
             `screen ${app.renderer.screen.width}x${app.renderer.screen.height}, dpr ${window.devicePixelRatio}`,
         )
         if (import.meta.env.DEV) reportDiagnostics(host, app, 'boot')
-        if (import.meta.env.DEV) setTimeout(() => reportDiagnostics(host, app, 't+2s'), 2000)
-      })
+        if (import.meta.env.DEV) diagnosticTimer = setTimeout(() => reportDiagnostics(host, app, 't+2s'), 2000)
+      }).catch(fail)
 
     return () => {
       cancelled = true
       observer?.disconnect()
-      sceneRef.current?.destroy()
-      sceneRef.current = null
+      clearTimeout(diagnosticTimer)
+      canvas?.removeEventListener('webglcontextlost', contextLost)
+      if (scene) scene.destroy()
+      else if (initialized) app.destroy(true, { children: true })
     }
-  }, [])
+  }, [attempt])
 
-  return <div ref={hostRef} className="absolute inset-0 overflow-hidden" />
+  return <>
+    <div ref={hostRef} className="absolute inset-0 overflow-hidden" />
+    {failure && <div className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-snow-1/95 p-6">
+      <div role="alert" className="glass max-w-sm rounded-2xl p-6 text-center">
+        <h2 className="font-display text-xl">Mountain display interrupted</h2>
+        <p className="my-3 text-sm">{failure}</p>
+        <button className="btn btn-primary" onClick={() => { setFailure(null); setAttempt(v => v + 1) }}>Rebuild mountain display</button>
+        <p className="mt-3 text-xs">You can also switch to Town or use Report a bug.</p>
+      </div>
+    </div>}
+  </>
 }
 
 /** dev-only: ship layout measurements to the dev server for remote debugging */
