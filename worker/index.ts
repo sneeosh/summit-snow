@@ -1,8 +1,10 @@
+import { feedback } from './feedback'
 import { admin } from './admin'
 import { validateEvent } from '../src/analytics/schema'
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
+    if (url.pathname === '/api/feedback') return feedback(request, env)
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return admin(request, env)
     if (url.pathname !== '/api/events') return env.ASSETS.fetch(request)
     const respond = (status: number) => new Response(null, { status, headers: { 'Cache-Control': 'no-store' } })

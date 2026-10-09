@@ -1,6 +1,18 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
+    version: '0.1.2',
+    date: '2026-10-09',
+    dateLabel: 'October 9, 2026',
+    title: 'Mountain display recovery and bug reports',
+    summary: 'Lower memory use when switching views, with a way to report problems from anywhere in the game.',
+    changes: [
+      'Release mountain terrain images when leaving the view to prevent memory building up over repeated visits.',
+      'Recover an interrupted mountain display without resetting your current game.',
+      'Report bugs from the menu, mountain, or town, and download a diagnostic save to share when needed.',
+    ],
+  },
+  {
     version: '0.1.1',
     date: '2026-09-06',
     dateLabel: 'September 6, 2026',
