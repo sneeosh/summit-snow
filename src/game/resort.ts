@@ -3,6 +3,7 @@ import {
   FACILITIES,
   GUESTS_PER_PARKING,
   LIFT_TYPES,
+  LIFT_WEAR_PER_RIDE,
   PUMP_STATION_MULT,
   RENTAL_GUESTS_PER_STAFF_HOUR,
   TRAILS_PER_GROOMER,
@@ -102,8 +103,9 @@ export function facilityOperatingDaily(state: GameState): number {
     .reduce((sum, kind) => sum + FACILITIES[kind].operatingDaily, 0)
 }
 
+/** fixed upkeep plus wear from today's rides (zero rides while planning) */
 export function liftMaintenanceDaily(state: GameState): number {
-  return Object.values(state.lifts).reduce((sum, l) => sum + LIFT_TYPES[l.kind].maintenanceDaily, 0)
+  return Object.values(state.lifts).reduce((sum, l) => sum + LIFT_TYPES[l.kind].maintenanceDaily + l.totalRidesToday * LIFT_WEAR_PER_RIDE, 0)
 }
 
 /** count of open trails by difficulty, for demand & guest terrain matching */

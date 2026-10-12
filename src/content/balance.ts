@@ -404,8 +404,19 @@ export const WINTER = {
   crowdMilestone: 150, finaleDay: 54, recoveryCost: 2400, recoveryDepth: 16,
 } as const
 
-// Scaling service costs keep a crowded hill from becoming nearly cost-free revenue.
-export const SERVICE_COSTS = { perVisitor: 18, foodShare: .4, rentalShare: .2, lessonShare: .1 }
+// Busy days cost more through the business itself, not a flat per-head fee:
+// every ride wears the lift, and crowds beyond the front-line crew's comfortable
+// load are covered by part-time hours at a premium over salaried wages.
+export const LIFT_WEAR_PER_RIDE = 0.6
+export const CROWD_STAFFING = {
+  roles: ['lift-ops', 'patrol', 'rental', 'food-service'] as StaffRole[],
+  /** guests per day one front-line employee handles without extra hours */
+  guestsPerStaff: 15,
+  /** part-time cover costs this multiple of an equivalent salaried day */
+  partTimePremium: 1.25,
+}
+// Cost of goods: food, rental wear-and-tear and lesson materials scale with sales.
+export const SERVICE_COSTS = { foodShare: .4, rentalShare: .2, lessonShare: .1 }
 export const GUEST_JOY = { ceiling: 92, easingRange: 40, freshLaps: 3 }
 export const SCHOOL_DEMAND_PER_INSTRUCTOR = .1
 export const SCHOOL_DEMAND_MAX = .2

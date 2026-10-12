@@ -38,7 +38,7 @@ export function DailyReportModal() {
           <Stat label="Incidents" value={String(report.incidents)} tone={report.incidents === 0 ? 'good' : 'bad'} />
         </div>
 
-        {game.reports.length>1&&<div className="mt-4 rounded-xl bg-pine/10 p-3 text-sm"><strong>What changed since yesterday?</strong><p>Arrivals {report.guestsServed-game.reports.at(-2)!.guestsServed>=0?'+':''}{report.guestsServed-game.reports.at(-2)!.guestsServed}; ticket revenue {formatMoney(rev.tickets-game.reports.at(-2)!.revenue.tickets)}; payroll {formatMoney(exp.payroll-game.reports.at(-2)!.expenses.payroll)}; energy {formatMoney(exp.energy-game.reports.at(-2)!.expenses.energy)}.</p><p className="mt-1 text-xs">Weather, price and reputation affect interest; arrival spaces and your admission policy cap bookings. Payroll follows staffing and hours; cold-night snowmaking adds energy cost. Visitor services scale with actual arrivals (housing reduces their cost); food, rental and lesson supplies scale with sales.</p></div>}
+        {game.reports.length>1&&<div className="mt-4 rounded-xl bg-pine/10 p-3 text-sm"><strong>What changed since yesterday?</strong><p>Arrivals {report.guestsServed-game.reports.at(-2)!.guestsServed>=0?'+':''}{report.guestsServed-game.reports.at(-2)!.guestsServed}; ticket revenue {formatMoney(rev.tickets-game.reports.at(-2)!.revenue.tickets)}; payroll {formatMoney(exp.payroll-game.reports.at(-2)!.expenses.payroll)}; energy {formatMoney(exp.energy-game.reports.at(-2)!.expenses.energy)}.</p><p className="mt-1 text-xs">Weather, price and reputation affect interest; arrival spaces and your admission policy cap bookings. Payroll follows staffing and hours, plus part-time cover when arrivals outgrow your front-line crew; lift maintenance rises with every ride; cold-night snowmaking adds energy cost; food, rental and lesson supplies scale with sales.</p></div>}
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
             <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-faint">Revenue — {formatMoney(revTotal)}</h4>
@@ -51,6 +51,7 @@ export function DailyReportModal() {
           <div>
             <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-faint">Expenses — {formatMoney(expTotal)}</h4>
             <MoneyRow label="Payroll" v={exp.payroll} neg />
+            {!!exp.crowdStaffing && <MoneyRow label="incl. part-time crowd cover" v={exp.crowdStaffing} neg />}
             {!!exp.visitorServices && <MoneyRow label="Visitor services" v={exp.visitorServices} neg />}
             {!!exp.supplies && <MoneyRow label="Food & equipment supplies" v={exp.supplies} neg />}
             <MoneyRow label="Lift maintenance" v={exp.maintenance} neg />

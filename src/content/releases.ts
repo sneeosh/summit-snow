@@ -10,6 +10,7 @@ export const RELEASES = [
       '🎨 Name your resort, lifts, and trails, choose village colors, and host First Tracks Day, Local Race Day, or a Winter Festival.',
       '📖 Open Resort journal for morning briefings, guest goals, live visit timelines, and village shuttles.',
       '📷 Download a village postcard with your resort name and season achievements.',
+      '💼 Busy days now cost what they would in real life: every ride wears the lifts, and crowds beyond your front-line crew need part-time cover. Lift upkeep is higher across the board, so check your margins.',
     ],
   },
   {

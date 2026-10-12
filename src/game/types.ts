@@ -440,8 +440,11 @@ export interface ExpenseBreakdown {
   facilities: number
   interest: number
   other: number
-  /** Included in other; optional on historical reports. */
+  /** Part-time crowd hours, included in payroll. */
+  crowdStaffing?: number
+  /** Historical (pre-0.2.0) flat per-visitor fee, included in other. */
   visitorServices?: number
+  /** Included in other; optional on historical reports. */
   supplies?: number
   hostedEvent?: number
   medevac?: number

@@ -1,5 +1,5 @@
 import { returningMultiplier } from './winter'
-import { WINTER, SERVICE_COSTS, SCHOOL_DEMAND_PER_INSTRUCTOR, SCHOOL_DEMAND_MAX } from '../content/balance'
+import { WINTER, SERVICE_COSTS, CROWD_STAFFING, STAFF_WAGES, SCHOOL_DEMAND_PER_INSTRUCTOR, SCHOOL_DEMAND_MAX } from '../content/balance'
 import { HOSTED_EVENTS, todayHostedEvent } from './creativity'
 /**
  * Demand modelling, day-end settlement, reputation, and the daily report.
@@ -97,10 +97,18 @@ function runningLiftCapacityEstimate(state: GameState): number {
 }
 
 /** Agency cleanup, guest support and consumables scale with actual business. */
+/** part-time front-line hours for visitors beyond what the salaried crew absorbs (before housing discount) */
+export function crowdStaffingCost(state: GameState, visitors = state.guestsArrivedToday): number {
+  const crew = CROWD_STAFFING.roles.reduce((sum, role) => sum + staffCount(state, role), 0)
+  const excess = Math.max(0, visitors - crew * CROWD_STAFFING.guestsPerStaff)
+  const wage = CROWD_STAFFING.roles.reduce((sum, role) => sum + STAFF_WAGES[role], 0) / CROWD_STAFFING.roles.length
+  return Math.round(excess / CROWD_STAFFING.guestsPerStaff * wage * CROWD_STAFFING.partTimePremium)
+}
+
 export function serviceCosts(state: GameState, visitors = state.guestsArrivedToday) {
   const revenue = state.revenueToday
   return {
-    visitorServices: Math.round(visitors * SERVICE_COSTS.perVisitor * (1 - townBenefits(state).payrollDiscount)),
+    crowdStaffing: Math.round(crowdStaffingCost(state, visitors) * (1 - townBenefits(state).payrollDiscount)),
     supplies: Math.round(revenue.food * SERVICE_COSTS.foodShare + revenue.rentals * SERVICE_COSTS.rentalShare + revenue.lessons * SERVICE_COSTS.lessonShare),
   }
 }
@@ -116,8 +124,9 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
   const operatedMinutes = closingMinute(state) - DAY_START_MIN
 
   // ---- expenses
-  const payroll = state.staff.reduce((sum, d) => sum + d.headcount * d.dailyWage, 0) * (operatedMinutes / (DAY_END_MIN - DAY_START_MIN)) * (1 - townBenefits(state).payrollDiscount)
-  const maintenance = liftMaintenanceDaily(state)
+  const service = serviceCosts(state)
+  const payroll = state.staff.reduce((sum, d) => sum + d.headcount * d.dailyWage, 0) * (operatedMinutes / (DAY_END_MIN - DAY_START_MIN)) * (1 - townBenefits(state).payrollDiscount) + service.crowdStaffing
+  const maintenance = Math.round(liftMaintenanceDaily(state))
   const facilities = facilityOperatingDaily(state) + townBenefits(state).dailyCost
 
   let energy = ENERGY_COST_LIGHTS_DAILY + (nightOperating(state) ? NIGHT_LIGHTS_ENERGY : 0)
@@ -140,9 +149,8 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
   }
   state.loans = state.loans.filter((l) => l.balance > 1)
 
-  const service = serviceCosts(state)
   const expenses: ExpenseBreakdown = {
-    visitorServices: service.visitorServices,
+    crowdStaffing: service.crowdStaffing,
     supplies: service.supplies,
     payroll,
     maintenance,
@@ -150,10 +158,10 @@ export function settleDay(state: GameState, rng: Rng): Settlement {
     facilities,
     interest: Math.round(interest),
     hostedEvent: todayHostedEvent(state)?.cost ?? 0,
-    other: service.visitorServices + service.supplies + state.winter.recoverySpendToday + (todayHostedEvent(state)?.cost ?? 0) + state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
+    other: service.supplies + state.winter.recoverySpendToday + (todayHostedEvent(state)?.cost ?? 0) + state.operations.controlCostToday + state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
     medevac: state.rescuesToday.reduce((sum, r) => sum + r.cost, 0),
   }
-  state.cash -= payroll + maintenance + expenses.energy + facilities + service.visitorServices + service.supplies
+  state.cash -= payroll + maintenance + expenses.energy + facilities + service.supplies
 
   const revenue = state.revenueToday
   const revTotal = revenue.tickets + revenue.rentals + revenue.food + revenue.lessons + revenue.parking
