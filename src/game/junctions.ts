@@ -90,7 +90,7 @@ function builtTrailIds(state: GameState, except?: string): string[] {
 }
 
 /** closest point on one trail's path, with world-length progress */
-function projectOnTrail(state: GameState, trailId: string, p: Vec2): { t: number; pos: Vec2; d: number } {
+export function projectOnTrail(state: GameState, trailId: string, p: Vec2): { t: number; pos: Vec2; d: number } {
   const mp = getTrailPath(state, trailId)
   let best = { t: 0, pos: mp.points[0], d: Infinity }
   for (let i = 1; i < mp.points.length; i++) {

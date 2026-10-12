@@ -31,3 +31,5 @@ diag.log
 
 # wrangler local state
 .wrangler/
+
+public/winter-review/
