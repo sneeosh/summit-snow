@@ -48,7 +48,7 @@ it('finishes a deterministic night, pays the longer shift and rolls to morning',
  expect(s).toEqual(run())
  expect(s.phase).toBe('day-end')
  expect(s.minute).toBeGreaterThanOrEqual(NIGHT_END_MIN)
- expect(s.reports[0].expenses.payroll).toBe(Math.round(s.staff.reduce((sum,d)=>sum+d.headcount*d.dailyWage,0)*1.5))
+ expect(s.reports[0].expenses.payroll-(s.reports[0].expenses.crowdStaffing??0)).toBe(Math.round(s.staff.reduce((sum,d)=>sum+d.headcount*d.dailyWage,0)*1.5))
  expect(JSON.parse(JSON.stringify(s))).toEqual(s)
  startNextDay(s)
  expect(s.minute).toBe(510)

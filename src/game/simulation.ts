@@ -1,3 +1,6 @@
+import { newWinter, mountainPortrait, settleWinter } from './winter'
+import { finishHostedEvent, keepSeasonPostcard } from './creativity'
+import { archiveVisit } from './visits'
 /**
  * Simulation orchestrator: the tick pipeline and the day lifecycle
  * (planning → operating → day-end → next morning). Pure state-in/state-out;
@@ -6,7 +9,7 @@
 import { DAY_START_MIN, SEASON_DAYS, TICK_MINUTES } from '../content/balance'
 import { ensureMountain } from '../content/mountain'
 import { MOUNTAIN_MAP } from '../content/mountains'
-import { computeDailyDemand, settleDay } from './economy'
+import { computeDailyDemand, demandExplanation, settleDay } from './economy'
 import { createEventProvider, expireOldEvents, type EventContext } from './events'
 import { pushAlert, spawnArrivals, tickGuests } from './guests'
 import { rollBreakdowns, tickLifts } from './lifts'
@@ -39,6 +42,7 @@ export function openResort(state: GameState): void {
   const held = Object.values(state.trails).filter(t => t.built && t.open && avalancheHeld(state, t.trailId))
   for (const trail of held) trail.open = false
   if (held.length) pushAlert(state, 'warning', `Avalanche hold: ${held.length} runs closed until morning control is completed`)
+  state.winter.openingDemand = demandExplanation(state)
   state.phase = 'operating'
   state.minute = DAY_START_MIN
   state.targetDemandToday = computeDailyDemand(state)
@@ -96,6 +100,7 @@ export function tick(state: GameState): void {
     const remaining = Object.values(state.guests)
     if (remaining.length === 0 || (state.minute >= closingMinute(state) + 75 && !remaining.some(g => g.objective === 'rescue'))) {
       for (const g of remaining) {
+        archiveVisit(state, g)
         state.departedToday.push({
           satisfaction: g.satisfaction,
           name: g.name,
@@ -124,6 +129,9 @@ function endDay(state: GameState, rng: Rng): void {
   state.phase = 'day-end'
 
   const { report } = settleDay(state, rng)
+  finishHostedEvent(state, report)
+  if (state.day >= SEASON_DAYS) keepSeasonPostcard(state)
+  settleWinter(state, report)
   state.reports.push(report)
   if (state.reports.length > SEASON_DAYS) state.reports.splice(0, state.reports.length - SEASON_DAYS)
 
@@ -155,9 +163,10 @@ export function dayEndDisposition(state: GameState): 'game-over' | 'season-rolls
 
 /** advance from the day-end report into the next planning morning */
 export function startNextDay(state: GameState): void {
-  if (state.phase !== 'day-end') return
+  if (state.phase !== 'day-end' || state.gameOver) return
   ensureMountain(state.mountainId, state.mountainVersion ?? 1)
 
+  state.winter.recoverySpendToday = 0
   state.operations.controlCostToday = 0
   state.operations.avalancheClearedTrails = []
   state.operations.avalancheClearedDay = 0
@@ -169,6 +178,8 @@ export function startNextDay(state: GameState): void {
   if (state.day > SEASON_DAYS && state.mode === 'sandbox') {
     state.season += 1
     state.day = 1
+    state.winter = newWinter(state.season)
+    state.winter.opening = mountainPortrait(state)
     state.weatherSeason = generateSeasonWeather(
       state.seed + state.season * 101,
       MOUNTAIN_MAP[state.mountainId]?.climate,
@@ -200,6 +211,7 @@ export function startNextDay(state: GameState): void {
   if (avalancheClosures.length) pushAlert(state, 'warning', `Avalanche holds on ${avalancheClosures.length} expert runs — review Mountain operations before opening`)
 
   // ---- reset daily accumulators
+  state.recentVisits = []
   state.departedToday = []
   state.guestsArrivedToday = 0
   state.peakGuestsToday = 0

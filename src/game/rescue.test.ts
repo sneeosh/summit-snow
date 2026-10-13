@@ -51,7 +51,7 @@ describe('serious incident rescue', () => {
     const { report: other } = settleDay(baseline, new Rng(1))
     expect(baseline.cash - state.cash).toBe(MEDEVAC_COST)
     expect(report.expenses.medevac).toBe(MEDEVAC_COST)
-    expect(report.expenses.other).toBe(MEDEVAC_COST + 650)
+    expect(report.expenses.other - (report.expenses.visitorServices ?? 0) - (report.expenses.supplies ?? 0)).toBe(MEDEVAC_COST + 650)
     expect(other.netProfit - report.netProfit).toBe(MEDEVAC_COST)
   })
 

@@ -1,3 +1,4 @@
+import { VisitStory } from './ResortJournal'
 /** Contextual right-side inspector for the current selection. */
 import { FACILITIES, LIFT_BASE_COST, LIFT_COST_PER_M, LIFT_TYPES, TRAIL_MIN_DEPTH_CM } from '../content/balance'
 import { SLOT_MAP } from '../content/mountain'
@@ -266,6 +267,7 @@ function GuestCard({ id }: { id: number }) {
         <span className="text-ink-faint">Spent</span>
         <span className="text-right stat-number">{formatMoney(guest.spent)}</span>
       </div>
+      {guest.visit && <details className="mt-3"><summary className="cursor-pointer text-sm font-semibold">📖 Visit story</summary><VisitStory visit={guest.visit}/></details>}
       {guest.memories.length > 0 && (
         <div className="mt-2">
           <div className="text-[10px] uppercase tracking-wider text-ink-faint">Day so far</div>

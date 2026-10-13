@@ -1,6 +1,19 @@
 /** Player-facing release history. Add new releases first; keep save versions separate. */
 export const RELEASES = [
   {
+    version: '0.2.0', date: '2026-10-12', dateLabel: 'October 12, 2026',
+    title: '❄️ The winter we built', summary: 'Guest loyalty, your own resort style, and a season worth remembering.',
+    changes: [
+      '❄️ Start with staffed rentals or a teaching package in Resort journal → Our winter, then watch guest experiences shape future audiences.',
+      '🚦 Choose morning admissions, help a growing resort catch up with demand, and recover thin terrain with emergency resurfacing.',
+      '📜 Finish the season with real before-and-after routes, decisions, recovery, event results and finances.',
+      '🎨 Name your resort, lifts, and trails, choose village colors, and host First Tracks Day, Local Race Day, or a Winter Festival.',
+      '📖 Open Resort journal for morning briefings, guest goals, live visit timelines, and village shuttles.',
+      '📷 Download a village postcard with your resort name and season achievements.',
+      '💼 Busy days now cost what they would in real life: every ride wears the lifts, and crowds beyond your front-line crew need part-time cover. Lift upkeep is higher across the board, so check your margins.',
+    ],
+  },
+  {
     version: '0.1.2',
     date: '2026-10-09',
     dateLabel: 'October 9, 2026',

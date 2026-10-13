@@ -273,7 +273,19 @@ export interface GuestMemory {
   minute: number
 }
 
+export interface GuestVisit {
+  departureMinute?: number
+  notes?: { text: string; delta: number }[]
+  goal: 'learn' | 'explore' | 'challenge' | 'relax'
+  origin: 'day-trip' | 'inn' | 'shuttle'
+  steps: { minute: number; label: string }[]
+  lastActivity: string
+  fulfilled: boolean
+}
+
 export interface Guest {
+  visit?: GuestVisit
+
   id: number
   name: string
   skill: SkillLevel
@@ -428,7 +440,13 @@ export interface ExpenseBreakdown {
   facilities: number
   interest: number
   other: number
+  /** Part-time crowd hours, included in payroll. */
+  crowdStaffing?: number
+  /** Historical (pre-0.2.0) flat per-visitor fee, included in other. */
+  visitorServices?: number
   /** Included in other; optional on historical reports. */
+  supplies?: number
+  hostedEvent?: number
   medevac?: number
 }
 
@@ -530,7 +548,32 @@ export interface TownState {
   lastOpening: { project: TownProject; level: number; day: number; season: number } | null
 }
 
+export type HostedEventKind = 'learners' | 'race' | 'festival'
+export interface ResortStyle {
+  name: string
+  color: string
+  decor: 'natural' | 'lanterns' | 'bunting'
+  trailNames: Record<string, string>
+  liftNames: Record<string, string>
+}
+export interface SeasonPostcard {
+  winter?: import('./winter').WinterRecord
+  season: number; day: number; mountainId: string; name: string
+  guests: number; reputation: number; events: number
+  town: TownState; style: ResortStyle
+}
+export interface HostedEvent {
+  kind: HostedEventKind; day: number; season: number; cost: number
+  status: 'booked' | 'success' | 'missed'; result?: string
+}
 export interface GameState {
+  winter: import('./winter').WinterRecord
+  style: ResortStyle
+  hostedEvents: HostedEvent[]
+  postcards: SeasonPostcard[]
+
+  savedSpeed?: 0 | 1 | 4
+  recentVisits: { id: number; name: string; satisfaction: number; visit: GuestVisit }[]
   town: TownState
   version: number
   mode: GameMode

@@ -1,3 +1,4 @@
+import { WINTER } from '../content/balance'
 import { TOWN_COUNCIL_RULES as COUNCIL, TOWN_BEDS_PER_INN, TOWN_COMPACT_PAYROLL_DISCOUNT, TOWN_DEMAND_PER_INN, TOWN_HOMES_COMPACT_COST, TOWN_HOUSING_PAYROLL_DISCOUNT, TOWN_MAX_LEVEL, TOWN_MAX_PAYROLL_DISCOUNT, TOWN_SERVICE_COSTS, TOWN_SHUTTLE_CAPACITY, TOWN_STREET_DEMAND_MULT, TOWN_VOTE_THRESHOLD } from '../content/balance'
 import { TOWN_PROJECTS, TOWN_REGION_PRESSURE, TOWN_SEATS } from '../content/town'
 import { TOWN_POLICY_COSTS, TOWN_MARKET_DEMAND, TOWN_MARKET_DAILY_COST, TOWN_DARK_SKY_SAVING } from '../content/balance'
@@ -21,9 +22,11 @@ export function townProposal(state: GameState, project: TownProject, homes = fal
  const spec = TOWN_PROJECTS[project], level = state.town.levels[project]
  const compact = project === 'inn' && homes
  const pressure = TOWN_REGION_PRESSURE[state.mountainId] ?? 0
+ const trafficPressure = Math.min(WINTER.councilPressureCap, (state.winter?.days??[]).slice(-WINTER.councilPressureDays).filter(d=>d.lost>0).length*WINTER.councilPressurePerDay)
  const votes = TOWN_SEATS.map(seat=>{
   let score = state.town.trust[seat] + spec.votes[seat]
   if (project === 'inn') {
+   if (seat === 'residents') score -= trafficPressure
    if (seat === 'residents') score += state.town.levels.housing * COUNCIL.housingSupport + state.town.levels.mainstreet * COUNCIL.streetSupport + (compact ? COUNCIL.compactSupport : 0) - pressure
    if (seat === 'conservation') score += state.town.levels.shuttle * COUNCIL.shuttleSupport + state.town.levels.mainstreet * COUNCIL.streetSupport - pressure
    if (seat === 'businesses' && compact) score -= COUNCIL.compactBusinessCost
@@ -31,7 +34,7 @@ export function townProposal(state: GameState, project: TownProject, homes = fal
   return { seat, score: Math.max(0,Math.min(100,score)), yes: score >= TOWN_VOTE_THRESHOLD }
  })
  return { cost: spec.cost * (level + 1) + (compact ? TOWN_HOMES_COMPACT_COST : 0), days: spec.days + level,
-  votes, approved: votes.filter(v=>v.yes).length >= 2, maxed: level >= TOWN_MAX_LEVEL }
+  trafficPressure, votes, approved: votes.filter(v=>v.yes).length >= 2, maxed: level >= TOWN_MAX_LEVEL }
 }
 /** Construction advances once per completed operating day, never from real time. */
 export function advanceTown(state: GameState): string | null {
